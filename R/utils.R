@@ -231,21 +231,26 @@ estimate_tokens <- function(text) {
   if (is.null(text)) {
     return(0)
   }
-  
+
   # Convert to JSON if not already a character
   if (!is.character(text)) {
     tryCatch({
       text <- jsonlite::toJSON(text, auto_unbox = TRUE)
     }, error = function(e) {
-      # If JSON conversion fails, convert to character
-      text <- as.character(text)
+      # If JSON conversion fails, try deparse then as.character as fallback
+      tryCatch({
+        text <- paste(deparse(text), collapse = " ")
+      }, error = function(e2) {
+        # Ultimate fallback for unconvertible objects
+        text <- "unknown"
+      })
     })
   }
-  
+
   # Handle NA or empty string after conversion
-  if (is.na(text) || text == "") {
+  if (length(text) == 0 || is.na(text) || text == "") {
     return(0)
   }
-  
+
   ceiling(nchar(text) / 4)
 }

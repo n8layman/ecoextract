@@ -155,12 +155,12 @@ save_document_to_db <- function(db_path, file_path, file_hash, metadata = list()
       basename(file_path),
       file_path,
       file_hash,
-      file.info(file_path)$size,
-      Sys.time(),
-      metadata$title %||% NULL,
-      metadata$first_author_lastname %||% NULL,
-      metadata$publication_year %||% NULL,
-      metadata$doi %||% NULL
+      as.numeric(file.info(file_path)$size),
+      as.character(Sys.time()),
+      metadata$title %||% NA_character_,
+      metadata$first_author_lastname %||% NA_character_,
+      metadata$publication_year %||% NA_integer_,
+      metadata$doi %||% NA_character_
     ))
     
     # Get the new document ID
@@ -189,16 +189,23 @@ save_interactions_to_db <- function(db_path, document_id, interactions_df, metad
   
   tryCatch({
     # Add required metadata columns
-    interactions_df$document_id <- document_id
-    interactions_df$extraction_timestamp <- Sys.time()
+    interactions_df$document_id <- as.integer(document_id)
+    interactions_df$extraction_timestamp <- as.character(Sys.time())
     interactions_df$llm_model_version <- metadata$model %||% "unknown"
     interactions_df$prompt_hash <- metadata$prompt_hash %||% "unknown"
     
     # Ensure all_supporting_source_sentences is JSON
     if ("all_supporting_source_sentences" %in% names(interactions_df)) {
-      interactions_df$all_supporting_source_sentences <- sapply(
+      interactions_df$all_supporting_source_sentences <- vapply(
         interactions_df$all_supporting_source_sentences,
-        function(x) if (is.list(x)) jsonlite::toJSON(x, auto_unbox = TRUE) else as.character(x)
+        function(x) {
+          if (is.list(x) || is.character(x) && length(x) > 1) {
+            jsonlite::toJSON(x, auto_unbox = FALSE)
+          } else {
+            as.character(x)
+          }
+        },
+        FUN.VALUE = character(1)
       )
     }
     
