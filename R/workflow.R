@@ -251,26 +251,6 @@ perform_ocr <- function(pdf_file) {
        "Please provide markdown content directly using extract_interactions()")
 }
 
-#' Perform OCR Quality Audit
-#'
-#' Currently a placeholder - integrate with ecoaudit package
-#'
-#' @param markdown_text Markdown content from OCR
-#' @return Audit results (character string)
-#' @keywords internal
-perform_ocr_audit <- function(markdown_text) {
-  # Check for ecoaudit package
-  if (!requireNamespace("ecoaudit", quietly = TRUE)) {
-    cat("Note: OCR audit requires 'ecoaudit' package (not yet available)\n")
-    return(NULL)
-  }
-
-  # Perform audit using ecoaudit
-  # audit_result <- ecoaudit::audit_ocr(markdown_text)
-
-  # Placeholder for now
-  return(NULL)
-}
 
 #' Add Document to Database
 #'

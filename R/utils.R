@@ -66,16 +66,11 @@ process_ecological_documents <- function(
       cat("Step 1: OCR processing...\n")
       # ocr_result <- ohseer::mistral_ocr(pdf_file)
       # For now, skip actual OCR
-      
-      # Step 2: OCR Audit (would integrate with ecoaudit)
-      cat("Step 2: OCR quality audit...\n")
-      # audit_result <- ecoaudit::audit_ocr(ocr_result$markdown)
-      
-      # Step 3: Data Extraction
-      cat("Step 3: Data extraction...\n")
+
+      # Step 2: Data Extraction
+      cat("Step 2: Data extraction...\n")
       # extraction_result <- extract_interactions(
-      #   markdown_text = ocr_result$markdown,
-      #   ocr_audit = audit_result
+      #   markdown_text = ocr_result$markdown
       # )
       
       # For demonstration, create mock results
