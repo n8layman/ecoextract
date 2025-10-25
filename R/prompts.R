@@ -2,43 +2,43 @@
 #' 
 #' Handle system prompts and templates for ecological data extraction
 
-#' Get extraction prompt from package
+#' Get extraction prompt from package or custom location
+#' @param prompt_file Optional path to custom extraction prompt file
 #' @return Character string with extraction prompt
 #' @export
-get_extraction_prompt <- function() {
-  prompt_path <- system.file("prompts", "extraction_prompt.md", package = "ecoextract")
-  
-  if (!file.exists(prompt_path)) {
-    stop("Extraction prompt not found in package. Please ensure ecoextract is properly installed.")
-  }
-  
-  readr::read_file(prompt_path)
+get_extraction_prompt <- function(prompt_file = NULL) {
+  load_config_file(
+    file_path = prompt_file,
+    file_name = "extraction_prompt.md",
+    package_subdir = "prompts",
+    return_content = TRUE
+  )
 }
 
-#' Get refinement prompt from package
+#' Get refinement prompt from package or custom location
+#' @param prompt_file Optional path to custom refinement prompt file
 #' @return Character string with refinement prompt
 #' @export
-get_refinement_prompt <- function() {
-  prompt_path <- system.file("prompts", "refinement_prompt.md", package = "ecoextract")
-  
-  if (!file.exists(prompt_path)) {
-    stop("Refinement prompt not found in package. Please ensure ecoextract is properly installed.")
-  }
-  
-  readr::read_file(prompt_path)
+get_refinement_prompt <- function(prompt_file = NULL) {
+  load_config_file(
+    file_path = prompt_file,
+    file_name = "refinement_prompt.md",
+    package_subdir = "prompts",
+    return_content = TRUE
+  )
 }
 
-#' Get extraction context template from package
+#' Get extraction context template from package or custom location
+#' @param context_file Optional path to custom context template file
 #' @return Character string with context template
 #' @export
-get_extraction_context_template <- function() {
-  template_path <- system.file("prompts", "extraction_context.md", package = "ecoextract")
-  
-  if (!file.exists(template_path)) {
-    stop("Extraction context template not found in package. Please ensure ecoextract is properly installed.")
-  }
-  
-  readr::read_file(template_path)
+get_extraction_context_template <- function(context_file = NULL) {
+  load_config_file(
+    file_path = context_file,
+    file_name = "extraction_context.md",
+    package_subdir = "prompts",
+    return_content = TRUE
+  )
 }
 
 #' List all available prompts in package

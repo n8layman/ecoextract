@@ -99,7 +99,7 @@ setup_env_file <- function(env_file = ".env", anthropic_key = NULL, mistral_key 
     cat("Created .gitignore with .env entry\n")
   }
   
-  cat("✅ Environment file created:", env_file, "\n")
+  cat("\u2705 Environment file created:", env_file, "\n")
   cat("Please restart R or run Sys.setenv() to load the new API keys.\n")
   
   return(TRUE)
@@ -137,12 +137,12 @@ load_env_file <- function(env_file = ".env") {
             value <- substr(value, 2, nchar(value) - 1)
           }
           
-          Sys.setenv(setNames(value, key))
+          Sys.setenv(stats::setNames(value, key))
         }
       }
     }
     
-    cat("✅ Loaded environment variables from:", env_file, "\n")
+    cat("\u2705 Loaded environment variables from:", env_file, "\n")
     return(TRUE)
     
   }, error = function(e) {
@@ -158,11 +158,11 @@ print_api_status <- function() {
   
   cat("=== EcoExtract API Configuration Status ===\n\n")
   
-  cat("Anthropic API (Claude):", if (status$anthropic_available) "✅ Available" else "❌ Not found", "\n")
-  cat("Mistral API (OCR):     ", if (status$mistral_available) "✅ Available" else "❌ Not found", "\n")
+  cat("Anthropic API (Claude):", if (status$anthropic_available) "\u2705 Available" else "\u274c Not found", "\n")
+  cat("Mistral API (OCR):     ", if (status$mistral_available) "\u2705 Available" else "\u274c Not found", "\n")
   
   if (!status$all_available) {
-    cat("\n⚠️  Missing API keys detected!\n\n")
+    cat("\n\u26a0\ufe0f  Missing API keys detected!\n\n")
     cat("To set up API keys:\n")
     cat("1. Run: ecoextract::setup_env_file()\n")
     cat("2. Or manually create .env file with:\n")
@@ -173,7 +173,7 @@ print_api_status <- function() {
     cat("- Anthropic: https://console.anthropic.com/\n")
     cat("- Mistral: https://console.mistral.ai/\n")
   } else {
-    cat("\n✅ All API keys configured correctly!\n")
+    cat("\n\u2705 All API keys configured correctly!\n")
   }
 }
 

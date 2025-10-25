@@ -61,7 +61,7 @@ process_ecological_documents <- function(
         cat("Warning: ohseer package not available, skipping OCR\n")
         next
       }
-      
+
       # OCR with Mistral (placeholder - would use ohseer::mistral_ocr)
       cat("Step 1: OCR processing...\n")
       # ocr_result <- ohseer::mistral_ocr(pdf_file)
@@ -103,85 +103,6 @@ process_ecological_documents <- function(
       cat("  -", error, "\n")
     }
   }
-  
-  return(results)
-}
-
-#' Process a single document through the extraction pipeline
-#' @param markdown_text OCR-processed markdown content
-#' @param document_metadata List with document metadata (author, year, etc.)
-#' @param config Processing configuration
-#' @return List with processing results
-#' @export
-process_single_document <- function(markdown_text, document_metadata = list(), config = list()) {
-  
-  results <- list(
-    success = FALSE,
-    interactions = data.frame(),
-    refined_interactions = data.frame(),
-    publication_metadata = list(),
-    errors = character(0)
-  )
-  
-  tryCatch({
-    # Step 1: Initial extraction
-    cat("Extracting interactions...\n")
-    extraction_result <- extract_interactions(
-      markdown_text = markdown_text,
-      ocr_audit = config$ocr_audit,
-      existing_interactions = NULL,
-      document_id = config$document_id
-    )
-    
-    if (!extraction_result$success || nrow(extraction_result$interactions) == 0) {
-      results$errors <- c(results$errors, "No interactions extracted")
-      return(results)
-    }
-    
-    results$interactions <- extraction_result$interactions
-    results$publication_metadata <- extraction_result$publication_metadata
-    
-    # Step 2: Refinement
-    cat("Refining interactions...\n")
-    refinement_result <- refine_interactions(
-      interactions = extraction_result$interactions,
-      markdown_text = markdown_text,
-      ocr_audit = config$ocr_audit,
-      document_id = config$document_id
-    )
-    
-    if (refinement_result$success) {
-      results$refined_interactions <- refinement_result$interactions
-    } else {
-      results$refined_interactions <- extraction_result$interactions
-      results$errors <- c(results$errors, "Refinement failed, using original extractions")
-    }
-    
-    # Step 3: Metadata enrichment (if requested)
-    if (isTRUE(config$enrich_metadata) && !is.null(results$publication_metadata)) {
-      cat("Enriching publication metadata...\n")
-      enrichment_result <- enrich_publication_metadata(
-        doi = results$publication_metadata$doi,
-        title = document_metadata$title,
-        authors = results$publication_metadata$first_author_lastname
-      )
-      
-      if (enrichment_result$success) {
-        results$publication_metadata <- enrichment_result$metadata
-        cat("Successfully enriched metadata\n")
-      }
-    }
-    
-    # Step 4: Schema validation
-    cat("Validating schema...\n")
-    final_interactions <- validate_and_prepare_for_db(results$refined_interactions)
-    results$refined_interactions <- final_interactions
-    
-    results$success <- TRUE
-    
-  }, error = function(e) {
-    results$errors <- c(results$errors, paste("Processing error:", e$message))
-  })
   
   return(results)
 }

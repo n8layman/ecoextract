@@ -178,7 +178,3 @@ extract_first_author_lastname <- function(crossref_authors) {
   })
 }
 
-#' Simple null coalescing operator
-`%||%` <- function(x, y) {
-  if (is.null(x) || length(x) == 0 || (is.character(x) && x == "")) y else x
-}

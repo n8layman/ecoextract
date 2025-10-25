@@ -122,19 +122,20 @@ test_that("ecoextract_info prints package information", {
 })
 
 test_that("process_single_document handles errors gracefully", {
-  # Mock data that will cause processing to fail gracefully
+  # Create temp database
+  temp_db <- withr::local_tempfile(fileext = ".sqlite")
+  init_ecoextract_database(temp_db)
+  db_conn <- DBI::dbConnect(RSQLite::SQLite(), temp_db)
+  withr::defer(DBI::dbDisconnect(db_conn))
+
+  # Test with non-existent file - should return error status
   result <- process_single_document(
-    markdown_text = "",
-    document_metadata = list(),
-    config = list(
-      ocr_audit = NULL,
-      document_id = NULL,
-      enrich_metadata = FALSE
-    )
+    pdf_file = "nonexistent.pdf",
+    db_conn = db_conn
   )
 
-  expect_false(result$success)
-  expect_type(result$errors, "character")
+  expect_equal(result$status, "error")
+  expect_type(result$error_message, "character")
 })
 
 test_that("build_existing_interactions_context handles empty interactions", {
