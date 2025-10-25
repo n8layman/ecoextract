@@ -213,7 +213,7 @@ save_interactions_to_db <- function(db_path, document_id, interactions_df, metad
     db_columns <- DBI::dbListFields(con, "interactions")
     
     # Filter to only include columns that exist in database
-    interactions_clean <- interactions_df %>%
+    interactions_clean <- interactions_df |>
       dplyr::select(dplyr::any_of(db_columns))
     
     # Insert interactions
@@ -340,7 +340,7 @@ validate_ellmer_schema_with_db <- function(db_conn, ellmer_schema, table_name = 
   # Get database table structure
   tryCatch({
     db_info <- DBI::dbGetQuery(db_conn, paste0("PRAGMA table_info(", table_name, ")"))
-    db_columns <- setNames(db_info$type, db_info$name)
+    db_columns <- stats::setNames(db_info$type, db_info$name)
   }, error = function(e) {
     return(list(
       valid = FALSE,
@@ -476,6 +476,11 @@ get_existing_interactions <- function(document_id, db_conn) {
 }
 
 #' Simple null coalescing operator
+#' @param x First value to check
+#' @param y Default value to use if x is NULL or empty
+#' @return Either x if not NULL/empty, or y
+#' @keywords internal
+#' @noRd
 `%||%` <- function(x, y) {
   if (is.null(x) || length(x) == 0 || (is.character(x) && x == "")) y else x
 }

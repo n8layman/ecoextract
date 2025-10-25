@@ -7,9 +7,15 @@
 #' @param markdown_text Original OCR-processed markdown content
 #' @param ocr_audit Optional OCR quality analysis
 #' @param document_id Optional document ID for context
+#' @param refinement_prompt_file Path to custom refinement prompt file (optional)
+#' @param refinement_context_file Path to custom refinement context template file (optional)
+#' @param schema_file Path to custom schema JSON file (optional)
+#' @param anthropic_key Optional Anthropic API key (uses environment variable if not provided)
 #' @return List with refinement results
 #' @export
-refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, document_id = NULL, anthropic_key = NULL) {
+refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, document_id = NULL,
+                                refinement_prompt_file = NULL, refinement_context_file = NULL, schema_file = NULL,
+                                anthropic_key = NULL) {
   if (is.null(interactions) || nrow(interactions) == 0) {
     cat("No existing interactions found for refinement\n")
     return(list(
@@ -19,52 +25,55 @@ refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, d
       model = "claude-sonnet-4-20250514"
     ))
   }
-  
+
   # Check API key availability
   api_key <- anthropic_key %||% get_anthropic_key()
   if (is.null(api_key)) {
     stop("Anthropic API key not found. Please set ANTHROPIC_API_KEY environment variable or run setup_env_file()")
   }
-  
-  # Load refinement prompt and context template from package
-  refinement_prompt <- get_refinement_prompt()
-  refinement_context_template <- get_extraction_context_template()
-  
+
+  # Load refinement schema (custom or default)
+  schema <- load_schema(schema_file, schema_type = "refinement")
+
+  # Load refinement prompt and context template (custom or default)
+  refinement_prompt <- get_refinement_prompt(refinement_prompt_file)
+  refinement_context_template <- get_extraction_context_template(refinement_context_file)
+
   # Calculate prompt hash for model tracking
   prompt_hash <- digest::digest(paste(refinement_prompt, refinement_context_template, sep = "\n"), algo = "md5")
-  
+
   # Build context for refinement
   existing_context <- build_existing_interactions_context(interactions, document_id)
-  
+
   audit_context <- if (is.null(ocr_audit)) {
     "No OCR audit available. No specific human edit audit context available."
   } else {
     paste("OCR Quality Analysis:", ocr_audit, "Human Edit Audit: No specific human edit audit context available.")
   }
-  
+
   # Report inputs
   markdown_chars <- nchar(markdown_text)
   interaction_count <- nrow(interactions)
   cat("Inputs loaded: OCR data (", markdown_chars, " chars), OCR audit (", nchar(ocr_audit %||% ""), " chars), ", interaction_count, " interactions, refinement prompt (", nchar(refinement_prompt), " chars, hash:", substring(prompt_hash, 1, 8), ")\n")
-  
+
   # Initialize refinement chat
   cat("Calling claude-sonnet-4-20250514 for refinement\n")
   refine_chat <- ellmer::chat_anthropic(
-    system_prompt = refinement_prompt, 
-    model = "claude-sonnet-4-20250514", 
-    echo = "none", 
+    system_prompt = refinement_prompt,
+    model = "claude-sonnet-4-20250514",
+    echo = "none",
     params = list(max_tokens = 8192)
   )
-  
+
   # Build refinement context
   refinement_context <- glue::glue(refinement_context_template,
     ocr_content = markdown_text,
     existing_interactions = existing_context,
     audit_context = audit_context
   )
-  
+
   # Execute refinement
-  refine_result <- refine_chat$chat(refinement_context, schema = ellmer::interactions)
+  refine_result <- refine_chat$chat(refinement_context, schema = schema)
   
   # Process result
   cat("Raw refinement response length:", nchar(refine_result$content), "characters\n")
@@ -184,7 +193,7 @@ build_existing_interactions_context <- function(existing_interactions, document_
       paste0("interaction-", i)
     }
     
-    context_line <- paste0("- ", occurrence_id, ": ", bat_info, " ↔ ", org_desc, location_desc)
+    context_line <- paste0("- ", occurrence_id, ": ", bat_info, " <-> ", org_desc, location_desc)
     context_lines <- c(context_lines, context_line)
   }
   

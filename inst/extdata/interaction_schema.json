@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ecological Interaction Schema",
+  "description": "Schema for extracting ecological interaction data from scientific literature",
+  "type": "object",
+  "properties": {
+    "publication_metadata": {
+      "type": "object",
+      "description": "Publication metadata",
+      "properties": {
+        "first_author_lastname": {
+          "type": "string",
+          "description": "Last name of first author"
+        },
+        "publication_year": {
+          "type": "integer",
+          "description": "Year of publication"
+        },
+        "doi": {
+          "type": "string",
+          "description": "DOI if available"
+        }
+      }
+    },
+    "interactions": {
+      "type": "array",
+      "description": "Array of ecological interactions",
+      "items": {
+        "type": "object",
+        "description": "Ecological interaction between identifiable organisms",
+        "properties": {
+          "occurrence_id": {
+            "type": "string",
+            "description": "Unique interaction identifier"
+          },
+          "organisms_identifiable": {
+            "type": "string",
+            "description": "Whether both bat and interacting organism can be identified by scientific name, genus, or specific common name (set to 'true' only when both are identifiable)"
+          },
+          "bat_species_scientific_name": {
+            "type": "string",
+            "description": "Scientific name of bat species"
+          },
+          "bat_species_common_name": {
+            "type": "string",
+            "description": "Common name of bat species"
+          },
+          "interacting_organism_scientific_name": {
+            "type": "string",
+            "description": "Scientific name of interacting organism"
+          },
+          "interacting_organism_common_name": {
+            "type": "string",
+            "description": "Common name of interacting organism"
+          },
+          "interaction_start_date": {
+            "type": "string",
+            "description": "Start date of interaction"
+          },
+          "interaction_end_date": {
+            "type": "string",
+            "description": "End date of interaction"
+          },
+          "location": {
+            "type": "string",
+            "description": "Geographic location of interaction"
+          },
+          "all_supporting_source_sentences": {
+            "type": "array",
+            "description": "Array where each element contains exactly ONE sentence from the source document",
+            "items": {
+              "type": "string",
+              "description": "Individual supporting sentence"
+            }
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Page number in document"
+          },
+          "publication_year": {
+            "type": "integer",
+            "description": "Year of publication"
+          }
+        }
+      }
+    }
+  },
+  "required": ["interactions"]
+}

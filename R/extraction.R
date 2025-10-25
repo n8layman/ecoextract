@@ -3,26 +3,32 @@
 #' Extract structured ecological interaction data from OCR-processed documents
 
 #' Extract interactions from markdown text
-#' @param markdown_text OCR-processed markdown content
-#' @param ocr_audit Optional OCR quality analysis
-#' @param existing_interactions Optional dataframe of existing interactions
 #' @param document_id Optional document ID for context
+#' @param interaction_db Optional path to interaction database
+#' @param document_content OCR-processed markdown content
+#' @param ocr_audit Optional OCR quality analysis
+#' @param existing_interactions Optional dataframe of existing interactions (JSON or character)
+#' @param extraction_prompt_file Path to custom extraction prompt file (optional)
+#' @param extraction_context_file Path to custom extraction context template file (optional)
+#' @param schema_file Path to custom schema JSON file (optional)
+#' @param model LLM model to use for extraction
+#' @param anthropic_key Optional Anthropic API key (uses environment variable if not provided)
+#' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @export
-# CLAUDE I LEFT OF WORKING ON THIS HERE. WE'RE GOIN TO NEED TO REFACTOR REFINEMENT IN A SIMILAR WAY.
 extract_interactions <- function(document_id = NA,
                                  interaction_db = NA,
                                  document_content = NA,
                                  ocr_audit = NA,
-                                 existing_interactions = NA, # Needs to be JSON or character representation of JSON
-                                 extraction_prompt_file = "data/extraction_prompt.md",
-                                 extraction_context_file = "data/extraction_context.md",
-                                 schema_file = system.file("extdata", "interaction_schema.R", package = "ecoextract"),
+                                 existing_interactions = NA,
+                                 extraction_prompt_file = NULL,
+                                 extraction_context_file = NULL,
+                                 schema_file = NULL,
                                  model = "claude-sonnet-4-20250514",
                                  anthropic_key = NULL,
                                  ...) {
 
-  # Check API key availability  
+  # Check API key availability
   api_key <- anthropic_key %||% get_anthropic_key()
   if (is.null(api_key)) {
     stop("Anthropic API key not found. Please set ANTHROPIC_API_KEY environment variable or run setup_env_file()")
@@ -37,25 +43,17 @@ extract_interactions <- function(document_id = NA,
   }
   if(is.na(document_content)) {
     stop("ERROR message please provide either the id of a document in the database or markdown OCR document content.")
-  }    
-
-  # Schema must be made available and be valid ellmer schema otherwise exit with message.
-  # This will be an object like type_extraction_result object. See data/interaction_schema.R
-  if (!file.exists(schema_file)) {
-    stop("Schema file not found: ", schema_file)
   }
-  source(schema_file)
-  if (!exists("type_extraction_result")) {
-    stop("Schema file must define 'type_extraction_result' object")
-  }
-  schema <- type_extraction_result
 
-  # Read in and process extraction context
-  extraction_context_template <- paste(readLines(extraction_context_file), collapse = "\n")
-  extraction_context <- glue::glue(extraction_context_template, .na = "", .null = "") # Don't forget the .null!
+  # Load extraction schema (custom or default)
+  schema <- load_schema(schema_file, schema_type = "extraction")
 
-  # Read in and process extraction prompt
-  extraction_prompt <- paste(readLines(extraction_prompt_file), collapse = "\n")
+  # Load extraction context template (custom or default)
+  extraction_context_template <- get_extraction_context_template(extraction_context_file)
+  extraction_context <- glue::glue(extraction_context_template, .na = "", .null = "")
+
+  # Load extraction prompt (custom or default)
+  extraction_prompt <- get_extraction_prompt(extraction_prompt_file)
   extraction_prompt_hash <- digest::digest(extraction_prompt, algo = "md5")  
 
   # Process existing interactions.
@@ -189,7 +187,7 @@ build_existing_interactions_context <- function(existing_interactions, document_
       paste0("interaction-", i)
     }
     
-    context_line <- paste0("- ", occurrence_id, ": ", bat_info, " ↔ ", org_desc, location_desc)
+    context_line <- paste0("- ", occurrence_id, ": ", bat_info, " <-> ", org_desc, location_desc)
     context_lines <- c(context_lines, context_line)
   }
   

@@ -10,10 +10,9 @@ Description: Structured ecological data extraction and refinement from scientifi
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 Imports:
     dplyr,
-    purrr,
     readr,
     stringr,
     glue,
@@ -25,5 +24,11 @@ Imports:
     rcrossref
 Suggests:
     testthat (>= 3.0.0),
-    withr
+    withr,
+    ohseer,
+    ecoaudit,
+    knitr,
+    rmarkdown,
+    writexl
+VignetteBuilder: knitr
 Config/testthat/edition: 3
