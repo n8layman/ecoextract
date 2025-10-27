@@ -61,9 +61,21 @@ minimal_records <- function() {
   return(df)
 }
 
-#' Create sample OCR content (generic)
-#' @return Character string with mock OCR content
+#' Get test document path
+#' @return Path to test markdown document
+get_test_document_path <- function() {
+  system.file("extdata", "test_paper.md", package = "ecoextract")
+}
+
+#' Load sample OCR content from test document
+#' @return Character string with test OCR content
 sample_ocr_content <- function() {
+  test_doc <- get_test_document_path()
+  if (file.exists(test_doc)) {
+    return(readLines(test_doc, warn = FALSE) |> paste(collapse = "\n"))
+  }
+
+  # Fallback if file not found
   "# Research Document
 
 ## Introduction
