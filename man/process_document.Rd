@@ -6,7 +6,7 @@
 \usage{
 process_document(
   pdf_path,
-  db_path = "ecoextract_interactions.db",
+  db_path = "ecoextract_records.db",
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
@@ -17,7 +17,7 @@ process_document(
 \arguments{
 \item{pdf_path}{Path to a single PDF file or directory of PDFs}
 
-\item{db_path}{Path to SQLite database (default: "ecoextract_interactions.db" in current directory, will be created if doesn't exist)}
+\item{db_path}{Path to SQLite database (default: "ecoextract_records.db" in current directory, will be created if doesn't exist)}
 
 \item{schema_file}{Optional custom schema file}
 

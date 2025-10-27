@@ -1,2 +1,2 @@
 # Encrypt sensitive files with git-crypt
-.env filter=git-crypt diff=git-crypt
+# .env is now in .gitignore instead

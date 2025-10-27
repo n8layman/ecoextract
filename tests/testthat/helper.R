@@ -1,7 +1,6 @@
 # Helper Functions for Tests
 #
-# This file contains reusable test utilities and fixtures.
-# Helper files are automatically loaded before test files.
+# Generic test helpers that don't assume specific schemas or domains
 
 # Test Fixtures ----------------------------------------------------------------
 
@@ -16,77 +15,78 @@ local_test_db <- function(env = parent.frame()) {
   return(db_path)
 }
 
-#' Create sample interactions data for testing
-#' @return Dataframe with sample interactions
-sample_interactions <- function() {
-  data.frame(
-    bat_species_scientific_name = c("Myotis lucifugus", "Eptesicus fuscus"),
-    bat_species_common_name = c("Little Brown Bat", "Big Brown Bat"),
-    interacting_organism_scientific_name = c("Corynorhinus townsendii", "Lasiurus cinereus"),
-    interacting_organism_common_name = c("Townsend's Big-eared Bat", "Hoary Bat"),
-    interaction_type = c("competition", "cohabitation"),
-    location = c("Yellowstone National Park", "Grand Canyon"),
-    interaction_start_date = c("2020-01-01", "2020-06-15"),
-    interaction_end_date = c("2020-12-31", "2020-09-30"),
-    all_supporting_source_sentences = c(
-      "[\"First sentence.\", \"Second sentence.\"]",
-      "[\"Supporting evidence.\"]"
-    ),
-    page_number = c(5L, 12L),
-    publication_year = c(2020L, 2021L),
-    stringsAsFactors = FALSE
-  )
+#' Get database schema dynamically
+#' @return List with schema columns
+get_db_schema_columns <- function() {
+  schema <- get_database_schema()
+  return(schema$columns)
 }
 
-#' Create minimal valid interactions data
+#' Create sample dataframe matching current schema
+#' @return Dataframe with all schema columns populated with test data
+sample_records <- function() {
+  columns <- get_db_schema_columns()
+
+  # Create a dataframe with 2 rows
+  df <- data.frame(matrix(ncol = length(columns), nrow = 2))
+  names(df) <- columns
+
+  # Fill with appropriate test data based on column names
+  for (col in columns) {
+    if (grepl("_id$", col)) {
+      df[[col]] <- c(1L, 2L)
+    } else if (grepl("date", col, ignore.case = TRUE)) {
+      df[[col]] <- c("2020-01-01", "2020-06-15")
+    } else if (grepl("year", col, ignore.case = TRUE)) {
+      df[[col]] <- c(2020L, 2021L)
+    } else if (grepl("page", col, ignore.case = TRUE)) {
+      df[[col]] <- c(5L, 12L)
+    } else if (grepl("sentence|json|array", col, ignore.case = TRUE)) {
+      df[[col]] <- c("[\"Test sentence 1\"]", "[\"Test sentence 2\"]")
+    } else {
+      # Generic string data
+      df[[col]] <- c(paste("test", col, "1"), paste("test", col, "2"))
+    }
+  }
+
+  return(df)
+}
+
+#' Create minimal valid dataframe (required columns only)
 #' @return Dataframe with minimal required fields
-minimal_interactions <- function() {
-  data.frame(
-    bat_species_scientific_name = "Myotis lucifugus",
-    bat_species_common_name = "Little Brown Bat",
-    stringsAsFactors = FALSE
-  )
+minimal_records <- function() {
+  # Get just the first row of sample data
+  df <- sample_records()[1, , drop = FALSE]
+  rownames(df) <- NULL
+  return(df)
 }
 
-#' Create sample publication metadata
-#' @return List with publication metadata
-sample_publication_metadata <- function() {
-  list(
-    first_author_lastname = "Smith",
-    publication_year = 2020L,
-    doi = "10.1234/example.doi"
-  )
-}
-
-#' Create sample OCR markdown content
+#' Create sample OCR content (generic)
 #' @return Character string with mock OCR content
 sample_ocr_content <- function() {
-  "# Bat Ecology Study
+  "# Research Document
 
 ## Introduction
 
-This study examines interactions between Myotis lucifugus (Little Brown Bat)
-and various organisms in Yellowstone National Park.
+This is a test document with some content.
 
 ## Results
 
-We observed competition between M. lucifugus and Corynorhinus townsendii
-(Townsend's Big-eared Bat) for roosting sites.
+Table 1: Test data
 
-Table 1: Species interactions observed in 2020.
+| Column 1 | Column 2 |
+|----------|----------|
+| Value A  | Value B  |
 
 ## References
 
-Smith et al. (2020). Journal of Bat Research. DOI: 10.1234/example.doi
+Author et al. (2020). Test Journal.
 "
 }
 
-#' Create sample OCR audit data
-#' @return Character string with mock audit JSON
-sample_ocr_audit <- function() {
-  '{
-    "quality_score": 0.95,
-    "issues": [],
-    "warnings": ["Minor formatting inconsistencies on page 3"]
-  }'
+#' Check if API keys are available for integration tests
+#' @return Logical
+has_api_keys <- function() {
+  key <- Sys.getenv("ANTHROPIC_API_KEY")
+  !is.null(key) && key != ""
 }

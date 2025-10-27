@@ -2,7 +2,7 @@
 % Please edit documentation in R/config.R
 \name{get_anthropic_key}
 \alias{get_anthropic_key}
-\title{Get Anthropic API key from environment}
+\title{Configuration and API Key Management}
 \usage{
 get_anthropic_key()
 }
@@ -10,5 +10,6 @@ get_anthropic_key()
 API key string or NULL if not found
 }
 \description{
+Handle API keys, environment variables, and package configuration
 Get Anthropic API key from environment
 }

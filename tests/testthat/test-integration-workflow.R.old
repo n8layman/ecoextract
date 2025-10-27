@@ -53,6 +53,30 @@ test_that("OCR process completes successfully", {
 })
 
 # =============================================================================
+# OCR AUDIT INTEGRATION TEST
+# =============================================================================
+
+test_that("OCR audit process completes successfully", {
+  skip_if_not(has_api_keys(), "API keys not available")
+
+  test_doc <- get_test_document_path()
+  ocr_content <- readLines(test_doc, warn = FALSE) |>
+    paste(collapse = "\n")
+
+  # Run OCR audit
+  audit_result <- perform_ocr_audit(ocr_content)
+
+  # Validate audit result structure
+  expect_type(audit_result, "list")
+  expect_true("original_markdown" %in% names(audit_result))
+  expect_true("audited_markdown" %in% names(audit_result))
+  expect_true("audit_notes" %in% names(audit_result))
+
+  # Audited markdown should not be empty
+  expect_true(nchar(audit_result$audited_markdown) > 0)
+})
+
+# =============================================================================
 # EXTRACTION INTEGRATION TEST
 # =============================================================================
 
@@ -79,7 +103,7 @@ test_that("Extraction process completes and returns valid interactions", {
 
   # Run extraction
   extraction_response <- tryCatch({
-    extract_interactions(
+    extract_records(
       document_content = ocr_content,
       schema_file = NULL,  # Use default schema
       extraction_prompt_file = NULL,  # Use default prompt
@@ -118,7 +142,7 @@ test_that("Extraction process completes and returns valid interactions", {
 
   # Verify interactions can be saved to database
   save_result <- tryCatch({
-    save_interactions_to_db(
+    save_records_to_db(
       db_path = db_path,
       document_id = doc_id,
       interactions_df = extraction_result,
@@ -167,7 +191,7 @@ test_that("Refinement process completes and improves extractions", {
 
   # Run extraction first
   extraction_response <- tryCatch({
-    extract_interactions(
+    extract_records(
       document_content = ocr_content,
       schema_file = NULL,
       extraction_prompt_file = NULL,
@@ -180,11 +204,11 @@ test_that("Refinement process completes and improves extractions", {
   extraction_result <- extraction_response$interactions
 
   # Save initial extractions
-  save_interactions_to_db(db_path, doc_id, extraction_result, metadata = list())
+  save_records_to_db(db_path, doc_id, extraction_result, metadata = list())
 
   # Run refinement
   refinement_response <- tryCatch({
-    refine_interactions(
+    refine_records(
       interactions = extraction_result,
       markdown_text = ocr_content,
       schema_file = NULL,
@@ -250,7 +274,7 @@ test_that("Complete workflow from document to database completes successfully", 
 
   # Step 2: Extract interactions
   extraction_response <- tryCatch({
-    extract_interactions(
+    extract_records(
       document_content = ocr_content,
       schema_file = NULL,
       extraction_prompt_file = NULL,
@@ -265,7 +289,7 @@ test_that("Complete workflow from document to database completes successfully", 
 
   # Step 3: Refine interactions
   refinement_response <- tryCatch({
-    refine_interactions(
+    refine_records(
       interactions = extraction_result,
       markdown_text = ocr_content,
       schema_file = NULL,
@@ -284,7 +308,7 @@ test_that("Complete workflow from document to database completes successfully", 
   expect_true(validation$valid || length(validation$warnings) == 0)
 
   # Step 5: Save to database
-  save_result <- save_interactions_to_db(
+  save_result <- save_records_to_db(
     db_path = db_path,
     document_id = doc_id,
     interactions_df = final_interactions,

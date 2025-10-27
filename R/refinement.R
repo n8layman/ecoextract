@@ -13,7 +13,7 @@
 #' @param anthropic_key Optional Anthropic API key (uses environment variable if not provided)
 #' @return List with refinement results
 #' @export
-refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, document_id = NULL,
+refine_records <- function(interactions, markdown_text, ocr_audit = NULL, document_id = NULL,
                                 refinement_prompt_file = NULL, refinement_context_file = NULL, schema_file = NULL,
                                 anthropic_key = NULL) {
   if (is.null(interactions) || nrow(interactions) == 0) {
@@ -43,7 +43,7 @@ refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, d
   prompt_hash <- digest::digest(paste(refinement_prompt, refinement_context_template, sep = "\n"), algo = "md5")
 
   # Build context for refinement
-  existing_context <- build_existing_interactions_context(interactions, document_id)
+  existing_context <- build_existing_records_context(interactions, document_id)
 
   audit_context <- if (is.null(ocr_audit)) {
     "No OCR audit available. No specific human edit audit context available."
@@ -72,14 +72,30 @@ refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, d
     audit_context = audit_context
   )
 
-  # Execute refinement
-  refine_result <- refine_chat$chat(refinement_context, schema = schema)
-  
-  # Process result
-  cat("Raw refinement response length:", nchar(refine_result$content), "characters\n")
-  
-  # Convert to dataframe
-  refined_df <- refine_result$structured_output$interactions
+  # Execute refinement with structured output
+  refine_result <- refine_chat$chat_structured(refinement_context, type = schema)
+
+  # Process result - chat_structured can return either a list or JSON string
+  cat("Refinement completed\n")
+
+  # Parse if it's a JSON string
+  if (is.character(refine_result)) {
+    refine_result <- jsonlite::fromJSON(refine_result, simplifyVector = FALSE)
+  }
+
+  # Now extract the interactions
+  if (is.list(refine_result) && "interactions" %in% names(refine_result)) {
+    # Convert interactions list to dataframe
+    interactions_list <- refine_result$interactions
+    if (length(interactions_list) > 0) {
+      refined_df <- jsonlite::fromJSON(jsonlite::toJSON(interactions_list), simplifyVector = TRUE)
+    } else {
+      refined_df <- data.frame()
+    }
+  } else {
+    # Might be the interactions dataframe directly
+    refined_df <- refine_result
+  }
   
   # Process dataframe if valid
   if (is.data.frame(refined_df) && nrow(refined_df) > 0) {
@@ -143,8 +159,8 @@ merge_refinements <- function(original_interactions, refined_interactions) {
 #' @param existing_interactions Dataframe of existing interactions
 #' @param document_id Document ID for getting human edit summary
 #' @return Character string with formatted context
-build_existing_interactions_context <- function(existing_interactions, document_id = NULL) {
-  if (is.null(existing_interactions) || nrow(existing_interactions) == 0) {
+build_existing_records_context <- function(existing_interactions, document_id = NULL) {
+  if (is.null(existing_interactions) || !is.data.frame(existing_interactions) || nrow(existing_interactions) == 0) {
     return("No interactions have been extracted from this document yet.")
   }
   

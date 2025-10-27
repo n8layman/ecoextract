@@ -149,7 +149,7 @@ markdown_text <- "... your OCR text here ..."
 
 ```{r extract}
 # Extract structured data
-extraction_result <- extract_interactions(
+extraction_result <- extract_records(
   document_content = markdown_text,
   schema_file = NULL  # Uses default or ecoextract/schema.json
 )
@@ -164,7 +164,7 @@ head(extraction_result$interactions)
 
 ```{r refine}
 # Refine the extracted data
-refinement_result <- refine_interactions(
+refinement_result <- refine_records(
   interactions = extraction_result$interactions,
   markdown_text = markdown_text
 )
@@ -246,7 +246,7 @@ The package looks for configuration files in this order:
 
 1. **Explicit parameter** - Files you specify directly
    ```r
-   extract_interactions(schema_file = "path/to/schema.json")
+   extract_records(schema_file = "path/to/schema.json")
    ```
 
 2. **Project ecoextract/ directory** - Project-specific configs
@@ -330,7 +330,7 @@ for (file in test_files) {
 # Error: OCR functionality requires the 'ohseer' package
 
 # Solution: Install ohseer or provide markdown directly
-extract_interactions(document_content = "your markdown text")
+extract_records(document_content = "your markdown text")
 ```
 
 ### API Key Not Found
@@ -342,7 +342,7 @@ extract_interactions(document_content = "your markdown text")
 Sys.setenv(ANTHROPIC_API_KEY = "sk-ant-...")
 
 # Or pass directly
-extract_interactions(
+extract_records(
   document_content = text,
   anthropic_key = "sk-ant-..."
 )
@@ -357,7 +357,7 @@ extract_interactions(
 jsonlite::validate("ecoextract/schema.json")
 
 # 2. Test with default schema first
-extract_interactions(document_content = text, schema_file = NULL)
+extract_records(document_content = text, schema_file = NULL)
 ```
 
 ## Next Steps

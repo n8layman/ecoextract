@@ -141,7 +141,7 @@ init_ecoextract <- function(project_dir = getwd(), overwrite = FALSE) {
 
   cat("Next steps:\n")
   cat("1. Edit files in", config_dir, "to customize for your project\n")
-  cat("2. Run extract_interactions() - it will automatically use your custom configs\n")
+  cat("2. Run extract_records() - it will automatically use your custom configs\n")
   cat("3. Add ecoextract/ to version control to share with team\n\n")
 
   cat("Note: The package will automatically detect and use files in ecoextract/\n")

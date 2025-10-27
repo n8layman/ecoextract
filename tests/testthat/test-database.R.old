@@ -85,7 +85,7 @@ test_that("save_document_to_db returns existing ID for duplicate hash", {
   expect_equal(count, 1)
 })
 
-test_that("save_interactions_to_db inserts interactions", {
+test_that("save_records_to_db inserts interactions", {
   db_path <- local_test_db()
   
 
@@ -100,7 +100,7 @@ test_that("save_interactions_to_db inserts interactions", {
   interactions$occurrence_id <- paste0("test-", 1:nrow(interactions))
 
   metadata <- list(model = "claude-test", prompt_hash = "abc123")
-  result <- save_interactions_to_db(db_path, doc_id, interactions, metadata)
+  result <- save_records_to_db(db_path, doc_id, interactions, metadata)
 
   expect_true(result)
 
@@ -113,17 +113,17 @@ test_that("save_interactions_to_db inserts interactions", {
   expect_equal(saved$llm_model_version[1], "claude-test")
 })
 
-test_that("save_interactions_to_db handles empty dataframe", {
+test_that("save_records_to_db handles empty dataframe", {
   db_path <- local_test_db()
   
 
   empty_df <- data.frame()
-  result <- save_interactions_to_db(db_path, 1, empty_df, list())
+  result <- save_records_to_db(db_path, 1, empty_df, list())
 
   expect_true(result)
 })
 
-test_that("save_interactions_to_db serializes JSON arrays", {
+test_that("save_records_to_db serializes JSON arrays", {
   db_path <- local_test_db()
   
 
@@ -141,7 +141,7 @@ test_that("save_interactions_to_db serializes JSON arrays", {
     stringsAsFactors = FALSE
   )
 
-  save_interactions_to_db(db_path, doc_id, interactions, list())
+  save_records_to_db(db_path, doc_id, interactions, list())
 
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   on.exit(DBI::dbDisconnect(con), add = TRUE)
@@ -173,7 +173,7 @@ test_that("get_db_stats returns correct counts", {
   # Add interactions
   interactions <- sample_interactions()
   interactions$occurrence_id <- paste0("test-", 1:nrow(interactions))
-  save_interactions_to_db(db_path, doc_id, interactions, list())
+  save_records_to_db(db_path, doc_id, interactions, list())
 
   stats <- get_db_stats(db_path)
   expect_equal(stats$documents, 1)
@@ -256,7 +256,7 @@ test_that("get_existing_interactions retrieves interactions", {
 
   interactions <- sample_interactions()
   interactions$occurrence_id <- paste0("test-", 1:nrow(interactions))
-  save_interactions_to_db(db_path, doc_id, interactions, list())
+  save_records_to_db(db_path, doc_id, interactions, list())
 
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   on.exit(DBI::dbDisconnect(con), add = TRUE)

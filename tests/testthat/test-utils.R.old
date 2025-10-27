@@ -115,12 +115,6 @@ test_that("log_message handles different log levels", {
   expect_output(log_message("Error test", "ERROR"), "ERROR")
 })
 
-test_that("ecoextract_info prints package information", {
-  expect_output(ecoextract_info(), "ecoextract package")
-  expect_output(ecoextract_info(), "Version: 0.1.0")
-  expect_output(ecoextract_info(), "extract_interactions")
-})
-
 test_that("process_single_document handles errors gracefully", {
   # Create temp database
   temp_db <- withr::local_tempfile(fileext = ".sqlite")
@@ -138,22 +132,22 @@ test_that("process_single_document handles errors gracefully", {
   expect_type(result$error_message, "character")
 })
 
-test_that("build_existing_interactions_context handles empty interactions", {
-  context <- build_existing_interactions_context(NULL, NULL)
+test_that("build_existing_records_context handles empty interactions", {
+  context <- build_existing_records_context(NULL, NULL)
 
   expect_type(context, "character")
   expect_match(context, "No interactions")
 })
 
-test_that("build_existing_interactions_context handles zero-row dataframe", {
+test_that("build_existing_records_context handles zero-row dataframe", {
   empty_df <- data.frame()
-  context <- build_existing_interactions_context(empty_df, NULL)
+  context <- build_existing_records_context(empty_df, NULL)
 
   expect_type(context, "character")
   expect_match(context, "No interactions")
 })
 
-test_that("build_existing_interactions_context formats interactions properly", {
+test_that("build_existing_records_context formats interactions properly", {
   interactions <- data.frame(
     occurrence_id = "Smith2020-o1",
     bat_species_scientific_name = "Myotis lucifugus",
@@ -164,7 +158,7 @@ test_that("build_existing_interactions_context formats interactions properly", {
     stringsAsFactors = FALSE
   )
 
-  context <- build_existing_interactions_context(interactions, NULL)
+  context <- build_existing_records_context(interactions, NULL)
 
   expect_match(context, "Smith2020-o1")
   expect_match(context, "Myotis lucifugus")
@@ -172,7 +166,7 @@ test_that("build_existing_interactions_context formats interactions properly", {
   expect_match(context, "Yellowstone")
 })
 
-test_that("build_existing_interactions_context handles missing organism names", {
+test_that("build_existing_records_context handles missing organism names", {
   interactions <- data.frame(
     occurrence_id = "Test-o1",
     bat_species_scientific_name = "Myotis lucifugus",
@@ -183,12 +177,12 @@ test_that("build_existing_interactions_context handles missing organism names", 
     stringsAsFactors = FALSE
   )
 
-  context <- build_existing_interactions_context(interactions, NULL)
+  context <- build_existing_records_context(interactions, NULL)
 
   expect_match(context, "MISSING")
 })
 
-test_that("build_existing_interactions_context generates fallback IDs", {
+test_that("build_existing_records_context generates fallback IDs", {
   interactions <- data.frame(
     bat_species_scientific_name = "Myotis lucifugus",
     bat_species_common_name = "Little Brown Bat",
@@ -198,7 +192,7 @@ test_that("build_existing_interactions_context generates fallback IDs", {
     stringsAsFactors = FALSE
   )
 
-  context <- build_existing_interactions_context(interactions, NULL)
+  context <- build_existing_records_context(interactions, NULL)
 
   expect_match(context, "interaction-1")
 })

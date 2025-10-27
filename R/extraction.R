@@ -16,7 +16,7 @@
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @export
-extract_interactions <- function(document_id = NA,
+extract_records <- function(document_id = NA,
                                  interaction_db = NA,
                                  document_content = NA,
                                  ocr_audit = NA,
@@ -48,22 +48,23 @@ extract_interactions <- function(document_id = NA,
   # Load extraction schema (custom or default)
   schema <- load_schema(schema_file, schema_type = "extraction")
 
+  # Load extraction prompt (custom or default)
+  extraction_prompt <- get_extraction_prompt(extraction_prompt_file)
+  extraction_prompt_hash <- digest::digest(extraction_prompt, algo = "md5")
+
+  # Build existing interactions context
+  existing_interactions_context <- build_existing_records_context(existing_interactions)
+
   # Load extraction context template (custom or default)
   extraction_context_template <- get_extraction_context_template(extraction_context_file)
   extraction_context <- glue::glue(extraction_context_template, .na = "", .null = "")
 
-  # Load extraction prompt (custom or default)
-  extraction_prompt <- get_extraction_prompt(extraction_prompt_file)
-  extraction_prompt_hash <- digest::digest(extraction_prompt, algo = "md5")  
-
-  # Process existing interactions.
-  existing_interactions <- as.character(existing_interactions)
-
-  # Caluclate the nchar size of every variable in extraction_content_values 
-  # Caluclate the nchar size of prompt
+  # Calculate the nchar size of every variable in extraction_content_values
+  # Calculate the nchar size of prompt
   # Log those values to console as in:
+  num_existing <- if (is.data.frame(existing_interactions)) nrow(existing_interactions) else 0
   cat(glue::glue(
-    "Inputs loaded: Document content ({estimate_tokens(document_content)} tokens), OCR audit ({estimate_tokens(ocr_audit)} chars), {nrow(existing_interactions)} existing interactions, extraction prompt (hash:{substring(extraction_prompt_hash, 1, 8)}, {estimate_tokens(extraction_prompt)} tokens)",
+    "Inputs loaded: Document content ({estimate_tokens(document_content)} tokens), OCR audit ({estimate_tokens(ocr_audit)} chars), {num_existing} existing interactions, extraction prompt (hash:{substring(extraction_prompt_hash, 1, 8)}, {estimate_tokens(extraction_prompt)} tokens)",
     .na = "0",
     .null = "0"
   ), "\n")
@@ -71,27 +72,38 @@ extract_interactions <- function(document_id = NA,
   # Initialize extraction chat
   cat("Calling claude-sonnet-4-20250514 for extraction\n")
   extract_chat <- ellmer::chat_anthropic(
-    system_prompt = extraction_prompt, 
-    model = model, 
-    echo = "none", 
+    system_prompt = extraction_prompt,
+    model = model,
+    echo = "none",
     params = list(max_tokens = 8192)
   )
-  
-  # Execute extraction
-  extract_result <- extract_chat$chat(extraction_context, schema = schema)
-  
-  # Process result
-  cat("Raw extraction response length:", nchar(extract_result$content), "characters\n")
-  
-  # Get JSON preview
-  json_preview <- substr(extract_result$structured_output, 1, 200)
-  cat("JSON text preview:", json_preview, "...\n")
-  
-  # Convert to dataframe
-  extraction_df <- extract_result$structured_output$interactions
-  
-  # Extract publication metadata if available
-  pub_metadata <- extract_result$structured_output$publication_metadata
+
+  # Execute extraction with structured output
+  extract_result <- extract_chat$chat_structured(extraction_context, type = schema)
+
+  # Process result - chat_structured can return either a list or JSON string
+  cat("Extraction completed\n")
+
+  # Parse if it's a JSON string
+  if (is.character(extract_result)) {
+    extract_result <- jsonlite::fromJSON(extract_result, simplifyVector = FALSE)
+  }
+
+  # Now extract the interactions
+  if (is.list(extract_result) && "interactions" %in% names(extract_result)) {
+    # Convert interactions list to dataframe
+    interactions_list <- extract_result$interactions
+    if (length(interactions_list) > 0) {
+      extraction_df <- jsonlite::fromJSON(jsonlite::toJSON(interactions_list), simplifyVector = TRUE)
+    } else {
+      extraction_df <- data.frame()
+    }
+    pub_metadata <- extract_result$publication_metadata
+  } else {
+    # Might be the interactions dataframe directly
+    extraction_df <- extract_result
+    pub_metadata <- NULL
+  }
   
   # Process dataframe if valid
   if (is.data.frame(extraction_df) && nrow(extraction_df) > 0) {
@@ -137,8 +149,8 @@ generate_occurrence_id <- function(author_lastname, publication_year, sequence_n
 #' @param existing_interactions Dataframe of existing interactions
 #' @param document_id Document ID for getting human edit summary
 #' @return Character string with formatted context
-build_existing_interactions_context <- function(existing_interactions, document_id = NULL) {
-  if (is.null(existing_interactions) || nrow(existing_interactions) == 0) {
+build_existing_records_context <- function(existing_interactions, document_id = NULL) {
+  if (is.null(existing_interactions) || !is.data.frame(existing_interactions) || nrow(existing_interactions) == 0) {
     return("No interactions have been extracted from this document yet.")
   }
   

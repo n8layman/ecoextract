@@ -3,7 +3,7 @@
 #' Process PDFs through the complete pipeline: OCR → Audit → Extract → Refine
 #'
 #' @param pdf_path Path to a single PDF file or directory of PDFs
-#' @param db_path Path to SQLite database (default: "ecoextract_interactions.db" in current directory, will be created if doesn't exist)
+#' @param db_path Path to SQLite database (default: "ecoextract_records.db" in current directory, will be created if doesn't exist)
 #' @param schema_file Optional custom schema file
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
@@ -26,7 +26,7 @@
 #'                  extraction_prompt_file = "ecoextract/extraction_prompt.md")
 #' }
 process_document <- function(pdf_path,
-                             db_path = "ecoextract_interactions.db",
+                             db_path = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
@@ -161,7 +161,7 @@ process_single_document <- function(pdf_file,
 
     # Step 4: Extract interactions
     cat("\n[3/4] Extracting Interactions...\n")
-    extraction_result <- extract_interactions(
+    extraction_result <- extract_records(
       document_id = document_id,
       document_content = ocr_result$markdown,
       ocr_audit = ocr_audit,
@@ -179,7 +179,7 @@ process_single_document <- function(pdf_file,
 
     # Step 5: Refine interactions
     cat("\n[4/4] Refining Interactions...\n")
-    refinement_result <- refine_interactions(
+    refinement_result <- refine_records(
       interactions = extraction_result$interactions,
       markdown_text = ocr_result$markdown,
       ocr_audit = ocr_audit,
@@ -199,7 +199,7 @@ process_single_document <- function(pdf_file,
     }
 
     # Step 6: Save to database
-    save_interactions_to_db(
+    save_records_to_db(
       db_path = db_conn@dbname,
       document_id = document_id,
       interactions_df = final_interactions,
@@ -248,9 +248,48 @@ perform_ocr <- function(pdf_file) {
 
   # Placeholder for now
   stop("OCR integration not yet implemented.\n",
-       "Please provide markdown content directly using extract_interactions()")
+       "Please provide markdown content directly using extract_records()")
 }
 
+#' Perform OCR Quality Audit
+#'
+#' Reviews OCR output for common errors using an LLM
+#'
+#' @param markdown_text Markdown content from OCR
+#' @param model Model to use for audit (default: "claude-sonnet-4-20250514")
+#' @return List with audit results including corrected markdown and error log
+#' @export
+perform_ocr_audit <- function(markdown_text, model = "claude-sonnet-4-20250514") {
+
+  # Load OCR audit prompt
+  audit_prompt <- get_ocr_audit_prompt()
+
+  cat("Calling", model, "for OCR audit\n")
+
+  # Initialize audit chat
+  audit_chat <- ellmer::chat_anthropic(
+    system_prompt = audit_prompt,
+    model = model,
+    echo = "none"
+  )
+
+  # Create audit context
+  audit_context <- glue::glue(
+    "Please review the following OCR output for common errors:\n\n{markdown_text}"
+  )
+
+  # Execute audit
+  audit_result <- audit_chat$chat(audit_context)
+
+  cat("OCR audit completed\n")
+
+  # Return audit results
+  list(
+    original_markdown = markdown_text,
+    audited_markdown = audit_result$content,
+    audit_notes = "OCR reviewed for common errors"
+  )
+}
 
 #' Add Document to Database
 #'

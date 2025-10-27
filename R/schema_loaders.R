@@ -86,7 +86,7 @@ export_schema_template <- function(output_file,
   message("Exported default ", schema_type, " schema to: ", output_file)
   message("\nNext steps:")
   message("1. Edit ", output_file, " to customize fields")
-  message("2. Load with: extract_interactions(..., schema_file = '", output_file, "')")
+  message("2. Load with: extract_records(..., schema_file = '", output_file, "')")
   message("\nJSON Schema documentation: https://json-schema.org/understanding-json-schema/")
 
   invisible(TRUE)

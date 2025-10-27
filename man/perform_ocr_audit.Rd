@@ -4,15 +4,16 @@
 \alias{perform_ocr_audit}
 \title{Perform OCR Quality Audit}
 \usage{
-perform_ocr_audit(markdown_text)
+perform_ocr_audit(markdown_text, model = "claude-sonnet-4-20250514")
 }
 \arguments{
 \item{markdown_text}{Markdown content from OCR}
+
+\item{model}{Model to use for audit (default: "claude-sonnet-4-20250514")}
 }
 \value{
-Audit results (character string)
+List with audit results including corrected markdown and error log
 }
 \description{
-Currently a placeholder - integrate with ecoaudit package
+Reviews OCR output for common errors using an LLM
 }
-\keyword{internal}

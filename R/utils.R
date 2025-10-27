@@ -67,10 +67,15 @@ process_ecological_documents <- function(
       # ocr_result <- ohseer::mistral_ocr(pdf_file)
       # For now, skip actual OCR
 
-      # Step 2: Data Extraction
-      cat("Step 2: Data extraction...\n")
-      # extraction_result <- extract_interactions(
-      #   markdown_text = ocr_result$markdown
+      # Step 2: OCR Audit
+      cat("Step 2: OCR quality audit...\n")
+      # audit_result <- perform_ocr_audit(ocr_result$markdown)
+
+      # Step 3: Data Extraction
+      cat("Step 3: Data extraction...\n")
+      # extraction_result <- extract_records(
+      #   markdown_text = audit_result$audited_markdown,
+      #   ocr_audit = audit_result
       # )
       
       # For demonstration, create mock results
@@ -119,19 +124,6 @@ add_occurrence_ids <- function(interactions, author_lastname, publication_year) 
   })
   
   return(interactions)
-}
-
-#' Print package version and info
-#' @export
-ecoextract_info <- function() {
-  cat("ecoextract package - Ecological Data Extraction and Refinement\n")
-  cat("Version: 0.1.0\n")
-  cat("Functions available:\n")
-  cat("  - extract_interactions(): Extract interactions from markdown text\n")
-  cat("  - refine_interactions(): Refine extracted interactions\n") 
-  cat("  - process_ecological_documents(): Process folder of PDFs\n")
-  cat("  - validate_interactions_schema(): Validate data schema\n")
-  cat("  - enrich_publication_metadata(): Enrich publication metadata via CrossRef\n")
 }
 
 #' Simple logging function
