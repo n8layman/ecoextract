@@ -1,33 +1,27 @@
-# Setup file for testthat
+# tests/testthat/setup.R
 #
 # This file runs once before any tests are executed.
-# Use it for global test configuration, not for loading the package.
-# The package should be loaded via devtools::load_all() or during R CMD check.
+# Use it for global test configuration, not for package loading.
 
-# For manual testing (when running tests outside of devtools/R CMD check)
-# Try to load the package if not already loaded
+# Optional: load the package manually when running tests
 if (!isNamespaceLoaded("ecoextract")) {
-  # Source all R files from the package
-  r_files <- list.files(
-    path = "../../R",
-    pattern = "\\.R$",
-    full.names = TRUE
-  )
-
-  for (file in r_files) {
-    source(file, local = FALSE)
-  }
-
-  # Load required packages
-  suppressPackageStartupMessages({
-    library(dplyr)
-    library(DBI)
-    library(RSQLite)
-    library(digest)
-    library(withr)
-  })
+  message("Loading ecoextract for manual testing...")
+  suppressMessages(devtools::load_all("../../"))
 }
 
 # Global test configuration
-# Suppress verbose output during tests for cleaner test output
 options(ecoextract.verbose = FALSE)
+
+# Load environment variables from .env using {dotenv} + {here}
+if (requireNamespace("dotenv", quietly = TRUE) && requireNamespace("here", quietly = TRUE)) {
+  env_path <- here::here(".env")
+
+  if (file.exists(env_path)) {
+    message("Loading environment from: ", env_path)
+    dotenv::load_dot_env(file = env_path)
+  } else {
+    message("No .env file found at: ", env_path)
+  }
+} else {
+  message("Packages 'dotenv' or 'here' not available; skipping .env load")
+}

@@ -286,7 +286,7 @@ perform_ocr_audit <- function(markdown_text, model = "claude-sonnet-4-20250514")
   # Return audit results
   list(
     original_markdown = markdown_text,
-    audited_markdown = audit_result$content,
+    audited_markdown = as.character(audit_result),
     audit_notes = "OCR reviewed for common errors"
   )
 }
