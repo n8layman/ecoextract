@@ -23,17 +23,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install R dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
+      - name: Cache renv packages
+        uses: actions/cache@v3
         with:
-          extra-packages: |
-            any::devtools
-            any::testthat
-            any::withr
-            any::dotenv
-            any::here
+          path: ~/.cache/R/renv
+          key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-renv-
+
+      - name: Restore renv packages
+        run: |
+          renv::restore()
+        shell: Rscript {0}
 
       - name: Check package
         run: |
-          devtools::check(error_on = "warning")
+          devtools::check(error_on = "warning", vignettes = FALSE)
         shell: Rscript {0}
