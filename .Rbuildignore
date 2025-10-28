@@ -7,3 +7,4 @@
 ^\.env$
 ^\.gitattributes$
 ^\.git-crypt$
+^CONTRIBUTING\.md$

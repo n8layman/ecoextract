@@ -42,12 +42,15 @@ library(ecoextract)
 
 ## API Key Setup
 
-EcoExtract requires API keys for Anthropic (extraction and refinement) and Mistral (OCR processing).
+EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions, which supports any LLM provider that ellmer supports (Anthropic, OpenAI, Mistral, etc.). By default, examples use Anthropic's Claude and Mistral for OCR processing.
 
 ### Getting API Keys
 
-- Anthropic: https://console.anthropic.com/
-- Mistral: https://console.mistral.ai/
+Examples in this README use:
+- Anthropic Claude: https://console.anthropic.com/
+- Mistral (for OCR): https://console.mistral.ai/
+
+You can use any provider supported by ellmer - see [ellmer documentation](https://ellmer.tidyverse.org/) for full provider list.
 
 ### Setting Up API Keys
 
@@ -57,6 +60,10 @@ Create a `.env` file in your project directory:
 # .env
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 MISTRAL_API_KEY=your_mistral_api_key_here
+
+# Or use other providers supported by ellmer
+OPENAI_API_KEY=your_openai_api_key_here
+# ... etc
 ```
 
 **Important:** The `.env` file is gitignored by default. Never commit API keys to version control.
@@ -71,6 +78,24 @@ dotenv::load_dot_env()
 # Option 2: Set them directly in R
 Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
 Sys.setenv(MISTRAL_API_KEY = "your_key_here")
+```
+
+### Using Different LLM Providers
+
+Specify the model using the `model` parameter in `extract_records()` and `refine_records()`:
+
+```r
+# Use OpenAI
+extraction_result <- extract_records(
+  document_content = ocr_text,
+  model = "openai/gpt-4"
+)
+
+# Use Anthropic Claude (default)
+extraction_result <- extract_records(
+  document_content = ocr_text,
+  model = "anthropic/claude-sonnet-4-20250514"
+)
 ```
 
 ## Quick Start

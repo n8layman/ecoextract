@@ -28,23 +28,6 @@ extract_records <- function(document_id = NA,
                                  api_key = NULL,
                                  ...) {
 
-  # Detect provider from model string
-  provider <- strsplit(model, "/")[[1]][1]
-
-  # Check API key availability based on provider
-  if (is.null(api_key)) {
-    api_key <- if (provider == "anthropic") {
-      get_anthropic_key()
-    } else {
-      Sys.getenv(paste0(toupper(provider), "_API_KEY"))
-    }
-  }
-
-  if (is.null(api_key) || api_key == "") {
-    stop("API key not found for provider '", provider, "'. Please set ",
-         toupper(provider), "_API_KEY environment variable.")
-  }
-
   # Document content must be available either through the db or provided
   # otherwise gracefully exit and suggest OCR
   if(!is.na(document_id)) {

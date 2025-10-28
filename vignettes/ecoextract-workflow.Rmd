@@ -332,16 +332,14 @@ extract_records(document_content = "your markdown text")
 ### API Key Not Found
 
 ```{r api-key-error, eval=FALSE}
-# Error: Anthropic API key not found
+# Error: API key not found
 
 # Solution: Set environment variable
 Sys.setenv(ANTHROPIC_API_KEY = "sk-ant-...")
+# The API key will be automatically detected by ellmer
 
-# Or pass directly
-extract_records(
-  document_content = text,
-  anthropic_key = "sk-ant-..."
-)
+# Or load from .env file
+dotenv::load_dot_env()
 ```
 
 ### Schema Validation Errors

@@ -8,7 +8,6 @@
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
 #' @param skip_existing Skip files already processed in database
-#' @param anthropic_key Anthropic API key (uses environment variable if not provided)
 #' @return List with processing results
 #' @export
 #'
@@ -30,8 +29,7 @@ process_document <- function(pdf_path,
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
-                             skip_existing = TRUE,
-                             anthropic_key = NULL) {
+                             skip_existing = TRUE) {
 
   # Determine if processing single file or directory
   if (file.exists(pdf_path)) {
@@ -77,8 +75,7 @@ process_document <- function(pdf_path,
       schema_file = schema_file,
       extraction_prompt_file = extraction_prompt_file,
       refinement_prompt_file = refinement_prompt_file,
-      skip_existing = skip_existing,
-      anthropic_key = anthropic_key
+      skip_existing = skip_existing
     )
 
     results$details[[basename(pdf_file)]] <- result
@@ -116,7 +113,6 @@ process_document <- function(pdf_path,
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
 #' @param skip_existing Skip if already in database
-#' @param anthropic_key API key
 #' @return List with processing result
 #' @keywords internal
 process_single_document <- function(pdf_file,
@@ -124,8 +120,7 @@ process_single_document <- function(pdf_file,
                                     schema_file = NULL,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
-                                    skip_existing = TRUE,
-                                    anthropic_key = NULL) {
+                                    skip_existing = TRUE) {
 
   cat("\n", strrep("=", 70), "\n")
   cat("Processing:", basename(pdf_file), "\n")
@@ -166,8 +161,7 @@ process_single_document <- function(pdf_file,
       document_content = ocr_result$markdown,
       ocr_audit = ocr_audit,
       schema_file = schema_file,
-      extraction_prompt_file = extraction_prompt_file,
-      anthropic_key = anthropic_key
+      extraction_prompt_file = extraction_prompt_file
     )
 
     if (!extraction_result$success || nrow(extraction_result$interactions) == 0) {
@@ -185,8 +179,7 @@ process_single_document <- function(pdf_file,
       ocr_audit = ocr_audit,
       document_id = document_id,
       schema_file = schema_file,
-      refinement_prompt_file = refinement_prompt_file,
-      anthropic_key = anthropic_key
+      refinement_prompt_file = refinement_prompt_file
     )
 
     # Use refined interactions if refinement succeeded
@@ -252,23 +245,6 @@ perform_ocr <- function(pdf_file) {
 #' @return List with audit results including corrected markdown and error log
 #' @export
 perform_ocr_audit <- function(markdown_text, model = "anthropic/claude-sonnet-4-20250514", api_key = NULL) {
-
-  # Detect provider from model string
-  provider <- strsplit(model, "/")[[1]][1]
-
-  # Check API key availability based on provider
-  if (is.null(api_key)) {
-    api_key <- if (provider == "anthropic") {
-      get_anthropic_key()
-    } else {
-      Sys.getenv(paste0(toupper(provider), "_API_KEY"))
-    }
-  }
-
-  if (is.null(api_key) || api_key == "") {
-    stop("API key not found for provider '", provider, "'. Please set ",
-         toupper(provider), "_API_KEY environment variable.")
-  }
 
   # Load OCR audit prompt
   audit_prompt <- get_ocr_audit_prompt()

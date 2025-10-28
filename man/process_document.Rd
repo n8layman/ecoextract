@@ -10,8 +10,7 @@ process_document(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  skip_existing = TRUE,
-  anthropic_key = NULL
+  skip_existing = TRUE
 )
 }
 \arguments{
@@ -26,8 +25,6 @@ process_document(
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
 \item{skip_existing}{Skip files already processed in database}
-
-\item{anthropic_key}{Anthropic API key (uses environment variable if not provided)}
 }
 \value{
 List with processing results

@@ -28,23 +28,6 @@ refine_records <- function(interactions, markdown_text, ocr_audit = NULL, docume
     ))
   }
 
-  # Detect provider from model string
-  provider <- strsplit(model, "/")[[1]][1]
-
-  # Check API key availability based on provider
-  if (is.null(api_key)) {
-    api_key <- if (provider == "anthropic") {
-      get_anthropic_key()
-    } else {
-      Sys.getenv(paste0(toupper(provider), "_API_KEY"))
-    }
-  }
-
-  if (is.null(api_key) || api_key == "") {
-    stop("API key not found for provider '", provider, "'. Please set ",
-         toupper(provider), "_API_KEY environment variable.")
-  }
-
   # Load refinement schema (custom or default)
   schema <- load_schema(schema_file, schema_type = "refinement")
 

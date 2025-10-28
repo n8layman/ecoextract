@@ -10,8 +10,7 @@ process_single_document(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  skip_existing = TRUE,
-  anthropic_key = NULL
+  skip_existing = TRUE
 )
 }
 \arguments{
@@ -26,8 +25,6 @@ process_single_document(
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
 \item{skip_existing}{Skip if already in database}
-
-\item{anthropic_key}{API key}
 }
 \value{
 List with processing result
