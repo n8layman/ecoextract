@@ -96,9 +96,3 @@ Author et al. (2020). Test Journal.
 "
 }
 
-#' Check if API keys are available for integration tests
-#' @return Logical
-has_api_keys <- function() {
-  key <- Sys.getenv("ANTHROPIC_API_KEY")
-  !is.null(key) && key != ""
-}

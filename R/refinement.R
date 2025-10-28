@@ -66,8 +66,9 @@ refine_records <- function(interactions, markdown_text, ocr_audit = NULL, docume
   )
 
   # Build refinement context
+  document_content <- markdown_text  # Alias for template variable name
   refinement_context <- glue::glue(refinement_context_template,
-    document_content = markdown_text,
+    document_content = document_content,
     existing_interactions_context = existing_context,
     ocr_audit = audit_context
   )

@@ -3,11 +3,9 @@
 # This file runs once before any tests are executed.
 # Use it for global test configuration, not for package loading.
 
-# Optional: load the package manually when running tests
-if (!isNamespaceLoaded("ecoextract")) {
-  message("Loading ecoextract for manual testing...")
-  suppressMessages(devtools::load_all("../../"))
-}
+# Always reload package to pick up latest changes
+message("Loading ecoextract for manual testing...")
+suppressMessages(devtools::load_all("../../"))
 
 # Global test configuration
 options(ecoextract.verbose = FALSE)

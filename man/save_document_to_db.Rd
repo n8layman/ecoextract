@@ -4,14 +4,14 @@
 \alias{save_document_to_db}
 \title{Save document to EcoExtract database}
 \usage{
-save_document_to_db(db_path, file_path, file_hash, metadata = list())
+save_document_to_db(db_path, file_path, file_hash = NULL, metadata = list())
 }
 \arguments{
 \item{db_path}{Path to database file}
 
 \item{file_path}{Path to processed file}
 
-\item{file_hash}{File hash for uniqueness}
+\item{file_hash}{Optional file hash (computed automatically if not provided)}
 
 \item{metadata}{List with document metadata}
 }

@@ -256,6 +256,20 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       }
     }
 
+    # Convert types to match database schema
+    if ("flagged_for_review" %in% names(interactions_clean)) {
+      interactions_clean$flagged_for_review <- as.logical(interactions_clean$flagged_for_review)
+    }
+    if ("organisms_identifiable" %in% names(interactions_clean)) {
+      interactions_clean$organisms_identifiable <- as.logical(interactions_clean$organisms_identifiable)
+    }
+    if ("page_number" %in% names(interactions_clean)) {
+      interactions_clean$page_number <- as.integer(interactions_clean$page_number)
+    }
+    if ("publication_year" %in% names(interactions_clean)) {
+      interactions_clean$publication_year <- as.integer(interactions_clean$publication_year)
+    }
+
     # Insert interactions
     DBI::dbWriteTable(con, "interactions", interactions_clean, append = TRUE, row.names = FALSE)
     
