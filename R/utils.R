@@ -56,16 +56,9 @@ process_ecological_documents <- function(
     cat("="*60, "\n")
     
     tryCatch({
-      # Step 1: OCR Processing (would integrate with ohseer)
-      if (!requireNamespace("ohseer", quietly = TRUE)) {
-        cat("Warning: ohseer package not available, skipping OCR\n")
-        next
-      }
-
-      # OCR with Mistral (placeholder - would use ohseer::mistral_ocr)
+      # Step 1: OCR Processing with ohseer
       cat("Step 1: OCR processing...\n")
-      # ocr_result <- ohseer::mistral_ocr(pdf_file)
-      # For now, skip actual OCR
+      ocr_result <- ohseer::mistral_ocr(pdf_file)
 
       # Step 2: OCR Audit
       cat("Step 2: OCR quality audit...\n")

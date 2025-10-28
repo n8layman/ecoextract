@@ -2,7 +2,6 @@
 
 export(add_missing_schema_columns)
 export(add_occurrence_ids)
-export(enrich_publication_metadata)
 export(export_schema_template)
 export(extract_records)
 export(filter_to_schema_columns)

@@ -119,7 +119,6 @@ print(schema_info$columns)
 - `extract_records()` - Extract structured records from markdown
 - `refine_records()` - Refine extracted records
 - `perform_ocr_audit()` - Check OCR output for errors
-- `enrich_publication_metadata()` - Enrich metadata via CrossRef
 
 ### Database Operations
 - `init_ecoextract_database()` - Initialize database with schema
@@ -183,7 +182,7 @@ ecoextract/
 - `digest` - Hashing
 - `DBI` & `RSQLite` - Database operations
 - `ellmer` - Structured LLM outputs
-- `rcrossref` - Publication metadata enrichment
+- `ohseer` - OCR processing
 
 ## License
 

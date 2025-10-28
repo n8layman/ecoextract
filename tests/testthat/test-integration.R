@@ -4,7 +4,6 @@
 
 test_that("step 1: OCR with Mistral", {
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
-  skip_if_not(requireNamespace("ohseer", quietly = TRUE), "ohseer not installed")
 
   test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
   skip_if_not(file.exists(test_pdf), "Test PDF not found")
@@ -107,7 +106,6 @@ test_that("step 4: refinement and save to database", {
 test_that("step 5: full pipeline from PDF to database", {
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
-  skip_if_not(requireNamespace("ohseer", quietly = TRUE), "ohseer not installed")
 
   test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
   skip_if_not(file.exists(test_pdf), "Test PDF not found")

@@ -237,18 +237,9 @@ process_single_document <- function(pdf_file,
 #' @return List with markdown content
 #' @keywords internal
 perform_ocr <- function(pdf_file) {
-  # Check for ohseer package
-  if (!requireNamespace("ohseer", quietly = TRUE)) {
-    stop("OCR functionality requires the 'ohseer' package.\n",
-         "Install with: remotes::install_github('nathanlayman/ohseer')")
-  }
-
   # Perform OCR using ohseer
-  # ocr_result <- ohseer::mistral_ocr(pdf_file)
-
-  # Placeholder for now
-  stop("OCR integration not yet implemented.\n",
-       "Please provide markdown content directly using extract_records()")
+  ocr_result <- ohseer::mistral_ocr(pdf_file)
+  return(ocr_result)
 }
 
 #' Perform OCR Quality Audit

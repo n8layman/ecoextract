@@ -5,8 +5,8 @@ Version: 0.1.0
 Author: Your Name
 Maintainer: Your Name <your.email@example.com>
 Description: Structured ecological data extraction and refinement from scientific literature.
-    Provides functions for extracting interaction data from OCR-processed documents,
-    refining and enhancing extracted data, and enriching publication metadata.
+    Provides functions for OCR processing, extracting structured data from documents,
+    and refining extracted data using LLMs.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -21,15 +21,12 @@ Imports:
     DBI,
     RSQLite,
     ellmer,
-    rcrossref
+    ohseer
 Suggests:
     testthat (>= 3.0.0),
     withr,
-    ohseer,
-    ecoaudit,
     knitr,
     rmarkdown,
-    writexl,
     dotenv,
     here
 VignetteBuilder: knitr

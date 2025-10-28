@@ -234,10 +234,6 @@ dbDisconnect(db_conn)
 # Export to CSV
 library(readr)
 write_csv(interactions, "extracted_interactions.csv")
-
-# Export to Excel
-library(writexl)
-write_xlsx(interactions, "extracted_interactions.xlsx")
 ```
 
 ## Configuration Priority
@@ -365,4 +361,3 @@ extract_records(document_content = text, schema_file = NULL)
 - Read the schema documentation: `?load_schema`
 - Explore prompt customization: `view_prompt("extraction_prompt")`
 - Learn about database structure: `?init_ecoextract_database`
-- See enrichment options: `?enrich_interactions_from_crossref`

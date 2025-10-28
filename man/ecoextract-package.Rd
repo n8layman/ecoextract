@@ -6,6 +6,6 @@
 \alias{ecoextract-package}
 \title{ecoextract: Ecological Data Extraction and Refinement}
 \description{
-Structured ecological data extraction and refinement from scientific literature. Provides functions for extracting interaction data from OCR-processed documents, refining and enhancing extracted data, and enriching publication metadata.
+Structured ecological data extraction and refinement from scientific literature. Provides functions for OCR processing, extracting structured data from documents, and refining extracted data using LLMs.
 }
 \keyword{internal}
