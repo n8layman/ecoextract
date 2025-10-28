@@ -28,7 +28,8 @@ Suggests:
     knitr,
     rmarkdown,
     dotenv,
-    here
+    here,
+    devtools
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 Remotes:

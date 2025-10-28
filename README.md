@@ -42,7 +42,14 @@ library(ecoextract)
 
 ## API Key Setup
 
-EcoExtract requires API keys for Anthropic (Claude) and Mistral (OCR processing).
+EcoExtract requires API keys for Anthropic (extraction and refinement) and Mistral (OCR processing).
+
+### Getting API Keys
+
+- Anthropic: https://console.anthropic.com/
+- Mistral: https://console.mistral.ai/
+
+### Setting Up API Keys
 
 Create a `.env` file in your project directory:
 
@@ -52,21 +59,19 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 MISTRAL_API_KEY=your_mistral_api_key_here
 ```
 
-Then set environment variables in R:
+**Important:** The `.env` file is gitignored by default. Never commit API keys to version control.
+
+Load environment variables in R:
 
 ```r
-# Set them directly in R
-Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
-Sys.setenv(MISTRAL_API_KEY = "your_key_here")
-
-# Or use dotenv package to load from .env file
+# Option 1: Use dotenv package to load from .env file (recommended)
 # install.packages("dotenv")
 dotenv::load_dot_env()
-```
 
-**Get API Keys:**
-- Anthropic API: https://console.anthropic.com/
-- Mistral API: https://console.mistral.ai/
+# Option 2: Set them directly in R
+Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
+Sys.setenv(MISTRAL_API_KEY = "your_key_here")
+```
 
 ## Quick Start
 
@@ -160,9 +165,23 @@ print(schema_info$columns)
 ## Testing
 
 ```r
-# Run the test script
-source("test_ecoextract.R")
+# Run all tests
+devtools::test()
+
+# Run package checks
+devtools::check()
 ```
+
+### Integration Tests
+
+Integration tests verify API interactions with LLM providers. To run these locally, set up API keys in a `.env` file (see API Key Setup above) and load them before testing:
+
+```r
+dotenv::load_dot_env()
+devtools::test()
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on testing and development workflow.
 
 ## File Structure
 
