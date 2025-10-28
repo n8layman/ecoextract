@@ -39,11 +39,8 @@ jobs:
             any::devtools
             any::testthat
             any::withr
-
-      - name: Run tests
-        run: |
-          devtools::test()
-        shell: Rscript {0}
+            any::dotenv
+            any::here
 
       - name: Check package
         run: |

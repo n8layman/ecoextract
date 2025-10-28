@@ -6,3 +6,4 @@
 ^resources$
 ^\.env$
 ^\.gitattributes$
+^\.git-crypt$

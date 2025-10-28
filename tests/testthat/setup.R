@@ -3,9 +3,8 @@
 # This file runs once before any tests are executed.
 # Use it for global test configuration, not for package loading.
 
-# Always reload package to pick up latest changes
-message("Loading ecoextract for manual testing...")
-suppressMessages(devtools::load_all("../../"))
+# Package is automatically loaded by testthat during testing
+# devtools::load_all() only works in interactive sessions, not during R CMD check
 
 # Global test configuration
 options(ecoextract.verbose = FALSE)
