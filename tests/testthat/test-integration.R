@@ -93,7 +93,10 @@ test_that("step 4: refinement and save to database", {
 
   if (result$success && nrow(result$interactions) > 0) {
     # Save refined records to database
-    save_records_to_db(db_path, doc_id, result$interactions)
+    save_records_to_db(db_path, doc_id, result$interactions, metadata = list(
+      model = result$model,
+      prompt_hash = result$prompt_hash
+    ))
 
     # Verify saved to database
     con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
