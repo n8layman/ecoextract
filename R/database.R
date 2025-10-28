@@ -27,7 +27,7 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
         file_name TEXT NOT NULL,
         file_path TEXT NOT NULL,
         file_hash TEXT UNIQUE NOT NULL,
-        file_size INTEGER NOT NULL,
+        file_size INTEGER,
         upload_timestamp TEXT NOT NULL,
         
         -- Publication metadata
@@ -128,14 +128,24 @@ get_interaction_columns_sql <- function(ellmer_schema = NULL) {
 #' Save document to EcoExtract database
 #' @param db_path Path to database file
 #' @param file_path Path to processed file
-#' @param file_hash File hash for uniqueness
+#' @param file_hash Optional file hash (computed automatically if not provided)
 #' @param metadata List with document metadata
 #' @return Document ID or NULL if failed
 #' @export
-save_document_to_db <- function(db_path, file_path, file_hash, metadata = list()) {
+save_document_to_db <- function(db_path, file_path, file_hash = NULL, metadata = list()) {
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  
+
   tryCatch({
+    # Compute file hash if not provided
+    if (is.null(file_hash)) {
+      if (file.exists(file_path)) {
+        file_hash <- digest::digest(file_path, file = TRUE, algo = "md5")
+      } else {
+        # For test cases where file doesn't exist, use path as hash
+        file_hash <- digest::digest(file_path, algo = "md5")
+      }
+    }
+
     # Check if document already exists
     existing <- DBI::dbGetQuery(con, "
       SELECT id FROM documents WHERE file_hash = ?
@@ -182,12 +192,25 @@ save_document_to_db <- function(db_path, file_path, file_hash, metadata = list()
 #' @param metadata Processing metadata
 #' @return TRUE if successful
 #' @export
-save_interactions_to_db <- function(db_path, document_id, interactions_df, metadata = list()) {
+save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list()) {
   if (nrow(interactions_df) == 0) return(TRUE)
-  
+
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  
+
   tryCatch({
+    # Add occurrence IDs if not present
+    if (!"occurrence_id" %in% names(interactions_df)) {
+      # Try to get author/year from publication_metadata in metadata or from interactions themselves
+      author_lastname <- metadata$publication_metadata$first_author_lastname %||%
+        interactions_df$first_author_lastname[1] %||%
+        "Unknown"
+      publication_year <- metadata$publication_metadata$publication_year %||%
+        interactions_df$publication_year[1] %||%
+        format(Sys.Date(), "%Y")
+
+      interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
+    }
+
     # Add required metadata columns
     interactions_df$document_id <- as.integer(document_id)
     interactions_df$extraction_timestamp <- as.character(Sys.time())
@@ -211,11 +234,53 @@ save_interactions_to_db <- function(db_path, document_id, interactions_df, metad
     
     # Get database column names dynamically
     db_columns <- DBI::dbListFields(con, "interactions")
-    
-    # Filter to only include columns that exist in database
-    interactions_clean <- interactions_df %>%
-      dplyr::select(dplyr::any_of(db_columns))
-    
+
+    # Add missing columns with NA values (must be same length as dataframe)
+    num_rows <- nrow(interactions_df)
+    for (col in db_columns) {
+      if (!col %in% names(interactions_df)) {
+        interactions_df[[col]] <- rep(NA, num_rows)
+      }
+    }
+
+    # Filter to only include columns that exist in database (in correct order)
+    interactions_clean <- interactions_df |>
+      dplyr::select(dplyr::all_of(db_columns))
+
+    # Convert any list columns to character (JSON or string)
+    for (col in names(interactions_clean)) {
+      if (is.list(interactions_clean[[col]])) {
+        interactions_clean[[col]] <- vapply(interactions_clean[[col]],
+                                             function(x) if(is.null(x)) NA_character_ else as.character(x),
+                                             FUN.VALUE = character(1))
+      }
+    }
+
+    # Convert types to match database schema
+    # SQLite stores BOOLEAN as INTEGER (0/1), so convert logical to integer
+    if ("flagged_for_review" %in% names(interactions_clean)) {
+      interactions_clean$flagged_for_review <- vapply(interactions_clean$flagged_for_review,
+        function(x) {
+          if (is.logical(x)) return(as.integer(x))
+          if (is.character(x)) return(as.integer(tolower(x) %in% c("true", "t", "1", "yes")))
+          return(as.integer(as.logical(x)))
+        }, FUN.VALUE = integer(1))
+    }
+    if ("organisms_identifiable" %in% names(interactions_clean)) {
+      interactions_clean$organisms_identifiable <- vapply(interactions_clean$organisms_identifiable,
+        function(x) {
+          if (is.logical(x)) return(as.integer(x))
+          if (is.character(x)) return(as.integer(tolower(x) %in% c("true", "t", "1", "yes")))
+          return(as.integer(as.logical(x)))
+        }, FUN.VALUE = integer(1))
+    }
+    if ("page_number" %in% names(interactions_clean)) {
+      interactions_clean$page_number <- as.integer(interactions_clean$page_number)
+    }
+    if ("publication_year" %in% names(interactions_clean)) {
+      interactions_clean$publication_year <- as.integer(interactions_clean$publication_year)
+    }
+
     # Insert interactions
     DBI::dbWriteTable(con, "interactions", interactions_clean, append = TRUE, row.names = FALSE)
     
@@ -340,7 +405,7 @@ validate_ellmer_schema_with_db <- function(db_conn, ellmer_schema, table_name = 
   # Get database table structure
   tryCatch({
     db_info <- DBI::dbGetQuery(db_conn, paste0("PRAGMA table_info(", table_name, ")"))
-    db_columns <- setNames(db_info$type, db_info$name)
+    db_columns <- stats::setNames(db_info$type, db_info$name)
   }, error = function(e) {
     return(list(
       valid = FALSE,
@@ -476,6 +541,11 @@ get_existing_interactions <- function(document_id, db_conn) {
 }
 
 #' Simple null coalescing operator
+#' @param x First value to check
+#' @param y Default value to use if x is NULL or empty
+#' @return Either x if not NULL/empty, or y
+#' @keywords internal
+#' @noRd
 `%||%` <- function(x, y) {
   if (is.null(x) || length(x) == 0 || (is.character(x) && x == "")) y else x
 }

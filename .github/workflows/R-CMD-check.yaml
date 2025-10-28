@@ -3,49 +3,36 @@ name: R-CMD-check
 on:
   pull_request:
     branches: [main, master]
-  # Only run on PRs to main, not on every push
-  # Tests use real API calls with secrets, so we want to limit runs
 
 jobs:
   R-CMD-check:
     runs-on: ubuntu-latest
+    container: rocker/tidyverse:latest
 
     env:
-      # GitHub cache
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
-
-      # API keys from repository secrets (optional - tests will skip if not set)
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      RENV_PATHS_ROOT: ~/.cache/R/renv
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Setup R
-        uses: r-lib/actions/setup-r@v2
+      - name: Cache renv packages
+        uses: actions/cache@v4
         with:
-          r-version: '4.3.0'
+          path: ${{ env.RENV_PATHS_ROOT }}
+          key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-renv-
 
-      - name: Install system dependencies
+      - name: Install renv and restore
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
-
-      - name: Install R dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: |
-            any::devtools
-            any::testthat
-            any::withr
-
-      - name: Run tests
-        run: |
-          devtools::test()
+          install.packages("renv")
+          renv::restore(prompt = FALSE)
         shell: Rscript {0}
 
       - name: Check package
         run: |
-          devtools::check(error_on = "warning")
+          devtools::check(error_on = "warning", manual = FALSE, vignettes = FALSE)
         shell: Rscript {0}

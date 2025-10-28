@@ -4,6 +4,21 @@ Structured ecological data extraction and refinement from scientific literature.
 
 ## Installation
 
+### Prerequisites
+
+First, install the required `ohseer` package for OCR processing:
+
+```r
+# Option 1: Using pak (recommended)
+pak::pak("n8layman/ohseer")
+
+# Option 2: Using devtools
+devtools::install_github("n8layman/ohseer")
+
+# Option 3: Using remotes
+remotes::install_github("n8layman/ohseer")
+```
+
 ### Development Installation (Local)
 
 ```r
@@ -27,43 +42,61 @@ library(ecoextract)
 
 ## API Key Setup
 
-EcoExtract requires API keys for Anthropic (Claude) and Mistral (OCR processing).
+EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions, which supports any LLM provider that ellmer supports (Anthropic, OpenAI, Mistral, etc.). By default, examples use Anthropic's Claude and Mistral for OCR processing.
 
-### Automatic Setup
+### Getting API Keys
 
-```r
-# Interactive setup - will prompt for API keys
-ecoextract::setup_env_file()
+Examples in this README use:
+- Anthropic Claude: https://console.anthropic.com/
+- Mistral (for OCR): https://console.mistral.ai/
 
-# Check status
-ecoextract::print_api_status()
-```
+You can use any provider supported by ellmer - see [ellmer documentation](https://ellmer.tidyverse.org/) for full provider list.
 
-### Manual Setup
+### Setting Up API Keys
 
-1. Create a `.env` file in your project directory:
+Create a `.env` file in your project directory:
 
 ```bash
 # .env
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 MISTRAL_API_KEY=your_mistral_api_key_here
+
+# Or use other providers supported by ellmer
+OPENAI_API_KEY=your_openai_api_key_here
+# ... etc
 ```
 
-2. Load the environment variables:
+**Important:** The `.env` file is gitignored by default. Never commit API keys to version control.
+
+Load environment variables in R:
 
 ```r
-# Load environment variables
-ecoextract::load_env_file()
+# Option 1: Use dotenv package to load from .env file (recommended)
+# install.packages("dotenv")
+dotenv::load_dot_env()
 
-# Or set them directly in R
+# Option 2: Set them directly in R
 Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
 Sys.setenv(MISTRAL_API_KEY = "your_key_here")
 ```
 
-### Get API Keys
+### Using Different LLM Providers
 
-- **Anthropic API**: https://console.anthropic.com/
-- **Mistral API**: https://console.mistral.ai/
+Specify the model using the `model` parameter in `extract_records()` and `refine_records()`:
+
+```r
+# Use OpenAI
+extraction_result <- extract_records(
+  document_content = ocr_text,
+  model = "openai/gpt-4"
+)
+
+# Use Anthropic Claude (default)
+extraction_result <- extract_records(
+  document_content = ocr_text,
+  model = "anthropic/claude-sonnet-4-20250514"
+)
+```
 
 ## Quick Start
 
@@ -85,33 +118,17 @@ print(results)
 
 ```r
 # Extract interactions from OCR text
-extraction_result <- extract_interactions(
+extraction_result <- extract_records(
   markdown_text = your_ocr_text,
   ocr_audit = quality_analysis
 )
 
 # Refine the extracted interactions  
-refinement_result <- refine_interactions(
+refinement_result <- refine_records(
   interactions = extraction_result$interactions,
   markdown_text = your_ocr_text,
   ocr_audit = quality_analysis
 )
-```
-
-### Work with Custom Prompts
-
-```r
-# View available prompts
-list_prompts()
-
-# View a specific prompt
-view_prompt("extraction_prompt")
-
-# Copy prompts locally for customization
-copy_prompts_to_local("my_prompts/")
-
-# Load custom prompts
-custom_prompts <- load_custom_prompts("my_prompts/")
 ```
 
 ## Database Operations
@@ -140,59 +157,56 @@ schema_info <- get_database_schema()
 print(schema_info$columns)
 ```
 
-## Configuration
-
-```r
-# Check current configuration
-print_config()
-
-# Check API key status
-print_api_status()
-
-# Get detailed configuration
-config <- get_config()
-```
-
 ## Package Functions
 
 ### Core Processing
-- `process_ecological_documents()` - Main CLI function for batch processing
-- `extract_interactions()` - Extract interactions from text
-- `refine_interactions()` - Refine and enhance extracted data
-- `enrich_publication_metadata()` - Enrich publication metadata via CrossRef
+- `process_ecological_documents()` - Batch process PDFs
+- `extract_records()` - Extract structured records from markdown
+- `refine_records()` - Refine extracted records
+- `perform_ocr_audit()` - Check OCR output for errors
 
-### Database Operations  
-- `init_ecoextract_database()` - Initialize database with proper schema
+### Database Operations
+- `init_ecoextract_database()` - Initialize database with schema
 - `save_document_to_db()` - Save document metadata
-- `save_interactions_to_db()` - Save interaction data
+- `save_records_to_db()` - Save extracted records
 - `get_db_stats()` - Get database statistics
 
 ### Schema & Validation
 - `validate_interactions_schema()` - Validate data against schema
 - `get_database_schema()` - Get schema information
-- `filter_to_schema_columns()` - Filter data to known columns
+- `filter_to_schema_columns()` - Filter data to schema columns
 
-### Prompts & Configuration
-- `get_extraction_prompt()` - Get extraction prompt from package
-- `get_refinement_prompt()` - Get refinement prompt from package  
-- `list_prompts()` - List available prompts
-- `view_prompt()` - View a specific prompt
-- `copy_prompts_to_local()` - Copy prompts for customization
-- `setup_env_file()` - Set up API keys
-- `load_env_file()` - Load environment variables
-- `print_api_status()` - Check API configuration
+### Prompts
+- `get_extraction_prompt()` - Get extraction prompt
+- `get_refinement_prompt()` - Get refinement prompt
+- `get_ocr_audit_prompt()` - Get OCR audit prompt
+- `get_extraction_context_template()` - Get context template
 
 ### Utilities
 - `generate_occurrence_id()` - Generate unique occurrence IDs
-- `add_occurrence_ids()` - Add IDs to interaction data
-- `ecoextract_info()` - Package information
+- `add_occurrence_ids()` - Add IDs to dataframe
+- `merge_refinements()` - Merge refined data back
 
 ## Testing
 
 ```r
-# Run the test script
-source("test_ecoextract.R")
+# Run all tests
+devtools::test()
+
+# Run package checks
+devtools::check()
 ```
+
+### Integration Tests
+
+Integration tests verify API interactions with LLM providers. To run these locally, set up API keys in a `.env` file (see API Key Setup above) and load them before testing:
+
+```r
+dotenv::load_dot_env()
+devtools::test()
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on testing and development workflow.
 
 ## File Structure
 
@@ -227,7 +241,7 @@ ecoextract/
 - `digest` - Hashing
 - `DBI` & `RSQLite` - Database operations
 - `ellmer` - Structured LLM outputs
-- `rcrossref` - Publication metadata enrichment
+- `ohseer` - OCR processing
 
 ## License
 

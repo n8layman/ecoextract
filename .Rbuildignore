@@ -1,0 +1,10 @@
+^renv$
+^renv\.lock$
+^\.claude$
+^\.github$
+^plan\.md$
+^resources$
+^\.env$
+^\.gitattributes$
+^\.git-crypt$
+^CONTRIBUTING\.md$

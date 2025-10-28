@@ -1,0 +1,361 @@
+---
+title: "Complete Workflow: From PDF to Database"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Complete Workflow: From PDF to Database}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+# Overview
+
+This vignette demonstrates the complete workflow for extracting ecological interaction data from scientific literature PDFs using `ecoextract`.
+
+The pipeline consists of four main steps:
+
+1. **OCR Processing** - Convert PDF to markdown text
+2. **OCR Audit** - Quality check the OCR output
+3. **Extraction** - Extract structured interaction data using LLM
+4. **Refinement** - Enhance and verify extracted data
+
+## Installation
+
+```{r setup}
+library(ecoextract)
+
+# Set your Anthropic API key
+Sys.setenv(ANTHROPIC_API_KEY = "your-api-key-here")
+```
+
+## Quick Start: Process a Single File or Folder
+
+The simplest way to process documents is using `process_document()`:
+
+```{r quickstart}
+# Process a single PDF
+process_document(
+  pdf_path = "my_paper.pdf",
+  db_path = "interactions.db"
+)
+
+# Process all PDFs in a folder
+process_document(
+  pdf_path = "pdfs/",
+  db_path = "interactions.db"
+)
+```
+
+This automatically handles:
+- OCR processing
+- OCR quality audit
+- Data extraction with Claude
+- Refinement pass
+- Saving to SQLite database
+
+## Customizing the Workflow
+
+### Step 1: Initialize Custom Configuration
+
+Create customizable prompt and schema files in your project:
+
+```{r init-config}
+# Creates ecoextract/ directory with template files
+init_ecoextract()
+
+# This creates:
+# - ecoextract/schema.json
+# - ecoextract/extraction_prompt.md
+# - ecoextract/refinement_prompt.md
+```
+
+### Step 2: Customize for Your Domain
+
+Edit the files in `ecoextract/` to customize for your research domain:
+
+**ecoextract/schema.json** - Define what data to extract:
+```json
+{
+  "type": "object",
+  "properties": {
+    "interactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "species_a": {"type": "string"},
+          "species_b": {"type": "string"},
+          "interaction_type": {"type": "string"},
+          "location": {"type": "string"}
+        }
+      }
+    }
+  }
+}
+```
+
+**ecoextract/extraction_prompt.md** - Customize extraction instructions
+
+**ecoextract/refinement_prompt.md** - Customize refinement instructions
+
+### Step 3: Process with Custom Configuration
+
+The package automatically detects and uses files in `ecoextract/`:
+
+```{r custom-process}
+# Automatically uses ecoextract/schema.json, ecoextract/extraction_prompt.md, etc.
+process_document("pdfs/", "interactions.db")
+
+# Or specify custom files explicitly
+process_document(
+  pdf_path = "pdfs/",
+  db_path = "interactions.db",
+  schema_file = "my_custom/schema.json",
+  extraction_prompt_file = "my_custom/extraction.md"
+)
+```
+
+## Step-by-Step Manual Workflow
+
+For more control, you can run each step manually:
+
+### Step 1: Initialize Database
+
+```{r init-db}
+# Create a new SQLite database
+db_path <- "my_interactions.db"
+init_ecoextract_database(db_path)
+```
+
+### Step 2: OCR Processing
+
+```{r ocr}
+# OCR processing (requires ohseer package)
+# ocr_result <- ohseer::mistral_ocr("paper.pdf")
+# markdown_text <- ocr_result$markdown
+
+# For this example, assume you already have markdown text
+markdown_text <- "... your OCR text here ..."
+```
+
+### Step 3: Extract Interactions
+
+```{r extract}
+# Extract structured data
+extraction_result <- extract_records(
+  document_content = markdown_text,
+  schema_file = NULL  # Uses default or ecoextract/schema.json
+)
+
+# View results
+print(extraction_result$success)
+print(nrow(extraction_result$interactions))
+head(extraction_result$interactions)
+```
+
+### Step 4: Refine Interactions
+
+```{r refine}
+# Refine the extracted data
+refinement_result <- refine_records(
+  interactions = extraction_result$interactions,
+  markdown_text = markdown_text
+)
+
+# Use refined interactions
+final_interactions <- refinement_result$interactions
+```
+
+### Step 5: Save to Database
+
+```{r save}
+# Connect to database
+db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+
+# Add document
+document_id <- add_document_to_database(
+  db_conn = db_conn,
+  file_path = "paper.pdf",
+  markdown_content = markdown_text
+)
+
+# Save interactions
+save_interactions_to_database(
+  db_conn = db_conn,
+  document_id = document_id,
+  interactions = final_interactions,
+  metadata = list(
+    model = extraction_result$model,
+    prompt_hash = extraction_result$prompt_hash
+  )
+)
+
+DBI::dbDisconnect(db_conn)
+```
+
+## Working with the Database
+
+### Query Interactions
+
+```{r query}
+library(DBI)
+library(dplyr)
+
+# Connect to database
+db_conn <- dbConnect(RSQLite::SQLite(), "interactions.db")
+
+# Get all interactions
+interactions <- tbl(db_conn, "interactions") %>%
+  collect()
+
+# Filter by species
+bat_interactions <- tbl(db_conn, "interactions") %>%
+  filter(grepl("Myotis", bat_species_scientific_name)) %>%
+  collect()
+
+# Join with document info
+full_data <- tbl(db_conn, "interactions") %>%
+  left_join(tbl(db_conn, "documents"), by = "document_id") %>%
+  collect()
+
+dbDisconnect(db_conn)
+```
+
+### Export Data
+
+```{r export}
+# Export to CSV
+library(readr)
+write_csv(interactions, "extracted_interactions.csv")
+```
+
+## Configuration Priority
+
+The package looks for configuration files in this order:
+
+1. **Explicit parameter** - Files you specify directly
+   ```r
+   extract_records(schema_file = "path/to/schema.json")
+   ```
+
+2. **Project ecoextract/ directory** - Project-specific configs
+   ```
+   your_project/
+   ├── ecoextract/
+   │   ├── schema.json
+   │   ├── extraction_prompt.md
+   │   └── refinement_prompt.md
+   └── analysis.R
+   ```
+
+3. **Working directory with prefix** - Alternative project location
+   ```
+   your_project/
+   ├── ecoextract_schema.json
+   ├── ecoextract_extraction_prompt.md
+   └── analysis.R
+   ```
+
+4. **Package defaults** - Built-in defaults for bat-plant interactions
+
+## Best Practices
+
+### 1. Start with Defaults
+
+```{r defaults}
+# Use package defaults first to understand the system
+process_document("test.pdf", "test.db")
+```
+
+### 2. Customize Incrementally
+
+```{r incremental}
+# Initialize config
+init_ecoextract()
+
+# Edit one file at a time
+# - Start with schema.json
+# - Then customize extraction_prompt.md
+# - Finally tune refinement_prompt.md
+```
+
+### 3. Version Control Your Configs
+
+```{r version-control, eval=FALSE}
+# Add to git
+git add ecoextract/
+git commit -m "Add custom extraction schema for bird interactions"
+```
+
+### 4. Test on Small Batches
+
+```{r test-batch}
+# Test on 2-3 papers first
+test_files <- list.files("pdfs", pattern = "\\.pdf$", full.names = TRUE)[1:3]
+
+for (file in test_files) {
+  process_document(file, "test.db")
+}
+
+# Review results before processing entire corpus
+```
+
+### 5. Monitor Token Usage
+
+```{r monitor}
+# Extraction and refinement use Claude API
+# Monitor your usage at: https://console.anthropic.com/
+
+# Typical usage per paper:
+# - Extraction: ~5,000-10,000 tokens
+# - Refinement: ~3,000-5,000 tokens
+```
+
+## Troubleshooting
+
+### OCR Not Available
+
+```{r ocr-error, eval=FALSE}
+# Error: OCR functionality requires the 'ohseer' package
+
+# Solution: Install ohseer or provide markdown directly
+extract_records(document_content = "your markdown text")
+```
+
+### API Key Not Found
+
+```{r api-key-error, eval=FALSE}
+# Error: API key not found
+
+# Solution: Set environment variable
+Sys.setenv(ANTHROPIC_API_KEY = "sk-ant-...")
+# The API key will be automatically detected by ellmer
+
+# Or load from .env file
+dotenv::load_dot_env()
+```
+
+### Schema Validation Errors
+
+```{r schema-error, eval=FALSE}
+# If extraction fails, check your schema
+
+# 1. Validate JSON syntax
+jsonlite::validate("ecoextract/schema.json")
+
+# 2. Test with default schema first
+extract_records(document_content = text, schema_file = NULL)
+```
+
+## Next Steps
+
+- Read the schema documentation: `?load_schema`
+- Explore prompt customization: `view_prompt("extraction_prompt")`
+- Learn about database structure: `?init_ecoextract_database`

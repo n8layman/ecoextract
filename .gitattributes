@@ -1,0 +1,2 @@
+# Encrypt sensitive files with git-crypt
+# .env is now in .gitignore instead

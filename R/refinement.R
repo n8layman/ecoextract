@@ -7,70 +7,90 @@
 #' @param markdown_text Original OCR-processed markdown content
 #' @param ocr_audit Optional OCR quality analysis
 #' @param document_id Optional document ID for context
+#' @param refinement_prompt_file Path to custom refinement prompt file (optional)
+#' @param refinement_context_file Path to custom refinement context template file (optional)
+#' @param schema_file Path to custom schema JSON file (optional)
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
 #' @return List with refinement results
 #' @export
-refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, document_id = NULL, anthropic_key = NULL) {
+refine_records <- function(interactions, markdown_text, ocr_audit = NULL, document_id = NULL,
+                                refinement_prompt_file = NULL, refinement_context_file = NULL, schema_file = NULL,
+                                model = "anthropic/claude-sonnet-4-20250514") {
   if (is.null(interactions) || nrow(interactions) == 0) {
     cat("No existing interactions found for refinement\n")
     return(list(
       success = FALSE,
       interactions = data.frame(),
       prompt_hash = NULL,
-      model = "claude-sonnet-4-20250514"
+      model = model
     ))
   }
-  
-  # Check API key availability
-  api_key <- anthropic_key %||% get_anthropic_key()
-  if (is.null(api_key)) {
-    stop("Anthropic API key not found. Please set ANTHROPIC_API_KEY environment variable or run setup_env_file()")
-  }
-  
-  # Load refinement prompt and context template from package
-  refinement_prompt <- get_refinement_prompt()
-  refinement_context_template <- get_extraction_context_template()
-  
+
+  # Load refinement schema (custom or default)
+  schema <- load_schema(schema_file, schema_type = "refinement")
+
+  # Load refinement prompt and context template (custom or default)
+  refinement_prompt <- get_refinement_prompt(refinement_prompt_file)
+  refinement_context_template <- get_extraction_context_template(refinement_context_file)
+
   # Calculate prompt hash for model tracking
   prompt_hash <- digest::digest(paste(refinement_prompt, refinement_context_template, sep = "\n"), algo = "md5")
-  
+
   # Build context for refinement
-  existing_context <- build_existing_interactions_context(interactions, document_id)
-  
+  existing_context <- build_existing_records_context(interactions, document_id)
+
   audit_context <- if (is.null(ocr_audit)) {
     "No OCR audit available. No specific human edit audit context available."
   } else {
     paste("OCR Quality Analysis:", ocr_audit, "Human Edit Audit: No specific human edit audit context available.")
   }
-  
+
   # Report inputs
   markdown_chars <- nchar(markdown_text)
   interaction_count <- nrow(interactions)
   cat("Inputs loaded: OCR data (", markdown_chars, " chars), OCR audit (", nchar(ocr_audit %||% ""), " chars), ", interaction_count, " interactions, refinement prompt (", nchar(refinement_prompt), " chars, hash:", substring(prompt_hash, 1, 8), ")\n")
-  
+
   # Initialize refinement chat
-  cat("Calling claude-sonnet-4-20250514 for refinement\n")
-  refine_chat <- ellmer::chat_anthropic(
-    system_prompt = refinement_prompt, 
-    model = "claude-sonnet-4-20250514", 
-    echo = "none", 
+  cat("Calling", model, "for refinement\n")
+  refine_chat <- ellmer::chat(
+    name = model,
+    system_prompt = refinement_prompt,
+    echo = "none",
     params = list(max_tokens = 8192)
   )
-  
+
   # Build refinement context
+  document_content <- markdown_text  # Alias for template variable name
   refinement_context <- glue::glue(refinement_context_template,
-    ocr_content = markdown_text,
-    existing_interactions = existing_context,
-    audit_context = audit_context
+    document_content = document_content,
+    existing_interactions_context = existing_context,
+    ocr_audit = audit_context
   )
-  
-  # Execute refinement
-  refine_result <- refine_chat$chat(refinement_context, schema = ellmer::interactions)
-  
-  # Process result
-  cat("Raw refinement response length:", nchar(refine_result$content), "characters\n")
-  
-  # Convert to dataframe
-  refined_df <- refine_result$structured_output$interactions
+
+  # Execute refinement with structured output
+  refine_result <- refine_chat$chat_structured(refinement_context, type = schema)
+
+  # Process result - chat_structured can return either a list or JSON string
+  cat("Refinement completed\n")
+
+  # Parse if it's a JSON string
+  if (is.character(refine_result)) {
+    refine_result <- jsonlite::fromJSON(refine_result, simplifyVector = FALSE)
+  }
+
+  # Now extract the interactions
+  if (is.list(refine_result) && "interactions" %in% names(refine_result)) {
+    # Convert interactions list to dataframe
+    interactions_list <- refine_result$interactions
+    if (length(interactions_list) > 0) {
+      refined_df <- jsonlite::fromJSON(jsonlite::toJSON(interactions_list), simplifyVector = TRUE)
+    } else {
+      refined_df <- data.frame()
+    }
+  } else {
+    # Might be the interactions dataframe directly
+    refined_df <- refine_result
+  }
   
   # Process dataframe if valid
   if (is.data.frame(refined_df) && nrow(refined_df) > 0) {
@@ -82,7 +102,7 @@ refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, d
       success = TRUE,
       interactions = refined_df,
       prompt_hash = prompt_hash,
-      model = "claude-sonnet-4-20250514"
+      model = model
     ))
   } else {
     cat("No valid refined interactions returned\n")
@@ -90,7 +110,7 @@ refine_interactions <- function(interactions, markdown_text, ocr_audit = NULL, d
       success = FALSE,
       interactions = data.frame(),
       prompt_hash = prompt_hash,
-      model = "claude-sonnet-4-20250514"
+      model = model
     ))
   }
 }
@@ -134,8 +154,8 @@ merge_refinements <- function(original_interactions, refined_interactions) {
 #' @param existing_interactions Dataframe of existing interactions
 #' @param document_id Document ID for getting human edit summary
 #' @return Character string with formatted context
-build_existing_interactions_context <- function(existing_interactions, document_id = NULL) {
-  if (is.null(existing_interactions) || nrow(existing_interactions) == 0) {
+build_existing_records_context <- function(existing_interactions, document_id = NULL) {
+  if (is.null(existing_interactions) || !is.data.frame(existing_interactions) || nrow(existing_interactions) == 0) {
     return("No interactions have been extracted from this document yet.")
   }
   
@@ -184,7 +204,7 @@ build_existing_interactions_context <- function(existing_interactions, document_
       paste0("interaction-", i)
     }
     
-    context_line <- paste0("- ", occurrence_id, ": ", bat_info, " ↔ ", org_desc, location_desc)
+    context_line <- paste0("- ", occurrence_id, ": ", bat_info, " <-> ", org_desc, location_desc)
     context_lines <- c(context_lines, context_line)
   }
   

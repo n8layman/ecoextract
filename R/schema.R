@@ -117,7 +117,7 @@ get_required_columns <- function() {
 #' @export
 filter_to_schema_columns <- function(df) {
   schema_cols <- get_schema_columns()
-  df %>% 
+  df |>
     dplyr::select(dplyr::any_of(schema_cols))
 }
 
@@ -162,8 +162,8 @@ validate_and_prepare_for_db <- function(df) {
   }
   
   # Filter to known columns and add missing ones
-  clean_df <- df %>%
-    filter_to_schema_columns() %>%
+  clean_df <- df |>
+    filter_to_schema_columns() |>
     add_missing_schema_columns()
   
   return(clean_df)
