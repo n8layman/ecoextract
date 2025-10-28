@@ -3,8 +3,6 @@ name: R-CMD-check
 on:
   pull_request:
     branches: [main, master]
-  # Only run on PRs to main, not on every push
-  # Tests use real API calls with secrets, so we want to limit runs
 
 jobs:
   R-CMD-check:
@@ -12,31 +10,36 @@ jobs:
     container: rocker/tidyverse:latest
 
     env:
-      # GitHub cache
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
-
-      # API keys from repository secrets (optional - tests will skip if not set)
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Cache renv packages
+      - name: Cache renv package cache
         uses: actions/cache@v3
         with:
-          path: ~/.cache/R/renv
+          path: /root/.local/share/renv/cache
           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
           restore-keys: |
             ${{ runner.os }}-renv-
 
-      - name: Restore renv packages
+      - name: Cache renv library
+        uses: actions/cache@v3
+        with:
+          path: renv/library
+          key: ${{ runner.os }}-renv-lib-${{ hashFiles('**/renv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-renv-lib-
+
+      - name: Install renv and restore
         run: |
-          renv::restore()
+          install.packages("renv")
+          renv::restore(prompt = FALSE)
         shell: Rscript {0}
 
       - name: Check package
         run: |
-          devtools::check(error_on = "warning", vignettes = FALSE)
+          devtools::check(error_on = "warning", manual = FALSE, vignettes = FALSE)
         shell: Rscript {0}
