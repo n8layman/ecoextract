@@ -11,8 +11,8 @@
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
 #' @param extraction_context_file Path to custom extraction context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param model LLM model to use for extraction
-#' @param anthropic_key Optional Anthropic API key (uses environment variable if not provided)
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
+#' @param api_key Optional API key for the provider (uses environment variable if not provided)
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @export
@@ -24,14 +24,25 @@ extract_records <- function(document_id = NA,
                                  extraction_prompt_file = NULL,
                                  extraction_context_file = NULL,
                                  schema_file = NULL,
-                                 model = "claude-sonnet-4-20250514",
-                                 anthropic_key = NULL,
+                                 model = "anthropic/claude-sonnet-4-20250514",
+                                 api_key = NULL,
                                  ...) {
 
-  # Check API key availability
-  api_key <- anthropic_key %||% get_anthropic_key()
+  # Detect provider from model string
+  provider <- strsplit(model, "/")[[1]][1]
+
+  # Check API key availability based on provider
   if (is.null(api_key)) {
-    stop("Anthropic API key not found. Please set ANTHROPIC_API_KEY environment variable or run setup_env_file()")
+    api_key <- if (provider == "anthropic") {
+      get_anthropic_key()
+    } else {
+      Sys.getenv(paste0(toupper(provider), "_API_KEY"))
+    }
+  }
+
+  if (is.null(api_key) || api_key == "") {
+    stop("API key not found for provider '", provider, "'. Please set ",
+         toupper(provider), "_API_KEY environment variable.")
   }
 
   # Document content must be available either through the db or provided
@@ -70,12 +81,13 @@ extract_records <- function(document_id = NA,
   ), "\n")
     
   # Initialize extraction chat
-  cat("Calling claude-sonnet-4-20250514 for extraction\n")
-  extract_chat <- ellmer::chat_anthropic(
+  cat("Calling", model, "for extraction\n")
+  extract_chat <- ellmer::chat(
+    name = model,
     system_prompt = extraction_prompt,
-    model = model,
     echo = "none",
-    params = list(max_tokens = 8192)
+    params = list(max_tokens = 8192),
+    api_key = api_key
   )
 
   # Execute extraction with structured output
@@ -116,7 +128,7 @@ extract_records <- function(document_id = NA,
       interactions = extraction_df,
       publication_metadata = pub_metadata,
       prompt_hash = extraction_prompt_hash,
-      model = "claude-sonnet-4-20250514"
+      model = model
     ))
   } else {
     cat("No valid interactions extracted\n")
@@ -125,7 +137,7 @@ extract_records <- function(document_id = NA,
       interactions = data.frame(),
       publication_metadata = pub_metadata,
       prompt_hash = extraction_prompt_hash,
-      model = "claude-sonnet-4-20250514"
+      model = model
     ))
   }
 }

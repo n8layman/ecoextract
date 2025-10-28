@@ -258,10 +258,20 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 
     # Convert types to match database schema
     if ("flagged_for_review" %in% names(interactions_clean)) {
-      interactions_clean$flagged_for_review <- as.logical(interactions_clean$flagged_for_review)
+      interactions_clean$flagged_for_review <- vapply(interactions_clean$flagged_for_review,
+        function(x) {
+          if (is.logical(x)) return(x)
+          if (is.character(x)) return(tolower(x) %in% c("true", "t", "1", "yes"))
+          return(as.logical(x))
+        }, FUN.VALUE = logical(1))
     }
     if ("organisms_identifiable" %in% names(interactions_clean)) {
-      interactions_clean$organisms_identifiable <- as.logical(interactions_clean$organisms_identifiable)
+      interactions_clean$organisms_identifiable <- vapply(interactions_clean$organisms_identifiable,
+        function(x) {
+          if (is.logical(x)) return(x)
+          if (is.character(x)) return(tolower(x) %in% c("true", "t", "1", "yes"))
+          return(as.logical(x))
+        }, FUN.VALUE = logical(1))
     }
     if ("page_number" %in% names(interactions_clean)) {
       interactions_clean$page_number <- as.integer(interactions_clean$page_number)

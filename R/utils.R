@@ -9,11 +9,11 @@
 #' @return List with processing results
 #' @export
 process_ecological_documents <- function(
-  pdf_folder = "data/pdfs/", 
+  pdf_folder = "data/pdfs/",
   output_db = "ecoextract_results.sqlite",
   config = list(
     ocr_model = "mistral-ocr-v1",
-    extraction_model = "claude-sonnet-4-20250514",
+    extraction_model = "anthropic/claude-sonnet-4-20250514",
     skip_existing = TRUE,
     enrich_metadata = TRUE
   )

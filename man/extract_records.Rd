@@ -13,8 +13,8 @@ extract_records(
   extraction_prompt_file = NULL,
   extraction_context_file = NULL,
   schema_file = NULL,
-  model = "claude-sonnet-4-20250514",
-  anthropic_key = NULL,
+  model = "anthropic/claude-sonnet-4-20250514",
+  api_key = NULL,
   ...
 )
 }
@@ -35,9 +35,9 @@ extract_records(
 
 \item{schema_file}{Path to custom schema JSON file (optional)}
 
-\item{model}{LLM model to use for extraction}
+\item{model}{Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")}
 
-\item{anthropic_key}{Optional Anthropic API key (uses environment variable if not provided)}
+\item{api_key}{Optional API key for the provider (uses environment variable if not provided)}
 
 \item{...}{Additional arguments passed to extraction}
 }

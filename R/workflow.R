@@ -247,10 +247,28 @@ perform_ocr <- function(pdf_file) {
 #' Reviews OCR output for common errors using an LLM
 #'
 #' @param markdown_text Markdown content from OCR
-#' @param model Model to use for audit (default: "claude-sonnet-4-20250514")
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
+#' @param api_key Optional API key for the provider (uses environment variable if not provided)
 #' @return List with audit results including corrected markdown and error log
 #' @export
-perform_ocr_audit <- function(markdown_text, model = "claude-sonnet-4-20250514") {
+perform_ocr_audit <- function(markdown_text, model = "anthropic/claude-sonnet-4-20250514", api_key = NULL) {
+
+  # Detect provider from model string
+  provider <- strsplit(model, "/")[[1]][1]
+
+  # Check API key availability based on provider
+  if (is.null(api_key)) {
+    api_key <- if (provider == "anthropic") {
+      get_anthropic_key()
+    } else {
+      Sys.getenv(paste0(toupper(provider), "_API_KEY"))
+    }
+  }
+
+  if (is.null(api_key) || api_key == "") {
+    stop("API key not found for provider '", provider, "'. Please set ",
+         toupper(provider), "_API_KEY environment variable.")
+  }
 
   # Load OCR audit prompt
   audit_prompt <- get_ocr_audit_prompt()
@@ -258,10 +276,11 @@ perform_ocr_audit <- function(markdown_text, model = "claude-sonnet-4-20250514")
   cat("Calling", model, "for OCR audit\n")
 
   # Initialize audit chat
-  audit_chat <- ellmer::chat_anthropic(
+  audit_chat <- ellmer::chat(
+    name = model,
     system_prompt = audit_prompt,
-    model = model,
-    echo = "none"
+    echo = "none",
+    api_key = api_key
   )
 
   # Create audit context

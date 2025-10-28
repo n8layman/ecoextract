@@ -10,26 +10,39 @@
 #' @param refinement_prompt_file Path to custom refinement prompt file (optional)
 #' @param refinement_context_file Path to custom refinement context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param anthropic_key Optional Anthropic API key (uses environment variable if not provided)
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
+#' @param api_key Optional API key for the provider (uses environment variable if not provided)
 #' @return List with refinement results
 #' @export
 refine_records <- function(interactions, markdown_text, ocr_audit = NULL, document_id = NULL,
                                 refinement_prompt_file = NULL, refinement_context_file = NULL, schema_file = NULL,
-                                anthropic_key = NULL) {
+                                model = "anthropic/claude-sonnet-4-20250514",
+                                api_key = NULL) {
   if (is.null(interactions) || nrow(interactions) == 0) {
     cat("No existing interactions found for refinement\n")
     return(list(
       success = FALSE,
       interactions = data.frame(),
       prompt_hash = NULL,
-      model = "claude-sonnet-4-20250514"
+      model = model
     ))
   }
 
-  # Check API key availability
-  api_key <- anthropic_key %||% get_anthropic_key()
+  # Detect provider from model string
+  provider <- strsplit(model, "/")[[1]][1]
+
+  # Check API key availability based on provider
   if (is.null(api_key)) {
-    stop("Anthropic API key not found. Please set ANTHROPIC_API_KEY environment variable or run setup_env_file()")
+    api_key <- if (provider == "anthropic") {
+      get_anthropic_key()
+    } else {
+      Sys.getenv(paste0(toupper(provider), "_API_KEY"))
+    }
+  }
+
+  if (is.null(api_key) || api_key == "") {
+    stop("API key not found for provider '", provider, "'. Please set ",
+         toupper(provider), "_API_KEY environment variable.")
   }
 
   # Load refinement schema (custom or default)
@@ -57,12 +70,13 @@ refine_records <- function(interactions, markdown_text, ocr_audit = NULL, docume
   cat("Inputs loaded: OCR data (", markdown_chars, " chars), OCR audit (", nchar(ocr_audit %||% ""), " chars), ", interaction_count, " interactions, refinement prompt (", nchar(refinement_prompt), " chars, hash:", substring(prompt_hash, 1, 8), ")\n")
 
   # Initialize refinement chat
-  cat("Calling claude-sonnet-4-20250514 for refinement\n")
-  refine_chat <- ellmer::chat_anthropic(
+  cat("Calling", model, "for refinement\n")
+  refine_chat <- ellmer::chat(
+    name = model,
     system_prompt = refinement_prompt,
-    model = "claude-sonnet-4-20250514",
     echo = "none",
-    params = list(max_tokens = 8192)
+    params = list(max_tokens = 8192),
+    api_key = api_key
   )
 
   # Build refinement context
@@ -108,7 +122,7 @@ refine_records <- function(interactions, markdown_text, ocr_audit = NULL, docume
       success = TRUE,
       interactions = refined_df,
       prompt_hash = prompt_hash,
-      model = "claude-sonnet-4-20250514"
+      model = model
     ))
   } else {
     cat("No valid refined interactions returned\n")
@@ -116,7 +130,7 @@ refine_records <- function(interactions, markdown_text, ocr_audit = NULL, docume
       success = FALSE,
       interactions = data.frame(),
       prompt_hash = prompt_hash,
-      model = "claude-sonnet-4-20250514"
+      model = model
     ))
   }
 }

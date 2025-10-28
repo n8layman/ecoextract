@@ -8,7 +8,7 @@ process_ecological_documents(
   pdf_folder = "data/pdfs/",
   output_db = "ecoextract_results.sqlite",
   config = list(ocr_model = "mistral-ocr-v1", extraction_model =
-    "claude-sonnet-4-20250514", skip_existing = TRUE, enrich_metadata = TRUE)
+    "anthropic/claude-sonnet-4-20250514", skip_existing = TRUE, enrich_metadata = TRUE)
 )
 }
 \arguments{
