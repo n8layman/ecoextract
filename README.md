@@ -4,6 +4,21 @@ Structured ecological data extraction and refinement from scientific literature.
 
 ## Installation
 
+### Prerequisites
+
+First, install the required `ohseer` package for OCR processing:
+
+```r
+# Option 1: Using pak (recommended)
+pak::pak("n8layman/ohseer")
+
+# Option 2: Using devtools
+devtools::install_github("n8layman/ohseer")
+
+# Option 3: Using remotes
+remotes::install_github("n8layman/ohseer")
+```
+
 ### Development Installation (Local)
 
 ```r

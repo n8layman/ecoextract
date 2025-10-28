@@ -31,3 +31,5 @@ Suggests:
     here
 VignetteBuilder: knitr
 Config/testthat/edition: 3
+Remotes:
+    n8layman/ohseer
