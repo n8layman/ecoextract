@@ -5,6 +5,7 @@
 
 # Package is automatically loaded by testthat during testing
 # devtools::load_all() only works in interactive sessions, not during R CMD check
+library(devtools)
 
 # Global test configuration
 options(ecoextract.verbose = FALSE)

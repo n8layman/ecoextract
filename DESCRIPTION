@@ -1,36 +1,38 @@
-Package: ecoextract
 Type: Package
+Package: ecoextract
 Title: Ecological Data Extraction and Refinement
 Version: 0.1.0
 Author: Your Name
 Maintainer: Your Name <your.email@example.com>
-Description: Structured ecological data extraction and refinement from scientific literature.
-    Provides functions for OCR processing, extracting structured data from documents,
-    and refining extracted data using LLMs.
+Description: Structured ecological data extraction and refinement from
+    scientific literature.  Provides functions for OCR processing,
+    extracting structured data from documents, and refining extracted data
+    using LLMs.
 License: MIT + file LICENSE
+Imports:
+    DBI,
+    digest,
+    dplyr,
+    ellmer,
+    glue,
+    jsonlite,
+    ohseer,
+    readr,
+    RSQLite,
+    stringr
+Suggests:
+    devtools,
+    dotenv,
+    here,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    withr
+VignetteBuilder: 
+    knitr
+Remotes:
+    n8layman/ohseer
+Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.3
-Imports:
-    dplyr,
-    readr,
-    stringr,
-    glue,
-    jsonlite,
-    digest,
-    DBI,
-    RSQLite,
-    ellmer,
-    ohseer
-Suggests:
-    testthat (>= 3.0.0),
-    withr,
-    knitr,
-    rmarkdown,
-    dotenv,
-    here,
-    devtools
-VignetteBuilder: knitr
-Config/testthat/edition: 3
-Remotes:
-    n8layman/ohseer
