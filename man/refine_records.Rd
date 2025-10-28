@@ -12,8 +12,7 @@ refine_records(
   refinement_prompt_file = NULL,
   refinement_context_file = NULL,
   schema_file = NULL,
-  model = "anthropic/claude-sonnet-4-20250514",
-  api_key = NULL
+  model = "anthropic/claude-sonnet-4-20250514"
 )
 }
 \arguments{
@@ -32,8 +31,6 @@ refine_records(
 \item{schema_file}{Path to custom schema JSON file (optional)}
 
 \item{model}{Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")}
-
-\item{api_key}{Optional API key for the provider (uses environment variable if not provided)}
 }
 \value{
 List with refinement results

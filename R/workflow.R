@@ -241,10 +241,9 @@ perform_ocr <- function(pdf_file) {
 #'
 #' @param markdown_text Markdown content from OCR
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
-#' @param api_key Optional API key for the provider (uses environment variable if not provided)
 #' @return List with audit results including corrected markdown and error log
 #' @export
-perform_ocr_audit <- function(markdown_text, model = "anthropic/claude-sonnet-4-20250514", api_key = NULL) {
+perform_ocr_audit <- function(markdown_text, model = "anthropic/claude-sonnet-4-20250514") {
 
   # Load OCR audit prompt
   audit_prompt <- get_ocr_audit_prompt()
@@ -255,8 +254,7 @@ perform_ocr_audit <- function(markdown_text, model = "anthropic/claude-sonnet-4-
   audit_chat <- ellmer::chat(
     name = model,
     system_prompt = audit_prompt,
-    echo = "none",
-    api_key = api_key
+    echo = "none"
   )
 
   # Create audit context

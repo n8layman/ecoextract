@@ -4,18 +4,12 @@
 \alias{perform_ocr_audit}
 \title{Perform OCR Quality Audit}
 \usage{
-perform_ocr_audit(
-  markdown_text,
-  model = "anthropic/claude-sonnet-4-20250514",
-  api_key = NULL
-)
+perform_ocr_audit(markdown_text, model = "anthropic/claude-sonnet-4-20250514")
 }
 \arguments{
 \item{markdown_text}{Markdown content from OCR}
 
 \item{model}{Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")}
-
-\item{api_key}{Optional API key for the provider (uses environment variable if not provided)}
 }
 \value{
 List with audit results including corrected markdown and error log

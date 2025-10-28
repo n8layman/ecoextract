@@ -11,13 +11,11 @@
 #' @param refinement_context_file Path to custom refinement context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
-#' @param api_key Optional API key for the provider (uses environment variable if not provided)
 #' @return List with refinement results
 #' @export
 refine_records <- function(interactions, markdown_text, ocr_audit = NULL, document_id = NULL,
                                 refinement_prompt_file = NULL, refinement_context_file = NULL, schema_file = NULL,
-                                model = "anthropic/claude-sonnet-4-20250514",
-                                api_key = NULL) {
+                                model = "anthropic/claude-sonnet-4-20250514") {
   if (is.null(interactions) || nrow(interactions) == 0) {
     cat("No existing interactions found for refinement\n")
     return(list(
@@ -58,8 +56,7 @@ refine_records <- function(interactions, markdown_text, ocr_audit = NULL, docume
     name = model,
     system_prompt = refinement_prompt,
     echo = "none",
-    params = list(max_tokens = 8192),
-    api_key = api_key
+    params = list(max_tokens = 8192)
   )
 
   # Build refinement context
