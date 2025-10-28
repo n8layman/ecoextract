@@ -54,8 +54,8 @@ process_document(
 ```
 
 This automatically handles:
-- OCR processing (requires `ohseer` package)
-- OCR quality audit (requires `ecoaudit` package)
+- OCR processing
+- OCR quality audit
 - Data extraction with Claude
 - Refinement pass
 - Saving to SQLite database
