@@ -14,17 +14,17 @@
 #' @examples
 #' \dontrun{
 #' # Process all PDFs in a folder (uses default database)
-#' process_document("pdfs/")
+#' process_documents("pdfs/")
 #'
 #' # Process a single PDF with custom database
-#' process_document("paper.pdf", "my_interactions.db")
+#' process_documents("paper.pdf", "my_interactions.db")
 #'
 #' # With custom schema and prompts
-#' process_document("pdfs/", "interactions.db",
-#'                  schema_file = "ecoextract/schema.json",
-#'                  extraction_prompt_file = "ecoextract/extraction_prompt.md")
+#' process_documents("pdfs/", "interactions.db",
+#'                   schema_file = "ecoextract/schema.json",
+#'                   extraction_prompt_file = "ecoextract/extraction_prompt.md")
 #' }
-process_document <- function(pdf_path,
+process_documents <- function(pdf_path,
                              db_path = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
@@ -130,7 +130,7 @@ process_single_document <- function(pdf_file,
     # Check if already processed
     if (skip_existing) {
       existing <- DBI::dbGetQuery(db_conn,
-                                  "SELECT document_id FROM documents WHERE file_path = ?",
+                                  "SELECT id FROM documents WHERE file_path = ?",
                                   params = list(pdf_file))
       if (nrow(existing) > 0) {
         cat("SKIPPED: Already processed (use skip_existing = FALSE to reprocess)\n")
@@ -147,17 +147,21 @@ process_single_document <- function(pdf_file,
     ocr_audit <- perform_ocr_audit(ocr_result$markdown)
 
     # Step 3: Save document to database
-    document_id <- add_document_to_database(
-      db_conn = db_conn,
+    document_id <- save_document_to_db(
+      db_path = db_conn@dbname,
       file_path = pdf_file,
-      markdown_content = ocr_result$markdown,
-      ocr_audit = ocr_audit
+      metadata = list(
+        document_content = ocr_result$markdown,
+        ocr_audit = if (!is.null(ocr_audit)) jsonlite::toJSON(ocr_audit, auto_unbox = TRUE) else NA,
+        ocr_status = "completed"
+      )
     )
 
     # Step 4: Extract interactions
     cat("\n[3/4] Extracting Interactions...\n")
     extraction_result <- extract_records(
       document_id = document_id,
+      interaction_db = db_conn,
       document_content = ocr_result$markdown,
       ocr_audit = ocr_audit,
       schema_file = schema_file,
@@ -232,7 +236,11 @@ process_single_document <- function(pdf_file,
 perform_ocr <- function(pdf_file) {
   # Perform OCR using ohseer
   ocr_result <- ohseer::mistral_ocr(pdf_file)
-  return(ocr_result)
+
+  # Extract and combine markdown from all pages
+  markdown <- paste(sapply(ocr_result$pages, function(p) p$markdown), collapse = "\n\n")
+
+  return(list(markdown = markdown, raw = ocr_result))
 }
 
 #' Perform OCR Quality Audit
@@ -275,33 +283,3 @@ perform_ocr_audit <- function(markdown_text, model = "anthropic/claude-sonnet-4-
   )
 }
 
-#' Add Document to Database
-#'
-#' @param db_conn Database connection
-#' @param file_path Path to original PDF
-#' @param markdown_content Markdown from OCR
-#' @param ocr_audit Audit results
-#' @return document_id
-#' @keywords internal
-add_document_to_database <- function(db_conn, file_path, markdown_content, ocr_audit = NULL) {
-  # Insert document
-  DBI::dbExecute(db_conn,
-    "INSERT INTO documents (file_path, file_name, markdown_content, ocr_status, ocr_audit)
-     VALUES (?, ?, ?, ?, ?)",
-    params = list(
-      file_path,
-      basename(file_path),
-      markdown_content,
-      "completed",
-      if (!is.null(ocr_audit)) jsonlite::toJSON(ocr_audit, auto_unbox = TRUE) else NA
-    )
-  )
-
-  # Get the document_id
-  document_id <- DBI::dbGetQuery(db_conn, "SELECT last_insert_rowid() as id")$id
-
-  # Log the process
-  log_processing_step(db_conn@dbname, document_id, "ocr", "completed", "OCR processing completed")
-
-  return(document_id)
-}

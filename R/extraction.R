@@ -28,10 +28,10 @@ extract_records <- function(document_id = NA,
 
   # Document content must be available either through the db or provided
   # otherwise gracefully exit and suggest OCR
-  if(!is.na(document_id)) {
-    document_content <- get_document_content(document_id)
-    ocr_audit = get_ocr_audit(document_id)
-    existing_interactions = get_existing_interactions(document_id)
+  if(!is.na(document_id) && !inherits(interaction_db, "logical")) {
+    document_content <- get_document_content(document_id, interaction_db)
+    ocr_audit = get_ocr_audit(document_id, interaction_db)
+    existing_interactions = get_existing_interactions(document_id, interaction_db)
   }
   if(is.na(document_content)) {
     stop("ERROR message please provide either the id of a document in the database or markdown OCR document content.")

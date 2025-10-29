@@ -159,18 +159,22 @@ save_document_to_db <- function(db_path, file_path, file_hash = NULL, metadata =
     DBI::dbExecute(con, "
       INSERT INTO documents (
         file_name, file_path, file_hash, file_size, upload_timestamp,
-        title, first_author_lastname, publication_year, doi
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        title, first_author_lastname, publication_year, doi,
+        document_content, ocr_audit, ocr_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ", params = list(
       basename(file_path),
       file_path,
       file_hash,
-      as.numeric(file.info(file_path)$size),
+      if (file.exists(file_path)) as.numeric(file.info(file_path)$size) else NA_integer_,
       as.character(Sys.time()),
       metadata$title %||% NA_character_,
       metadata$first_author_lastname %||% NA_character_,
       metadata$publication_year %||% NA_integer_,
-      metadata$doi %||% NA_character_
+      metadata$doi %||% NA_character_,
+      metadata$document_content %||% NA_character_,
+      metadata$ocr_audit %||% NA_character_,
+      metadata$ocr_status %||% "pending"
     ))
     
     # Get the new document ID

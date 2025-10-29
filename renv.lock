@@ -2214,18 +2214,14 @@
         "stringr",
         "base64enc"
       ],
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "ohseer",
-      "RemoteUsername": "n8layman",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "2d04732d0126fcad07f230360f44cee38abb4ba7",
-      "NeedsCompilation": "no",
       "Author": "First Last [aut, cre]",
       "Maintainer": "First Last <first.last@example.com>",
-      "Depends": [
-        "R (>= 4.1.0)"
-      ]
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "n8layman",
+      "RemoteRepo": "ohseer",
+      "RemoteRef": "main",
+      "RemoteSha": "1872f15fb40bc9b33b94e20a86023d102e7c2368"
     },
     "openssl": {
       "Package": "openssl",

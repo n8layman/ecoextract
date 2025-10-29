@@ -164,46 +164,46 @@ build_existing_records_context <- function(existing_interactions, document_id = 
   
   for (i in 1:nrow(existing_interactions)) {
     row <- existing_interactions[i, ]
-    
+
+    # Helper function to safely extract scalar value from potentially list column
+    safe_extract <- function(x) {
+      if (is.list(x)) x <- unlist(x)
+      if (length(x) == 0) return(NA_character_)
+      x <- as.character(x)
+      if (is.na(x) || x == "") NA_character_ else x
+    }
+
     # Format organism information
-    bat_info <- paste0(row$bat_species_scientific_name, " (", row$bat_species_common_name, ")")
-    
-    org_sci <- if (is.na(row$interacting_organism_scientific_name) || row$interacting_organism_scientific_name == "") {
-      "[MISSING: scientific name]"
-    } else {
-      row$interacting_organism_scientific_name
-    }
-    
-    org_common <- if (is.na(row$interacting_organism_common_name) || row$interacting_organism_common_name == "") {
-      "[MISSING: common name]"
-    } else {
-      row$interacting_organism_common_name
-    }
-    
-    org_desc <- if (org_sci == "[MISSING: scientific name]" && org_common == "[MISSING: common name]") {
+    bat_sci <- safe_extract(row$bat_species_scientific_name)
+    bat_common <- safe_extract(row$bat_species_common_name)
+    bat_info <- paste0(
+      if (is.na(bat_sci)) "[MISSING]" else bat_sci,
+      " (",
+      if (is.na(bat_common)) "[MISSING]" else bat_common,
+      ")"
+    )
+
+    org_sci <- safe_extract(row$interacting_organism_scientific_name)
+    org_common <- safe_extract(row$interacting_organism_common_name)
+
+    org_desc <- if (is.na(org_sci) && is.na(org_common)) {
       "[MISSING: organism details]"
-    } else if (org_sci == "[MISSING: scientific name]") {
+    } else if (is.na(org_sci)) {
       paste0(org_common, " [incomplete: missing scientific name]")
-    } else if (org_common == "[MISSING: common name]") {
+    } else if (is.na(org_common)) {
       paste0(org_sci, " [incomplete: missing common name]")
     } else {
       paste0(org_sci, " (", org_common, ")")
     }
-    
+
     # Format location
-    location_desc <- if (is.na(row$location) || row$location == "") {
-      ""
-    } else {
-      paste0(" at ", row$location)
-    }
-    
+    location_val <- safe_extract(row$location)
+    location_desc <- if (is.na(location_val)) "" else paste0(" at ", location_val)
+
     # Build context line
-    occurrence_id <- if ("occurrence_id" %in% names(row) && !is.na(row$occurrence_id)) {
-      row$occurrence_id
-    } else {
-      paste0("interaction-", i)
-    }
-    
+    occurrence_id_val <- safe_extract(row$occurrence_id)
+    occurrence_id <- if (!is.na(occurrence_id_val)) occurrence_id_val else paste0("interaction-", i)
+
     context_line <- paste0("- ", occurrence_id, ": ", bat_info, " <-> ", org_desc, location_desc)
     context_lines <- c(context_lines, context_line)
   }

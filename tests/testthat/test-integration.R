@@ -114,40 +114,13 @@ test_that("step 5: full pipeline from PDF to database", {
   skip_if_not(file.exists(test_pdf), "Test PDF not found")
 
   db_path <- withr::local_tempfile(fileext = ".sqlite")
-  init_ecoextract_database(db_path)
 
-  # 1. OCR the PDF
-  ocr_result <- ohseer::mistral_ocr(test_pdf)
-  expect_type(ocr_result, "list")
+  # Test the full process_documents workflow
+  result <- process_documents(test_pdf, db_path = db_path)
 
-  # Extract markdown from OCR result (combine all pages)
-  ocr_text <- paste(sapply(ocr_result$pages, function(p) p$markdown), collapse = "\n\n")
-
-  # 2. Audit OCR output
-  audit_result <- perform_ocr_audit(ocr_text)
-  expect_true("audited_markdown" %in% names(audit_result))
-
-  # 3. Save document
-  doc_id <- save_document_to_db(db_path, test_pdf)
-
-  # 4. Extract records
-  extract_result <- extract_records(
-    document_content = audit_result$audited_markdown,
-    existing_interactions = NA
-  )
-  expect_true("success" %in% names(extract_result))
-
-  # 5. Refine and save
-  if (extract_result$success && nrow(extract_result$interactions) > 0) {
-    refine_result <- refine_records(
-      interactions = extract_result$interactions,
-      markdown_text = audit_result$audited_markdown
-    )
-
-    if (refine_result$success && nrow(refine_result$interactions) > 0) {
-      save_records_to_db(db_path, doc_id, refine_result$interactions)
-    }
-  }
+  expect_type(result, "list")
+  expect_equal(result$total_files, 1)
+  expect_equal(result$errors, 0)
 
   # Verify data in database
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
