@@ -41,16 +41,34 @@ get_ocr_audit_prompt <- function(prompt_file = NULL) {
   )
 }
 
-#' Get extraction context template from package or custom location
+#' Get context template from package or custom location
+#' @param context_file Optional path to custom context template file
+#' @param context_type Type of context: "extraction" or "refinement"
+#' @return Character string with context template
+#' @export
+get_context <- function(context_file = NULL, context_type = "extraction") {
+  file_name <- paste0(context_type, "_context.md")
+  load_config_file(
+    file_path = context_file,
+    file_name = file_name,
+    package_subdir = "prompts",
+    return_content = TRUE
+  )
+}
+
+#' Get extraction context template (wrapper for backwards compatibility)
 #' @param context_file Optional path to custom context template file
 #' @return Character string with context template
 #' @export
 get_extraction_context_template <- function(context_file = NULL) {
-  load_config_file(
-    file_path = context_file,
-    file_name = "extraction_context.md",
-    package_subdir = "prompts",
-    return_content = TRUE
-  )
+  get_context(context_file, context_type = "extraction")
+}
+
+#' Get refinement context template (wrapper for backwards compatibility)
+#' @param context_file Optional path to custom context template file
+#' @return Character string with context template
+#' @export
+get_refinement_context_template <- function(context_file = NULL) {
+  get_context(context_file, context_type = "refinement")
 }
 

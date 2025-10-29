@@ -63,7 +63,9 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
         prompt_hash TEXT NOT NULL,
         flagged_for_review BOOLEAN DEFAULT FALSE,
         review_reason TEXT,
-        
+        human_edited BOOLEAN DEFAULT FALSE,
+        rejected BOOLEAN DEFAULT FALSE,
+
         UNIQUE(document_id, occurrence_id),
         FOREIGN KEY (document_id) REFERENCES documents (id)
       )
@@ -206,10 +208,10 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     if (!"occurrence_id" %in% names(interactions_df)) {
       # Try to get author/year from publication_metadata in metadata or from interactions themselves
       author_lastname <- metadata$publication_metadata$first_author_lastname %||%
-        interactions_df$first_author_lastname[1] %||%
+        (if ("first_author_lastname" %in% names(interactions_df)) interactions_df$first_author_lastname[1] else NULL) %||%
         "Unknown"
       publication_year <- metadata$publication_metadata$publication_year %||%
-        interactions_df$publication_year[1] %||%
+        (if ("publication_year" %in% names(interactions_df)) interactions_df$publication_year[1] else NULL) %||%
         format(Sys.Date(), "%Y")
 
       interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
@@ -285,10 +287,37 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       interactions_clean$publication_year <- as.integer(interactions_clean$publication_year)
     }
 
-    # Insert interactions
-    DBI::dbWriteTable(con, "interactions", interactions_clean, append = TRUE, row.names = FALSE)
-    
-    cat("Saved", nrow(interactions_clean), "interactions to database\n")
+    # Use UPSERT logic: update existing records, insert new ones
+    # This preserves data and handles both extraction (new records) and refinement (updates)
+
+    for (i in 1:nrow(interactions_clean)) {
+      row <- interactions_clean[i, ]
+
+      # Check if this occurrence_id already exists for this document
+      existing <- DBI::dbGetQuery(con,
+        "SELECT id FROM interactions WHERE document_id = ? AND occurrence_id = ?",
+        params = list(row$document_id, row$occurrence_id))
+
+      if (nrow(existing) > 0) {
+        # Update existing record (only if not human_edited and not rejected)
+        # Build SET clause dynamically for all columns except id
+        cols_to_update <- setdiff(names(row), c("id"))
+        set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
+
+        update_sql <- paste0(
+          "UPDATE interactions SET ", set_clause,
+          " WHERE id = ? AND human_edited = 0 AND rejected = 0"
+        )
+
+        params <- c(as.list(row[cols_to_update]), list(existing$id[1]))
+        DBI::dbExecute(con, update_sql, params = params)
+      } else {
+        # Insert new record
+        DBI::dbWriteTable(con, "interactions", row, append = TRUE, row.names = FALSE)
+      }
+    }
+
+    cat("Saved", nrow(interactions_clean), "rows to database\n")
     return(TRUE)
     
   }, error = function(e) {

@@ -50,17 +50,21 @@ test_that("step 3: extraction and save to database", {
   # Save document first
   doc_id <- save_document_to_db(db_path, "test_doc.pdf")
 
+  # Note: This test manually calls extract_records without DB connection
+  # In the real workflow, extract_records would save automatically
   result <- extract_records(
     document_content = ocr_content,
     existing_interactions = NA
   )
 
   expect_type(result, "list")
-  expect_true("success" %in% names(result))
-  expect_true("interactions" %in% names(result))
+  expect_true("status" %in% names(result))
+  expect_true("records_extracted" %in% names(result))
 
-  if (result$success && nrow(result$interactions) > 0) {
-    # Save extracted records to database
+  # Extraction saves automatically when DB connection provided
+  # For this test without DB, we manually save
+  if (result$status == "completed (not saved - no DB connection)" && result$records_extracted > 0) {
+    # Save extracted records to database manually
     save_records_to_db(db_path, doc_id, result$interactions)
 
     # Verify saved to database
@@ -82,28 +86,30 @@ test_that("step 4: refinement and save to database", {
   # Save document first
   doc_id <- save_document_to_db(db_path, "test_doc.pdf")
 
+  # Save initial records to database (refinement reads from DB)
+  save_records_to_db(db_path, doc_id, records, metadata = list(
+    model = "test-model",
+    prompt_hash = "test-hash"
+  ))
+
+  # Connect to database for refinement
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  # Refine records (reads from DB and saves back)
   result <- refine_records(
-    interactions = records,
-    markdown_text = ocr_content
+    db_conn = con,
+    document_id = doc_id,
+    extraction_prompt_file = NULL  # Use default extraction prompt
   )
 
   expect_type(result, "list")
-  expect_true("success" %in% names(result))
-  expect_true("interactions" %in% names(result))
+  expect_true("status" %in% names(result))
+  expect_equal(result$status, "completed")
 
-  if (result$success && nrow(result$interactions) > 0) {
-    # Save refined records to database
-    save_records_to_db(db_path, doc_id, result$interactions, metadata = list(
-      model = result$model,
-      prompt_hash = result$prompt_hash
-    ))
-
-    # Verify saved to database
-    con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-    withr::defer(DBI::dbDisconnect(con))
-    records <- DBI::dbReadTable(con, "interactions")
-    expect_true(nrow(records) > 0)
-  }
+  # Verify records are in database
+  records_after <- DBI::dbReadTable(con, "interactions")
+  expect_true(nrow(records_after) > 0)
 })
 
 test_that("step 5: full pipeline from PDF to database", {
@@ -118,9 +124,13 @@ test_that("step 5: full pipeline from PDF to database", {
   # Test the full process_documents workflow
   result <- process_documents(test_pdf, db_path = db_path)
 
-  expect_type(result, "list")
-  expect_equal(result$total_files, 1)
-  expect_equal(result$errors, 0)
+  expect_s3_class(result, "tbl_df")
+  expect_equal(nrow(result), 1)
+  expect_equal(result$ocr_status[1], "completed")
+  expect_equal(result$audit_status[1], "completed")
+  expect_equal(result$extraction_status[1], "completed")
+  expect_true(result$refinement_status[1] %in% c("completed", "skipped"))
+  expect_true(result$records_extracted[1] > 0)
 
   # Verify data in database
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)

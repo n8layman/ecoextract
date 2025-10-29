@@ -10,7 +10,9 @@
 #' @param existing_interactions Optional dataframe of existing interactions (JSON or character)
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
 #' @param extraction_context_file Path to custom extraction context template file (optional)
-#' @param schema_file Path to custom schema JSON file (optional)
+#' @param schema ellmer TypeJsonSchema object (optional, will load from schema_file if not provided)
+#' @param schema_json Raw JSON string of schema (optional, will read from schema_file if not provided)
+#' @param schema_file Path to custom schema JSON file (optional, ignored if schema provided)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
@@ -22,6 +24,8 @@ extract_records <- function(document_id = NA,
                                  existing_interactions = NA,
                                  extraction_prompt_file = NULL,
                                  extraction_context_file = NULL,
+                                 schema = NULL,
+                                 schema_json = NULL,
                                  schema_file = NULL,
                                  model = "anthropic/claude-sonnet-4-20250514",
                                  ...) {
@@ -37,8 +41,17 @@ extract_records <- function(document_id = NA,
     stop("ERROR message please provide either the id of a document in the database or markdown OCR document content.")
   }
 
-  # Load extraction schema (custom or default)
-  schema <- load_schema(schema_file, schema_type = "extraction")
+  # Load schema if not provided
+  if (is.null(schema)) {
+    schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
+    schema_json_raw <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
+    schema_list <- jsonlite::fromJSON(schema_json_raw, simplifyVector = FALSE)
+    schema <- ellmer::TypeJsonSchema(
+      description = schema_list$description %||% "Interaction schema",
+      json = schema_list
+    )
+    schema_json <- schema_json_raw
+  }
 
   # Load extraction prompt (custom or default)
   extraction_prompt <- get_extraction_prompt(extraction_prompt_file)
@@ -83,41 +96,63 @@ extract_records <- function(document_id = NA,
 
   # Now extract the interactions
   if (is.list(extract_result) && "interactions" %in% names(extract_result)) {
-    # Convert interactions list to dataframe
+    # Convert interactions list to tibble
     interactions_list <- extract_result$interactions
     if (length(interactions_list) > 0) {
-      extraction_df <- jsonlite::fromJSON(jsonlite::toJSON(interactions_list), simplifyVector = TRUE)
+      extraction_df <- tibble::as_tibble(jsonlite::fromJSON(jsonlite::toJSON(interactions_list), simplifyVector = TRUE))
     } else {
-      extraction_df <- data.frame()
+      extraction_df <- tibble::tibble()
     }
     pub_metadata <- extract_result$publication_metadata
   } else {
     # Might be the interactions dataframe directly
-    extraction_df <- extract_result
+    extraction_df <- tibble::as_tibble(extract_result)
     pub_metadata <- NULL
   }
-  
+
   # Process dataframe if valid
   if (is.data.frame(extraction_df) && nrow(extraction_df) > 0) {
-    cat("\nExtraction output:\n")
+    message("\nExtraction output:")
     print(extraction_df)
-    cat("Rows extracted:", nrow(extraction_df), "interactions\n")
-    
-    return(list(
-      success = TRUE,
-      interactions = extraction_df,
-      publication_metadata = pub_metadata,
-      prompt_hash = extraction_prompt_hash,
-      model = model
-    ))
+    message(glue::glue("Extracted {nrow(extraction_df)} interactions"))
+
+    # Save to database (atomic step)
+    if (!is.na(document_id) && !inherits(interaction_db, "logical")) {
+      tryCatch({
+        save_records_to_db(
+          db_path = interaction_db@dbname,
+          document_id = document_id,
+          interactions_df = extraction_df,
+          metadata = list(
+            model = model,
+            prompt_hash = extraction_prompt_hash
+          )
+        )
+        message(glue::glue("Saved {nrow(extraction_df)} records to database"))
+
+        return(list(
+          status = "completed",
+          records_extracted = nrow(extraction_df)
+        ))
+      }, error = function(e) {
+        return(list(
+          status = paste("Extraction succeeded but save failed:", e$message),
+          records_extracted = 0
+        ))
+      })
+    } else {
+      # No DB connection - return data without saving
+      return(list(
+        status = "completed (not saved - no DB connection)",
+        records_extracted = nrow(extraction_df),
+        interactions = extraction_df  # Include data when not saving
+      ))
+    }
   } else {
-    cat("No valid interactions extracted\n")
+    message("No valid interactions extracted")
     return(list(
-      success = FALSE,
-      interactions = data.frame(),
-      publication_metadata = pub_metadata,
-      prompt_hash = extraction_prompt_hash,
-      model = model
+      status = "completed",
+      records_extracted = 0
     ))
   }
 }

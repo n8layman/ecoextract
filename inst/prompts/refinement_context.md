@@ -1,3 +1,6 @@
+**Original Extraction Task:**
+{extraction_prompt}
+
 **Output Schema (you MUST follow this exact structure):**
 ```json
 {schema_json}
@@ -9,5 +12,5 @@
 **OCR Audit (reconstructed tables and corrections):**
 {ocr_audit}
 
-**Existing Database Interactions (do not duplicate):**
+**Existing Records to Enhance:**
 {existing_interactions_context}
