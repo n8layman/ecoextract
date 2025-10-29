@@ -10,9 +10,7 @@
 #' @param existing_interactions Optional dataframe of existing interactions (JSON or character)
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
 #' @param extraction_context_file Path to custom extraction context template file (optional)
-#' @param schema ellmer TypeJsonSchema object (optional, will load from schema_file if not provided)
-#' @param schema_json Raw JSON string of schema (optional, will read from schema_file if not provided)
-#' @param schema_file Path to custom schema JSON file (optional, ignored if schema provided)
+#' @param schema_file Path to custom schema JSON file (optional)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
@@ -24,8 +22,6 @@ extract_records <- function(document_id = NA,
                                  existing_interactions = NA,
                                  extraction_prompt_file = NULL,
                                  extraction_context_file = NULL,
-                                 schema = NULL,
-                                 schema_json = NULL,
                                  schema_file = NULL,
                                  model = "anthropic/claude-sonnet-4-20250514",
                                  ...) {
@@ -41,17 +37,19 @@ extract_records <- function(document_id = NA,
     stop("ERROR message please provide either the id of a document in the database or markdown OCR document content.")
   }
 
-  # Load schema if not provided
-  if (is.null(schema)) {
-    schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
-    schema_json_raw <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-    schema_list <- jsonlite::fromJSON(schema_json_raw, simplifyVector = FALSE)
-    schema <- ellmer::TypeJsonSchema(
-      description = schema_list$description %||% "Interaction schema",
-      json = schema_list
-    )
-    schema_json <- schema_json_raw
-  }
+  # Load schema
+  # Step 1: Identify schema file path
+  schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
+
+  # Step 2: Convert raw text to R object using jsonlite
+  schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
+  schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+
+  # Step 3: Convert to ellmer type schema
+  schema <- ellmer::TypeJsonSchema(
+    description = schema_list$description %||% "Interaction schema",
+    json = schema_list
+  )
 
   # Load extraction prompt (custom or default)
   extraction_prompt <- get_extraction_prompt(extraction_prompt_file)

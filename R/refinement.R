@@ -10,16 +10,14 @@
 #' @param extraction_prompt_file Path to extraction prompt file (provides domain context)
 #' @param refinement_prompt_file Path to custom refinement prompt file (optional, uses generic if not provided)
 #' @param refinement_context_file Path to custom refinement context template file (optional)
-#' @param schema ellmer TypeJsonSchema object (optional, will load from schema_file if not provided)
-#' @param schema_json Raw JSON string of schema (optional, will read from schema_file if not provided)
-#' @param schema_file Path to custom schema JSON file (optional, ignored if schema provided)
+#' @param schema_file Path to custom schema JSON file (optional)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
 #' @return List with refinement results
 #' @export
 refine_records <- function(db_conn = NULL, document_id,
                                 extraction_prompt_file = NULL, refinement_prompt_file = NULL,
                                 refinement_context_file = NULL,
-                                schema = NULL, schema_json = NULL, schema_file = NULL,
+                                schema_file = NULL,
                                 model = "anthropic/claude-sonnet-4-20250514") {
   # Read document content from database (atomic - starts with DB)
   markdown_text <- get_document_content(document_id, db_conn)
@@ -53,17 +51,19 @@ refine_records <- function(db_conn = NULL, document_id,
     ))
   }
 
-  # Load schema if not provided
-  if (is.null(schema)) {
-    schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
-    schema_json_raw <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-    schema_list <- jsonlite::fromJSON(schema_json_raw, simplifyVector = FALSE)
-    schema <- ellmer::TypeJsonSchema(
-      description = schema_list$description %||% "Interaction schema",
-      json = schema_list
-    )
-    schema_json <- schema_json_raw
-  }
+  # Load schema
+  # Step 1: Identify schema file path
+  schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
+
+  # Step 2: Convert raw text to R object using jsonlite
+  schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
+  schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+
+  # Step 3: Convert to ellmer type schema
+  schema <- ellmer::TypeJsonSchema(
+    description = schema_list$description %||% "Interaction schema",
+    json = schema_list
+  )
 
   # Load extraction prompt (provides domain context for refinement)
   extraction_prompt <- get_extraction_prompt(extraction_prompt_file)

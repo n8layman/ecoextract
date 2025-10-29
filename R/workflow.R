@@ -144,25 +144,6 @@ process_single_document <- function(pdf_file,
   message(glue::glue("Processing: {basename(pdf_file)}"))
   message(strrep("=", 70))
 
-  # Load schema once for both extraction and refinement
-  # Step 1: Identify schema file path
-  schema_path <- load_config_file(
-    file_path = schema_file,
-    file_name = "schema.json",
-    package_subdir = "extdata",
-    return_content = FALSE
-  )
-
-  # Step 2: Convert raw text to R object using jsonlite
-  schema_json_raw <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-  schema_list <- jsonlite::fromJSON(schema_json_raw, simplifyVector = FALSE)
-
-  # Step 3: Convert to ellmer type schema
-  schema <- ellmer::TypeJsonSchema(
-    description = schema_list$description %||% "Interaction schema",
-    json = schema_list
-  )
-
   # Initialize status tracking with filename only
   status_tracking <- list(filename = basename(pdf_file))
 
@@ -191,8 +172,7 @@ process_single_document <- function(pdf_file,
   extraction_result <- extract_records(
     document_id = status_tracking$document_id,
     interaction_db = db_conn,
-    schema = schema,
-    schema_json = schema_json_raw,
+    schema_file = schema_file,
     extraction_prompt_file = extraction_prompt_file
   )
   status_tracking$extraction_status <- extraction_result$status
@@ -209,8 +189,7 @@ process_single_document <- function(pdf_file,
     db_conn = db_conn,
     document_id = status_tracking$document_id,
     extraction_prompt_file = extraction_prompt_file,
-    schema = schema,
-    schema_json = schema_json_raw,
+    schema_file = schema_file,
     refinement_prompt_file = refinement_prompt_file
   )
   status_tracking$refinement_status <- refinement_result$status
