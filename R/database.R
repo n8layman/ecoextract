@@ -127,13 +127,13 @@ get_record_columns_sql <- function(ellmer_schema = NULL) {
   "
 }
 
-#' Save document to EcoExtract database
+#' Save document to EcoExtract database (internal)
 #' @param db_path Path to database file
 #' @param file_path Path to processed file
 #' @param file_hash Optional file hash (computed automatically if not provided)
 #' @param metadata List with document metadata
 #' @return Document ID or NULL if failed
-#' @export
+#' @keywords internal
 save_document_to_db <- function(db_path, file_path, file_hash = NULL, metadata = list()) {
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   on.exit(DBI::dbDisconnect(con), add = TRUE)
@@ -184,13 +184,13 @@ save_document_to_db <- function(db_path, file_path, file_hash = NULL, metadata =
   return(new_id)
 }
 
-#' Save records to EcoExtract database
+#' Save records to EcoExtract database (internal)
 #' @param db_path Path to database file
 #' @param document_id Document ID
 #' @param interactions_df Dataframe of records
 #' @param metadata Processing metadata
 #' @return TRUE if successful
-#' @export
+#' @keywords internal
 save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list()) {
   if (nrow(interactions_df) == 0) return(invisible(NULL))
 
@@ -424,12 +424,12 @@ extract_ellmer_schema_fields <- function(ellmer_schema) {
   return(fields)
 }
 
-#' Validate ellmer schema compatibility with database
+#' Validate ellmer schema compatibility with database (internal)
 #' @param db_conn Database connection
 #' @param ellmer_schema ellmer schema object
 #' @param table_name Database table name to validate against
 #' @return List with validation results
-#' @export
+#' @keywords internal
 validate_ellmer_schema_with_db <- function(db_conn, ellmer_schema, table_name = "records") {
   # Extract schema fields
   schema_fields <- extract_ellmer_schema_fields(ellmer_schema)
@@ -506,11 +506,11 @@ generate_columns_from_ellmer_schema <- function(ellmer_schema) {
   return(paste(columns, collapse = ",\n"))
 }
 
-#' Get document content (OCR results) from database
+#' Get document content (OCR results) from database (internal)
 #' @param document_id Document ID to retrieve
 #' @param db_conn Database connection
 #' @return Character string with OCR markdown content, or NA if not found
-#' @export
+#' @keywords internal
 get_document_content <- function(document_id, db_conn) {
   tryCatch({
     result <- DBI::dbGetQuery(db_conn, "
@@ -528,11 +528,11 @@ get_document_content <- function(document_id, db_conn) {
   })
 }
 
-#' Get OCR audit data from database
+#' Get OCR audit data from database (internal)
 #' @param document_id Document ID to retrieve
 #' @param db_conn Database connection
 #' @return OCR audit data (JSON string), or NA if not found
-#' @export
+#' @keywords internal
 get_ocr_audit <- function(document_id, db_conn) {
   tryCatch({
     result <- DBI::dbGetQuery(db_conn, "
@@ -550,11 +550,11 @@ get_ocr_audit <- function(document_id, db_conn) {
   })
 }
 
-#' Get existing records from database
+#' Get existing records from database (internal)
 #' @param document_id Document ID to retrieve records for
 #' @param db_conn Database connection
 #' @return Dataframe with existing records, or NA if none found
-#' @export
+#' @keywords internal
 get_existing_records <- function(document_id, db_conn) {
   tryCatch({
     result <- DBI::dbGetQuery(db_conn, "

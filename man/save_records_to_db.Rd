@@ -2,7 +2,7 @@
 % Please edit documentation in R/database.R
 \name{save_records_to_db}
 \alias{save_records_to_db}
-\title{Save records to EcoExtract database}
+\title{Save records to EcoExtract database (internal)}
 \usage{
 save_records_to_db(db_path, document_id, interactions_df, metadata = list())
 }
@@ -19,5 +19,6 @@ save_records_to_db(db_path, document_id, interactions_df, metadata = list())
 TRUE if successful
 }
 \description{
-Save records to EcoExtract database
+Save records to EcoExtract database (internal)
 }
+\keyword{internal}

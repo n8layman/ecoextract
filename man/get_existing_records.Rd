@@ -2,7 +2,7 @@
 % Please edit documentation in R/database.R
 \name{get_existing_records}
 \alias{get_existing_records}
-\title{Get existing records from database}
+\title{Get existing records from database (internal)}
 \usage{
 get_existing_records(document_id, db_conn)
 }
@@ -15,5 +15,6 @@ get_existing_records(document_id, db_conn)
 Dataframe with existing records, or NA if none found
 }
 \description{
-Get existing records from database
+Get existing records from database (internal)
 }
+\keyword{internal}

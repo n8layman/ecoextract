@@ -2,7 +2,8 @@
 % Please edit documentation in R/utils.R
 \name{add_occurrence_ids}
 \alias{add_occurrence_ids}
-\title{Create occurrence IDs for a batch of records}
+\title{Internal utility functions
+Create occurrence IDs for a batch of records (internal)}
 \usage{
 add_occurrence_ids(interactions, author_lastname, publication_year)
 }
@@ -17,5 +18,7 @@ add_occurrence_ids(interactions, author_lastname, publication_year)
 Dataframe with occurrence_id column added
 }
 \description{
-Create occurrence IDs for a batch of records
+Internal utility functions
+Create occurrence IDs for a batch of records (internal)
 }
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/database.R
 \name{get_ocr_audit}
 \alias{get_ocr_audit}
-\title{Get OCR audit data from database}
+\title{Get OCR audit data from database (internal)}
 \usage{
 get_ocr_audit(document_id, db_conn)
 }
@@ -15,5 +15,6 @@ get_ocr_audit(document_id, db_conn)
 OCR audit data (JSON string), or NA if not found
 }
 \description{
-Get OCR audit data from database
+Get OCR audit data from database (internal)
 }
+\keyword{internal}
