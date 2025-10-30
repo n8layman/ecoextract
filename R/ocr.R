@@ -5,7 +5,7 @@
 #' Perform OCR on PDF
 #'
 #' @param pdf_file Path to PDF
-#' @return List with markdown content and raw result
+#' @return List with markdown content, images, and raw result
 #' @keywords internal
 perform_ocr <- function(pdf_file) {
   # Perform OCR using ohseer
@@ -14,7 +14,15 @@ perform_ocr <- function(pdf_file) {
   # Extract and combine markdown from all pages
   markdown <- paste(sapply(ocr_result$pages, function(p) p$markdown), collapse = "\n\n")
 
-  return(list(markdown = markdown, raw = ocr_result))
+  # Extract images from all pages
+  images <- lapply(seq_along(ocr_result$pages), function(i) {
+    list(
+      page_num = i,
+      images = ocr_result$pages[[i]]$images
+    )
+  })
+
+  return(list(markdown = markdown, images = images, raw = ocr_result))
 }
 
 #' OCR Document and Save to Database (Atomic)
@@ -51,6 +59,7 @@ ocr_document <- function(pdf_file, db_conn, skip_existing = TRUE) {
       file_path = pdf_file,
       metadata = list(
         document_content = ocr_result$markdown,
+        ocr_images = jsonlite::toJSON(list(pages = ocr_result$images), auto_unbox = TRUE),
         ocr_status = "completed"
       )
     )

@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema.R
 \name{add_missing_schema_columns}
 \alias{add_missing_schema_columns}
-\title{Add missing schema columns with appropriate defaults}
+\title{Add missing schema columns with appropriate defaults (internal)}
 \usage{
 add_missing_schema_columns(df)
 }
@@ -13,5 +13,6 @@ add_missing_schema_columns(df)
 Dataframe with all schema columns
 }
 \description{
-Add missing schema columns with appropriate defaults
+Add missing schema columns with appropriate defaults (internal)
 }
+\keyword{internal}

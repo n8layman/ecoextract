@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema.R
 \name{get_required_columns}
 \alias{get_required_columns}
-\title{Get required columns from basic schema}
+\title{Get required columns from basic schema (internal)}
 \usage{
 get_required_columns()
 }
@@ -10,5 +10,6 @@ get_required_columns()
 Character vector of required column names
 }
 \description{
-Get required columns from basic schema
+Get required columns from basic schema (internal)
 }
+\keyword{internal}

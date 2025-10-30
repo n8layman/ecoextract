@@ -10,7 +10,7 @@ perform_ocr(pdf_file)
 \item{pdf_file}{Path to PDF}
 }
 \value{
-List with markdown content and raw result
+List with markdown content, images, and raw result
 }
 \description{
 Functions for performing OCR on PDF documents

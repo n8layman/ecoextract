@@ -2,7 +2,7 @@
 % Please edit documentation in R/refinement.R
 \name{merge_refinements}
 \alias{merge_refinements}
-\title{Merge refined data back into original records}
+\title{Merge refined data back into original records (internal)}
 \usage{
 merge_refinements(original_records, refined_records)
 }
@@ -15,5 +15,6 @@ merge_refinements(original_records, refined_records)
 Dataframe with merged refinements
 }
 \description{
-Merge refined data back into original records
+Merge refined data back into original records (internal)
 }
+\keyword{internal}

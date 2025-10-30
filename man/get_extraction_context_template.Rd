@@ -2,7 +2,7 @@
 % Please edit documentation in R/prompts.R
 \name{get_extraction_context_template}
 \alias{get_extraction_context_template}
-\title{Get extraction context template (wrapper for backwards compatibility)}
+\title{Get extraction context template (internal)}
 \usage{
 get_extraction_context_template(context_file = NULL)
 }
@@ -13,5 +13,6 @@ get_extraction_context_template(context_file = NULL)
 Character string with context template
 }
 \description{
-Get extraction context template (wrapper for backwards compatibility)
+Get extraction context template (internal)
 }
+\keyword{internal}

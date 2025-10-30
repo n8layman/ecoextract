@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema.R
 \name{filter_to_schema_columns}
 \alias{filter_to_schema_columns}
-\title{Filter dataframe to include only schema-defined columns}
+\title{Filter dataframe to include only schema-defined columns (internal)}
 \usage{
 filter_to_schema_columns(df)
 }
@@ -13,5 +13,6 @@ filter_to_schema_columns(df)
 Dataframe with only known schema columns
 }
 \description{
-Filter dataframe to include only schema-defined columns
+Filter dataframe to include only schema-defined columns (internal)
 }
+\keyword{internal}

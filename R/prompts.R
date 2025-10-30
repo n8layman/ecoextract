@@ -1,11 +1,11 @@
-#' Prompt Management Functions
-#' 
+#' Internal prompt management functions
+#'
 #' Handle system prompts and templates for ecological data extraction
 
-#' Get extraction prompt from package or custom location
+#' Get extraction prompt from package or custom location (internal)
 #' @param prompt_file Optional path to custom extraction prompt file
 #' @return Character string with extraction prompt
-#' @export
+#' @keywords internal
 get_extraction_prompt <- function(prompt_file = NULL) {
   load_config_file(
     file_path = prompt_file,
@@ -15,10 +15,10 @@ get_extraction_prompt <- function(prompt_file = NULL) {
   )
 }
 
-#' Get refinement prompt from package or custom location
+#' Get refinement prompt from package or custom location (internal)
 #' @param prompt_file Optional path to custom refinement prompt file
 #' @return Character string with refinement prompt
-#' @export
+#' @keywords internal
 get_refinement_prompt <- function(prompt_file = NULL) {
   load_config_file(
     file_path = prompt_file,
@@ -28,10 +28,10 @@ get_refinement_prompt <- function(prompt_file = NULL) {
   )
 }
 
-#' Get OCR audit prompt from package or custom location
+#' Get OCR audit prompt from package or custom location (internal)
 #' @param prompt_file Optional path to custom OCR audit prompt file
 #' @return Character string with OCR audit prompt
-#' @export
+#' @keywords internal
 get_ocr_audit_prompt <- function(prompt_file = NULL) {
   load_config_file(
     file_path = prompt_file,
@@ -41,11 +41,11 @@ get_ocr_audit_prompt <- function(prompt_file = NULL) {
   )
 }
 
-#' Get context template from package or custom location
+#' Get context template from package or custom location (internal)
 #' @param context_file Optional path to custom context template file
 #' @param context_type Type of context: "extraction" or "refinement"
 #' @return Character string with context template
-#' @export
+#' @keywords internal
 get_context <- function(context_file = NULL, context_type = "extraction") {
   file_name <- paste0(context_type, "_context.md")
   load_config_file(
@@ -56,18 +56,18 @@ get_context <- function(context_file = NULL, context_type = "extraction") {
   )
 }
 
-#' Get extraction context template (wrapper for backwards compatibility)
+#' Get extraction context template (internal)
 #' @param context_file Optional path to custom context template file
 #' @return Character string with context template
-#' @export
+#' @keywords internal
 get_extraction_context_template <- function(context_file = NULL) {
   get_context(context_file, context_type = "extraction")
 }
 
-#' Get refinement context template (wrapper for backwards compatibility)
+#' Get refinement context template (internal)
 #' @param context_file Optional path to custom context template file
 #' @return Character string with context template
-#' @export
+#' @keywords internal
 get_refinement_context_template <- function(context_file = NULL) {
   get_context(context_file, context_type = "refinement")
 }

@@ -159,11 +159,11 @@ refine_records <- function(db_conn = NULL, document_id,
   })
 }
 
-#' Merge refined data back into original records
+#' Merge refined data back into original records (internal)
 #' @param original_records Dataframe of original records
 #' @param refined_records Dataframe of refined records
 #' @return Dataframe with merged refinements
-#' @export
+#' @keywords internal
 merge_refinements <- function(original_records, refined_records) {
   if (nrow(refined_records) == 0) {
     return(original_records)

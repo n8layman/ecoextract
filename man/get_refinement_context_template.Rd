@@ -2,7 +2,7 @@
 % Please edit documentation in R/prompts.R
 \name{get_refinement_context_template}
 \alias{get_refinement_context_template}
-\title{Get refinement context template (wrapper for backwards compatibility)}
+\title{Get refinement context template (internal)}
 \usage{
 get_refinement_context_template(context_file = NULL)
 }
@@ -13,5 +13,6 @@ get_refinement_context_template(context_file = NULL)
 Character string with context template
 }
 \description{
-Get refinement context template (wrapper for backwards compatibility)
+Get refinement context template (internal)
 }
+\keyword{internal}

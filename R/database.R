@@ -44,7 +44,8 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
         
         -- Content storage
         document_content TEXT,  -- OCR markdown results
-        ocr_audit TEXT         -- OCR quality audit (JSON)
+        ocr_audit TEXT,         -- OCR quality audit (JSON)
+        ocr_images TEXT         -- OCR images (JSON array of base64 images)
       )
     ")
     

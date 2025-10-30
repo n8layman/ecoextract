@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema.R
 \name{get_schema_types}
 \alias{get_schema_types}
-\title{Get database column types from basic schema}
+\title{Get database column types from basic schema (internal)}
 \usage{
 get_schema_types()
 }
@@ -10,5 +10,6 @@ get_schema_types()
 Named vector of SQL types
 }
 \description{
-Get database column types from basic schema
+Get database column types from basic schema (internal)
 }
+\keyword{internal}

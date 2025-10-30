@@ -156,12 +156,12 @@ extract_records <- function(document_id = NA,
 }
 
 # CLAUDE: THis is generic enough. All papers will have author and pub year. And the point of this package is to extract data from pubs. Schemas might be differnt but this will be the same
-#' Generate occurrence ID for interaction
+#' Generate occurrence ID for interaction (internal)
 #' @param author_lastname Author surname
 #' @param publication_year Publication year
 #' @param sequence_number Sequence number for this interaction
 #' @return Character occurrence ID
-#' @export
+#' @keywords internal
 generate_occurrence_id <- function(author_lastname, publication_year, sequence_number = 1) {
   # Clean author name
   clean_author <- stringr::str_replace_all(author_lastname, "[^A-Za-z]", "")

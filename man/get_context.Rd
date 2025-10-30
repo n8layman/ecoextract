@@ -2,7 +2,7 @@
 % Please edit documentation in R/prompts.R
 \name{get_context}
 \alias{get_context}
-\title{Get context template from package or custom location}
+\title{Get context template from package or custom location (internal)}
 \usage{
 get_context(context_file = NULL, context_type = "extraction")
 }
@@ -15,5 +15,6 @@ get_context(context_file = NULL, context_type = "extraction")
 Character string with context template
 }
 \description{
-Get context template from package or custom location
+Get context template from package or custom location (internal)
 }
+\keyword{internal}

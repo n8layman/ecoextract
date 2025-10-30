@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema.R
 \name{get_schema_columns}
 \alias{get_schema_columns}
-\title{Get column names from basic schema}
+\title{Get column names from basic schema (internal)}
 \usage{
 get_schema_columns()
 }
@@ -10,5 +10,6 @@ get_schema_columns()
 Character vector of column names
 }
 \description{
-Get column names from basic schema
+Get column names from basic schema (internal)
 }
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/audit_ocr.R
 \name{audit_ocr}
 \alias{audit_ocr}
-\title{Audit OCR Quality and Save to Database (Atomic)}
+\title{OCR Quality Audit}
 \usage{
 audit_ocr(document_id, db_conn, model = "anthropic/claude-sonnet-4-20250514")
 }
@@ -11,11 +11,11 @@ audit_ocr(document_id, db_conn, model = "anthropic/claude-sonnet-4-20250514")
 
 \item{db_conn}{Database connection}
 
-\item{model}{LLM model for OCR audit}
+\item{model}{LLM model for OCR audit (default: "anthropic/claude-sonnet-4-20250514")}
 }
 \value{
 List with status ("completed"/"skipped"/<error message>)
 }
 \description{
-Reads document from DB, performs quality audit, saves audit back to DB
+Reads document from DB, performs quality audit using LLM, saves audit back to DB
 }

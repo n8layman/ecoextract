@@ -71,9 +71,9 @@ validate_interactions_schema <- function(interactions_df, strict = FALSE) {
   ))
 }
 
-#' Get column names from basic schema
+#' Get column names from basic schema (internal)
 #' @return Character vector of column names
-#' @export
+#' @keywords internal
 get_schema_columns <- function() {
   c(
     "bat_species_scientific_name", "bat_species_common_name",
@@ -83,9 +83,9 @@ get_schema_columns <- function() {
   )
 }
 
-#' Get database column types from basic schema
+#' Get database column types from basic schema (internal)
 #' @return Named vector of SQL types
-#' @export
+#' @keywords internal
 get_schema_types <- function() {
   types <- c(
     "bat_species_scientific_name" = "TEXT",
@@ -103,33 +103,33 @@ get_schema_types <- function() {
   return(types)
 }
 
-#' Get required columns from basic schema
+#' Get required columns from basic schema (internal)
 #' @return Character vector of required column names
-#' @export
+#' @keywords internal
 get_required_columns <- function() {
   # Default required columns
   c("bat_species_scientific_name", "bat_species_common_name")
 }
 
-#' Filter dataframe to include only schema-defined columns
+#' Filter dataframe to include only schema-defined columns (internal)
 #' @param df Dataframe to filter
 #' @return Dataframe with only known schema columns
-#' @export
+#' @keywords internal
 filter_to_schema_columns <- function(df) {
   schema_cols <- get_schema_columns()
   df |>
     dplyr::select(dplyr::any_of(schema_cols))
 }
 
-#' Add missing schema columns with appropriate defaults
+#' Add missing schema columns with appropriate defaults (internal)
 #' @param df Dataframe to enhance
 #' @return Dataframe with all schema columns
-#' @export
+#' @keywords internal
 add_missing_schema_columns <- function(df) {
   schema_cols <- get_schema_columns()
   schema_types <- get_schema_types()
   missing_cols <- setdiff(schema_cols, names(df))
-  
+
   for (col in missing_cols) {
     col_type <- schema_types[[col]]
     # Add column with appropriate default based on type
@@ -141,37 +141,37 @@ add_missing_schema_columns <- function(df) {
       df[[col]] <- NA_character_  # Default to character
     }
   }
-  
+
   return(df)
 }
 
-#' Validate and prepare dataframe for database operations
+#' Validate and prepare dataframe for database operations (internal)
 #' @param df Dataframe to validate and prepare
 #' @return Clean dataframe ready for database operations
-#' @export
+#' @keywords internal
 validate_and_prepare_for_db <- function(df) {
   # First validate
   validation_result <- validate_interactions_schema(df, strict = FALSE)
-  
+
   if (!validation_result$valid) {
     warning("Schema validation failed: ", paste(validation_result$errors, collapse = "; "))
   }
-  
+
   if (length(validation_result$warnings) > 0) {
     message("Schema warnings: ", paste(validation_result$warnings, collapse = "; "))
   }
-  
+
   # Filter to known columns and add missing ones
   clean_df <- df |>
     filter_to_schema_columns() |>
     add_missing_schema_columns()
-  
+
   return(clean_df)
 }
 
-#' Get comprehensive schema information
+#' Get comprehensive schema information (internal)
 #' @return List with schema details
-#' @export
+#' @keywords internal
 get_database_schema <- function() {
   list(
     columns = get_schema_columns(),
