@@ -28,10 +28,6 @@ refine_records(
 \item{schema_file}{Path to custom schema JSON file (optional)}
 
 \item{model}{Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")}
-
-\item{markdown_text}{Original OCR-processed markdown content}
-
-\item{ocr_audit}{Optional OCR quality analysis}
 }
 \value{
 List with refinement results

@@ -5,8 +5,6 @@
 #' Refine extracted interactions with additional context
 #' @param db_conn Database connection
 #' @param document_id Document ID
-#' @param markdown_text Original OCR-processed markdown content
-#' @param ocr_audit Optional OCR quality analysis
 #' @param extraction_prompt_file Path to extraction prompt file (provides domain context)
 #' @param refinement_prompt_file Path to custom refinement prompt file (optional, uses generic if not provided)
 #' @param refinement_context_file Path to custom refinement context template file (optional)
