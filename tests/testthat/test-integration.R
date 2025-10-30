@@ -42,7 +42,7 @@ test_that("full pipeline from PDF to database", {
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   withr::defer(DBI::dbDisconnect(con))
   docs <- DBI::dbReadTable(con, "documents")
-  records <- DBI::dbReadTable(con, "interactions")
+  records <- DBI::dbReadTable(con, "records")
 
   expect_equal(nrow(docs), 1)
   expect_true(nrow(records) >= 0)  # Zero is valid - paper may not contain data

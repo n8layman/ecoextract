@@ -171,8 +171,8 @@ process_single_document <- function(pdf_file,
     return(status_tracking)
   }
 
-  # Step 3: Extract interactions
-  message("\n[3/4] Extracting Interactions...")
+  # Step 3: Extract records
+  message("\n[3/4] Extracting Records...")
   extraction_result <- extract_records(
     document_id = status_tracking$document_id,
     interaction_db = db_conn,
@@ -186,9 +186,9 @@ process_single_document <- function(pdf_file,
     return(status_tracking)
   }
 
-  # Step 4: Refine interactions
+  # Step 4: Refine records
   # Note: records_extracted should be measured after refinement. Sometimes extraction will skip (if records already exist. Refinement never will.)
-  message("\n[4/4] Refining Interactions...")
+  message("\n[4/4] Refining Records...")
   refinement_result <- refine_records(
     db_conn = db_conn,
     document_id = status_tracking$document_id,

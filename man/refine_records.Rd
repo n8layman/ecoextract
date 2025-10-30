@@ -34,5 +34,5 @@ List with refinement results
 }
 \description{
 Refine and enhance extracted ecological interaction data
-Refine extracted interactions with additional context
+Refine extracted records with additional context
 }

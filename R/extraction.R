@@ -94,21 +94,18 @@ extract_records <- function(document_id = NA,
       extract_result <- jsonlite::fromJSON(extract_result, simplifyVector = FALSE)
     }
 
-    # Now extract the interactions
-    # CLAUDE: We need to make this generic. Don't hard code anything about 'interactions' in the code. That's schema specific. Might not have a table called that when running a different schema.
-    # Don't attempt to fix on your own without making a plan and getting approval first.
-    # Also we don't need to return rows extracted here. Log them yes like refinement does but don't return them. The calling function should just read rows in db for that record after refinement since refinement can also add records. 
-    if (is.list(extract_result) && "interactions" %in% names(extract_result)) {
-      # Convert interactions list to tibble
-      interactions_list <- extract_result$interactions
-      if (length(interactions_list) > 0) {
-        extraction_df <- tibble::as_tibble(jsonlite::fromJSON(jsonlite::toJSON(interactions_list), simplifyVector = TRUE))
+    # Now extract the records
+    # ellmer automatically converts array of objects to data.frame
+    if (is.list(extract_result) && "records" %in% names(extract_result)) {
+      records_data <- extract_result$records
+      if (is.data.frame(records_data) && nrow(records_data) > 0) {
+        extraction_df <- tibble::as_tibble(records_data)
       } else {
         extraction_df <- tibble::tibble()
       }
       pub_metadata <- extract_result$publication_metadata
     } else {
-      # Might be the interactions dataframe directly
+      # Might be the records dataframe directly
       extraction_df <- tibble::as_tibble(extract_result)
       pub_metadata <- NULL
     }
@@ -117,7 +114,7 @@ extract_records <- function(document_id = NA,
     if (is.data.frame(extraction_df) && nrow(extraction_df) > 0) {
       message("\nExtraction output:")
       print(extraction_df)
-      message(glue::glue("Extracted {nrow(extraction_df)} interactions"))
+      message(glue::glue("Extracted {nrow(extraction_df)} records"))
 
       # Save to database (atomic step)
       if (!is.na(document_id) && !inherits(interaction_db, "logical")) {
@@ -140,11 +137,11 @@ extract_records <- function(document_id = NA,
         return(list(
           status = "completed (not saved - no DB connection)",
           records_extracted = nrow(extraction_df),
-          interactions = extraction_df  # Include data when not saving
+          records = extraction_df  # Include data when not saving
         ))
       }
     } else {
-      message("No valid interactions extracted")
+      message("No valid records extracted")
       return(list(
         status = "completed",
         records_extracted = 0

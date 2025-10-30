@@ -100,8 +100,8 @@ process_ecological_documents <- function(
   return(results)
 }
 
-#' Create occurrence IDs for a batch of interactions
-#' @param interactions Dataframe of interactions
+#' Create occurrence IDs for a batch of records
+#' @param interactions Dataframe of records
 #' @param author_lastname Author lastname for ID generation
 #' @param publication_year Publication year for ID generation
 #' @return Dataframe with occurrence_id column added
@@ -110,12 +110,12 @@ add_occurrence_ids <- function(interactions, author_lastname, publication_year) 
   if (nrow(interactions) == 0) {
     return(interactions)
   }
-  
+
   # Generate sequential occurrence IDs
   interactions$occurrence_id <- sapply(1:nrow(interactions), function(i) {
     generate_occurrence_id(author_lastname, publication_year, i)
   })
-  
+
   return(interactions)
 }
 

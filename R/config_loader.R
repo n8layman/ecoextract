@@ -56,9 +56,7 @@ load_config_file <- function(file_path = NULL,
   }
 
   # Priority 4: Package default
-  # Special case: schema.json maps to interaction_schema.json in package
-  package_file <- if (file_name == "schema.json") "interaction_schema.json" else file_name
-  package_path <- system.file(package_subdir, package_file, package = "ecoextract")
+  package_path <- system.file(package_subdir, file_name, package = "ecoextract")
   if (file.exists(package_path)) {
     if (return_content) {
       return(readr::read_file(package_path))
@@ -72,7 +70,7 @@ load_config_file <- function(file_path = NULL,
        "  1. Explicit path (none provided)\n",
        "  2. Project directory: ", project_path, "\n",
        "  3. Working directory: ", wd_path, "\n",
-       "  4. Package defaults: ", package_subdir, "/", package_file)
+       "  4. Package defaults: ", package_subdir, "/", file_name)
 }
 
 #' Initialize ecoextract Project Configuration
@@ -106,10 +104,9 @@ init_ecoextract <- function(project_dir = getwd(), overwrite = FALSE) {
   }
 
   # Files to copy (only the 3 customizable ones)
-  # Note: Files are renamed to simpler names for user convenience
-  # extraction_context.md is not copied as it's general-purpose and rarely needs customization
+  # Note: extraction_context.md is not copied as it's general-purpose and rarely needs customization
   files_to_copy <- list(
-    list(source = "interaction_schema.json", dest = "schema.json", subdir = "extdata", desc = "Schema definition"),
+    list(source = "schema.json", dest = "schema.json", subdir = "extdata", desc = "Schema definition"),
     list(source = "extraction_prompt.md", dest = "extraction_prompt.md", subdir = "prompts", desc = "Extraction system prompt"),
     list(source = "refinement_prompt.md", dest = "refinement_prompt.md", subdir = "prompts", desc = "Refinement system prompt")
   )

@@ -4,11 +4,7 @@
 \alias{validate_ellmer_schema_with_db}
 \title{Validate ellmer schema compatibility with database}
 \usage{
-validate_ellmer_schema_with_db(
-  db_conn,
-  ellmer_schema,
-  table_name = "interactions"
-)
+validate_ellmer_schema_with_db(db_conn, ellmer_schema, table_name = "records")
 }
 \arguments{
 \item{db_conn}{Database connection}

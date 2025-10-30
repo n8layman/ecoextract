@@ -2,18 +2,18 @@
 % Please edit documentation in R/database.R
 \name{get_existing_records}
 \alias{get_existing_records}
-\title{Get existing interactions from database}
+\title{Get existing records from database}
 \usage{
 get_existing_records(document_id, db_conn)
 }
 \arguments{
-\item{document_id}{Document ID to retrieve interactions for}
+\item{document_id}{Document ID to retrieve records for}
 
 \item{db_conn}{Database connection}
 }
 \value{
-Dataframe with existing interactions, or NA if none found
+Dataframe with existing records, or NA if none found
 }
 \description{
-Get existing interactions from database
+Get existing records from database
 }

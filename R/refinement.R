@@ -31,7 +31,7 @@ refine_records <- function(db_conn = NULL, document_id,
     # This might have to be a part of the refinement prompt. Strong language not to alter rows with human_edited = TRUE or rejected = TRUE.
     # Maybe a good place to insert a test. Did those lines get changed? If so error out rather than refine.
     if (nrow(existing_records) > 0) {
-      protected_count <- sum(interactions$human_edited | interactions$rejected, na.rm = TRUE)
+      protected_count <- sum(existing_records$human_edited | existing_records$rejected, na.rm = TRUE)
       if (protected_count > 0) {
         message(glue::glue("Skipping {protected_count} protected records (human_edited or rejected)"))
       }
@@ -65,7 +65,7 @@ refine_records <- function(db_conn = NULL, document_id,
     prompt_hash <- digest::digest(paste(extraction_prompt, refinement_prompt, refinement_context_template, sep = "\n"), algo = "md5")
 
     # Build context for refinement
-    existing_context <- build_existing_records_context(interactions, document_id)
+    existing_context <- build_existing_records_context(existing_records, document_id)
 
     # CLAUDE: We shouldn't need to test this. OCR audit must be available to reach this stage.
     audit_context <- if (is.null(ocr_audit)) {
@@ -76,8 +76,8 @@ refine_records <- function(db_conn = NULL, document_id,
 
     # Report inputs
     markdown_chars <- nchar(markdown_text)
-    interaction_count <- nrow(interactions)
-    cat("Inputs loaded: OCR data (", markdown_chars, " chars), OCR audit (", nchar(ocr_audit %||% ""), " chars), ", interaction_count, " interactions, refinement prompt (", nchar(refinement_prompt), " chars, hash:", substring(prompt_hash, 1, 8), ")\n")
+    record_count <- nrow(existing_records)
+    cat("Inputs loaded: OCR data (", markdown_chars, " chars), OCR audit (", nchar(ocr_audit %||% ""), " chars), ", record_count, " records, refinement prompt (", nchar(refinement_prompt), " chars, hash:", substring(prompt_hash, 1, 8), ")\n")
 
     # Initialize refinement chat
     cat("Calling", model, "for refinement\n")
@@ -94,7 +94,7 @@ refine_records <- function(db_conn = NULL, document_id,
       extraction_prompt = extraction_prompt,
       schema_json = schema_json,
       document_content = document_content,
-      existing_interactions_context = existing_context,
+      existing_records_context = existing_context,
       ocr_audit = audit_context
     )
 
@@ -109,18 +109,17 @@ refine_records <- function(db_conn = NULL, document_id,
       refine_result <- jsonlite::fromJSON(refine_result, simplifyVector = FALSE)
     }
 
-    # Now extract the interactions
-    # CLAUDE: We need to change this to be generic and not dependant on the specific schema. We're standardizing on 'records' though some schemas may have an interactions table.
-    if (is.list(refine_result) && "interactions" %in% names(refine_result)) {
-      # Convert interactions list to tibble
-      interactions_list <- refine_result$interactions
-      if (length(interactions_list) > 0) {
-        refined_df <- tibble::as_tibble(jsonlite::fromJSON(jsonlite::toJSON(interactions_list), simplifyVector = TRUE))
+    # Now extract the records
+    # ellmer automatically converts array of objects to data.frame
+    if (is.list(refine_result) && "records" %in% names(refine_result)) {
+      records_data <- refine_result$records
+      if (is.data.frame(records_data) && nrow(records_data) > 0) {
+        refined_df <- tibble::as_tibble(records_data)
       } else {
         refined_df <- tibble::tibble()
       }
     } else {
-      # Might be the interactions dataframe directly
+      # Might be the records dataframe directly
       refined_df <- tibble::as_tibble(refine_result)
     }
 
@@ -160,103 +159,75 @@ refine_records <- function(db_conn = NULL, document_id,
   })
 }
 
-#' Merge refined data back into original interactions
-#' @param original_interactions Dataframe of original interactions
-#' @param refined_interactions Dataframe of refined interactions
+#' Merge refined data back into original records
+#' @param original_records Dataframe of original records
+#' @param refined_records Dataframe of refined records
 #' @return Dataframe with merged refinements
 #' @export
-merge_refinements <- function(original_interactions, refined_interactions) {
-  if (nrow(refined_interactions) == 0) {
-    return(original_interactions)
+merge_refinements <- function(original_records, refined_records) {
+  if (nrow(refined_records) == 0) {
+    return(original_records)
   }
-  
-  # Create a copy of original interactions to update
-  updated_interactions <- original_interactions
-  
-  # Update each refined interaction
-  for (i in 1:nrow(refined_interactions)) {
-    refined_row <- refined_interactions[i, ]
-    
-    # Find matching original interaction by occurrence_id
-    if ("occurrence_id" %in% names(refined_row) && "occurrence_id" %in% names(updated_interactions)) {
-      match_idx <- which(updated_interactions$occurrence_id == refined_row$occurrence_id)
-      
+
+  # Create a copy of original records to update
+  updated_records <- original_records
+
+  # Update each refined record
+  for (i in 1:nrow(refined_records)) {
+    refined_row <- refined_records[i, ]
+
+    # Find matching original record by occurrence_id
+    if ("occurrence_id" %in% names(refined_row) && "occurrence_id" %in% names(updated_records)) {
+      match_idx <- which(updated_records$occurrence_id == refined_row$occurrence_id)
+
       if (length(match_idx) > 0) {
         # Update fields from refined data
         for (col_name in names(refined_row)) {
-          if (col_name %in% names(updated_interactions)) {
-            updated_interactions[match_idx[1], col_name] <- refined_row[[col_name]]
+          if (col_name %in% names(updated_records)) {
+            updated_records[match_idx[1], col_name] <- refined_row[[col_name]]
           }
         }
       }
     }
   }
-  
-  return(updated_interactions)
+
+  return(updated_records)
 }
 
-# CLAUDE: All of this is NOT generic. It needs to be. What's up with the safe_extract thing?
-
-#' Build context string for existing interactions (same as extraction.R for consistency)
-#' @param existing_interactions Dataframe of existing interactions
+#' Build context string for existing records
+#' @param existing_records Dataframe of existing records
 #' @param document_id Document ID for getting human edit summary
 #' @return Character string with formatted context
-build_existing_records_context <- function(existing_interactions, document_id = NULL) {
-  if (is.null(existing_interactions) || !is.data.frame(existing_interactions) || nrow(existing_interactions) == 0) {
-    return("No interactions have been extracted from this document yet.")
+build_existing_records_context <- function(existing_records, document_id = NULL) {
+  if (is.null(existing_records) || !is.data.frame(existing_records) || nrow(existing_records) == 0) {
+    return("No records have been extracted from this document yet.")
   }
-  
-  # Simple context building without database dependencies
-  context_lines <- c("Existing interactions:", "")
-  
-  for (i in 1:nrow(existing_interactions)) {
-    row <- existing_interactions[i, ]
 
-    # Helper function to safely extract scalar value from potentially list column or missing column
-    safe_extract <- function(col_name) {
-      if (!col_name %in% names(row)) return(NA_character_)
-      x <- row[[col_name]]
-      if (is.list(x)) x <- unlist(x)
-      if (length(x) == 0) return(NA_character_)
-      x <- as.character(x)
-      if (is.na(x) || x == "") NA_character_ else x
+  # Exclude metadata columns from display
+  metadata_cols <- c("id", "document_id", "extraction_timestamp",
+                     "llm_model_version", "prompt_hash", "flagged_for_review",
+                     "review_reason", "human_edited", "rejected")
+  data_cols <- setdiff(names(existing_records), metadata_cols)
+
+  # Build context as simple JSON representation
+  context_lines <- c("Existing records:", "")
+
+  for (i in seq_len(nrow(existing_records))) {
+    row <- existing_records[i, data_cols, drop = FALSE]
+
+    # Convert row to simple key-value format
+    record_parts <- character(0)
+    for (col in data_cols) {
+      val <- row[[col]]
+      if (is.list(val)) val <- jsonlite::toJSON(val, auto_unbox = TRUE)
+      if (!is.na(val) && val != "") {
+        record_parts <- c(record_parts, paste0(col, ": ", val))
+      }
     }
 
-    # Format organism information
-    # CLAUDE: We can't hard code information about the schema!
-    bat_sci <- safe_extract("bat_species_scientific_name")
-    bat_common <- safe_extract("bat_species_common_name")
-    bat_info <- paste0(
-      if (is.na(bat_sci)) "[MISSING]" else bat_sci,
-      " (",
-      if (is.na(bat_common)) "[MISSING]" else bat_common,
-      ")"
-    )
-
-    org_sci <- safe_extract("interacting_organism_scientific_name")
-    org_common <- safe_extract("interacting_organism_common_name")
-
-    org_desc <- if (is.na(org_sci) && is.na(org_common)) {
-      "[MISSING: organism details]"
-    } else if (is.na(org_sci)) {
-      paste0(org_common, " [incomplete: missing scientific name]")
-    } else if (is.na(org_common)) {
-      paste0(org_sci, " [incomplete: missing common name]")
-    } else {
-      paste0(org_sci, " (", org_common, ")")
-    }
-
-    # Format location
-    location_val <- safe_extract("location")
-    location_desc <- if (is.na(location_val)) "" else paste0(" at ", location_val)
-
-    # Build context line
-    occurrence_id_val <- safe_extract("occurrence_id")
-    occurrence_id <- if (!is.na(occurrence_id_val)) occurrence_id_val else paste0("interaction-", i)
-
-    context_line <- paste0("- ", occurrence_id, ": ", bat_info, " <-> ", org_desc, location_desc)
+    context_line <- paste0("- ", paste(record_parts, collapse = ", "))
     context_lines <- c(context_lines, context_line)
   }
-  
+
   return(paste(context_lines, collapse = "\n"))
 }

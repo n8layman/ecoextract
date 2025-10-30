@@ -142,6 +142,50 @@ stats <- get_db_stats("my_results.sqlite")
 print(stats)
 ```
 
+## Custom Schemas
+
+EcoExtract is domain-agnostic and works with any JSON schema. The package includes a bat-plant interaction schema as an example, but you can define custom schemas for any ecological domain (disease outbreaks, species observations, etc.).
+
+### Schema Requirements
+
+Your schema MUST follow this structure:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "publication_metadata": {
+      "type": "object",
+      "properties": {
+        "first_author_lastname": { "type": "string" },
+        "publication_year": { "type": "integer" }
+      }
+    },
+    "records": {
+      "type": "array",
+      "description": "Your domain-specific records",
+      "items": {
+        "type": "object",
+        "properties": {
+          "occurrence_id": { "type": "string" },
+          // ... your custom fields here
+        }
+      }
+    }
+  },
+  "required": ["records"]
+}
+```
+
+**Key requirements:**
+1. Top-level must have a `records` property (array of objects)
+2. `publication_metadata` with `first_author_lastname` and `publication_year` is recommended for occurrence ID generation
+3. Each record should have an `occurrence_id` field (or one will be auto-generated)
+4. Use JSON Schema draft-07 format
+
+See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete example.
+
 ## Schema Validation
 
 ```r

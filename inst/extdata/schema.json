@@ -22,9 +22,9 @@
         }
       }
     },
-    "interactions": {
+    "records": {
       "type": "array",
-      "description": "Array of ecological interactions",
+      "description": "Array of ecological records",
       "items": {
         "type": "object",
         "description": "Ecological interaction between identifiable organisms",
@@ -85,5 +85,5 @@
       }
     }
   },
-  "required": ["interactions"]
+  "required": ["records"]
 }

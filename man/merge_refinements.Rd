@@ -2,18 +2,18 @@
 % Please edit documentation in R/refinement.R
 \name{merge_refinements}
 \alias{merge_refinements}
-\title{Merge refined data back into original interactions}
+\title{Merge refined data back into original records}
 \usage{
-merge_refinements(original_interactions, refined_interactions)
+merge_refinements(original_records, refined_records)
 }
 \arguments{
-\item{original_interactions}{Dataframe of original interactions}
+\item{original_records}{Dataframe of original records}
 
-\item{refined_interactions}{Dataframe of refined interactions}
+\item{refined_records}{Dataframe of refined records}
 }
 \value{
 Dataframe with merged refinements
 }
 \description{
-Merge refined data back into original interactions
+Merge refined data back into original records
 }

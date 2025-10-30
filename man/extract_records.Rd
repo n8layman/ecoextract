@@ -9,7 +9,6 @@ extract_records(
   interaction_db = NA,
   document_content = NA,
   ocr_audit = NA,
-  existing_interactions = NA,
   extraction_prompt_file = NULL,
   extraction_context_file = NULL,
   schema_file = NULL,
@@ -26,8 +25,6 @@ extract_records(
 
 \item{ocr_audit}{Optional OCR quality analysis}
 
-\item{existing_interactions}{Optional dataframe of existing interactions (JSON or character)}
-
 \item{extraction_prompt_file}{Path to custom extraction prompt file (optional)}
 
 \item{extraction_context_file}{Path to custom extraction context template file (optional)}
@@ -43,5 +40,5 @@ List with extraction results
 }
 \description{
 Extract structured ecological interaction data from OCR-processed documents
-Extract interactions from markdown text
+Extract records from markdown text
 }
