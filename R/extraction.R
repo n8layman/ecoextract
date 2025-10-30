@@ -2,7 +2,7 @@
 #' 
 #' Extract structured ecological interaction data from OCR-processed documents
 
-#' Extract interactions from markdown text
+#' Extract records from markdown text
 #' @param document_id Optional document ID for context
 #' @param interaction_db Optional path to interaction database
 #' @param document_content OCR-processed markdown content
@@ -26,6 +26,7 @@ extract_records <- function(document_id = NA,
 
   # Document content must be available either through the db or provided
   # otherwise gracefully exit and suggest OCR
+  # CLAUDE: I removed existing records from context. Initial extraction should only run when db is empty. Otherwise we should just refine what is there since refinment can also find new records UPSERT
   if(!is.na(document_id) && !inherits(interaction_db, "logical")) {
     document_content <- get_document_content(document_id, interaction_db)
     ocr_audit = get_ocr_audit(document_id, interaction_db)
@@ -94,6 +95,9 @@ extract_records <- function(document_id = NA,
     }
 
     # Now extract the interactions
+    # CLAUDE: We need to make this generic. Don't hard code anything about 'interactions' in the code. That's schema specific. Might not have a table called that when running a different schema.
+    # Don't attempt to fix on your own without making a plan and getting approval first.
+    # Also we don't need to return rows extracted here. Log them yes like refinement does but don't return them. The calling function should just read rows in db for that record after refinement since refinement can also add records. 
     if (is.list(extract_result) && "interactions" %in% names(extract_result)) {
       # Convert interactions list to tibble
       interactions_list <- extract_result$interactions
@@ -154,6 +158,7 @@ extract_records <- function(document_id = NA,
   })
 }
 
+# CLAUDE: THis is generic enough. All papers will have author and pub year. And the point of this package is to extract data from pubs. Schemas might be differnt but this will be the same
 #' Generate occurrence ID for interaction
 #' @param author_lastname Author surname
 #' @param publication_year Publication year

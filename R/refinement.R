@@ -2,7 +2,7 @@
 #' 
 #' Refine and enhance extracted ecological interaction data
 
-#' Refine extracted interactions with additional context
+#' Refine extracted records with additional context
 #' @param db_conn Database connection
 #' @param document_id Document ID
 #' @param extraction_prompt_file Path to extraction prompt file (provides domain context)
@@ -32,6 +32,8 @@ refine_records <- function(db_conn = NULL, document_id,
     # Filter out human-edited and rejected records
     # We need to be careful here. We filter these out the LLM may just find them again but sligthly different
     # CLAUDE: how should we deal with this simply? Tell me the plan do not automatically execute the fix without approval.
+    # This might have to be a part of the refinement prompt. Strong language not to alter rows with human_edited = TRUE or rejected = TRUE.
+    # Maybe a good place to insert a test. Did those lines get changed? If so error out rather than refine.
     if (nrow(existing_records) > 0) {
       protected_count <- sum(interactions$human_edited | interactions$rejected, na.rm = TRUE)
       if (protected_count > 0) {
@@ -197,6 +199,8 @@ merge_refinements <- function(original_interactions, refined_interactions) {
   return(updated_interactions)
 }
 
+# CLAUDE: All of this is NOT generic. It needs to be. What's up with the safe_extract thing?
+
 #' Build context string for existing interactions (same as extraction.R for consistency)
 #' @param existing_interactions Dataframe of existing interactions
 #' @param document_id Document ID for getting human edit summary
@@ -223,6 +227,7 @@ build_existing_records_context <- function(existing_interactions, document_id = 
     }
 
     # Format organism information
+    # CLAUDE: We can't hard code information about the schema!
     bat_sci <- safe_extract("bat_species_scientific_name")
     bat_common <- safe_extract("bat_species_common_name")
     bat_info <- paste0(
