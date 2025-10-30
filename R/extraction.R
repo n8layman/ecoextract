@@ -91,7 +91,7 @@ extract_records <- function(document_id = NA,
 
     # Parse if it's a JSON string
     if (is.character(extract_result)) {
-      extract_result <- jsonlite::fromJSON(extract_result, simplifyVector = FALSE)
+      extract_result <- jsonlite::fromJSON(extract_result, simplifyVector = TRUE)
     }
 
     # Now extract the records
