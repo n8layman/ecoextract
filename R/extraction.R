@@ -31,7 +31,7 @@ extract_records <- function(document_id = NA,
     document_content <- get_document_content(document_id, interaction_db)
     ocr_audit = get_ocr_audit(document_id, interaction_db)
     existing_records = get_existing_records(document_id, interaction_db)
-    if(nrow(existing_records) == 0) {
+    if(nrow(existing_records) > 0) {
       return(list(
           status = "skipped",
           records_extracted = NA

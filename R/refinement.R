@@ -25,10 +25,6 @@ refine_records <- function(db_conn = NULL, document_id,
     # Read existing records from database
     existing_records <- get_existing_records(document_id, db_conn)
 
-    if (nrow) {
-      message("No existing records found - refinement will attempt fresh extraction")
-    }
-
     # Filter out human-edited and rejected records
     # We need to be careful here. We filter these out the LLM may just find them again but sligthly different
     # CLAUDE: how should we deal with this simply? Tell me the plan do not automatically execute the fix without approval.
