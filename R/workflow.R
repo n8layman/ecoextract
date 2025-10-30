@@ -145,19 +145,20 @@ process_single_document <- function(pdf_file,
   message(strrep("=", 70))
 
   # Initialize status tracking with filename only
-  status_tracking <- list(filename = basename(pdf_file))
+  status_tracking <- list(filename = basename(pdf_file),
+                          ocr_status = "skipped",
+                          audit_status = "skipped",
+                          extraction_status = "skipped",
+                          records_extracted = 0,
+                          refinement_status = "skipped")
 
   # Step 1: OCR Processing
   message("\n[1/4] OCR Processing...")
   ocr_result <- ocr_document(pdf_file, db_conn, skip_existing)
   status_tracking$document_id <- ocr_result$document_id
   status_tracking$ocr_status <- ocr_result$status
-
-  if (ocr_result$status != "completed") {
-    status_tracking$audit_status <- "skipped"
-    status_tracking$extraction_status <- "skipped"
-    status_tracking$refinement_status <- "skipped"
-    status_tracking$records_extracted <- 0
+  if(status_tracking$ocr_status != "completed") {
+    message(paste("OCR error detected:", status_tracking$ocr_status))
     return(status_tracking)
   }
 
@@ -165,7 +166,10 @@ process_single_document <- function(pdf_file,
   message("\n[2/4] OCR Quality Audit...")
   audit_result <- audit_ocr(status_tracking$document_id, db_conn)
   status_tracking$audit_status <- audit_result$status
-  # Continue even if audit fails
+  if(status_tracking$audit_status != "completed") {
+    message(paste("audit OCR error detected:", status_tracking$audit_status))
+    return(status_tracking)
+  }
 
   # Step 3: Extract interactions
   message("\n[3/4] Extracting Interactions...")
@@ -177,13 +181,13 @@ process_single_document <- function(pdf_file,
   )
   status_tracking$extraction_status <- extraction_result$status
   status_tracking$records_extracted <- extraction_result$records_extracted %||% 0
-
-  if (extraction_result$status != "completed" || extraction_result$records_extracted == 0) {
-    status_tracking$refinement_status <- "skipped"
+  if(status_tracking$extraction_status != "completed") {
+    message(paste("Extraction error detected:", status_tracking$extraction_status))
     return(status_tracking)
   }
 
   # Step 4: Refine interactions
+  # Note: records_extracted should be measured after refinement. Sometimes extraction will skip (if records already exist. Refinement never will.)
   message("\n[4/4] Refining Interactions...")
   refinement_result <- refine_records(
     db_conn = db_conn,
@@ -193,9 +197,9 @@ process_single_document <- function(pdf_file,
     refinement_prompt_file = refinement_prompt_file
   )
   status_tracking$refinement_status <- refinement_result$status
-
-  if (refinement_result$status == "completed") {
-    status_tracking$records_extracted <- refinement_result$records_extracted
+  if(status_tracking$refinement_status != "completed") {
+    message(paste("Refinement error detected:", status_tracking$refinement_status))
+    return(status_tracking)
   }
 
   # Summary

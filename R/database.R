@@ -136,59 +136,52 @@ get_interaction_columns_sql <- function(ellmer_schema = NULL) {
 #' @export
 save_document_to_db <- function(db_path, file_path, file_hash = NULL, metadata = list()) {
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  on.exit(DBI::dbDisconnect(con), add = TRUE)
 
-  tryCatch({
-    # Compute file hash if not provided
-    if (is.null(file_hash)) {
-      if (file.exists(file_path)) {
-        file_hash <- digest::digest(file_path, file = TRUE, algo = "md5")
-      } else {
-        # For test cases where file doesn't exist, use path as hash
-        file_hash <- digest::digest(file_path, algo = "md5")
-      }
+  # Compute file hash if not provided
+  if (is.null(file_hash)) {
+    if (file.exists(file_path)) {
+      file_hash <- digest::digest(file_path, file = TRUE, algo = "md5")
+    } else {
+      # For test cases where file doesn't exist, use path as hash
+      file_hash <- digest::digest(file_path, algo = "md5")
     }
+  }
 
-    # Check if document already exists
-    existing <- DBI::dbGetQuery(con, "
-      SELECT id FROM documents WHERE file_hash = ?
-    ", params = list(file_hash))
-    
-    if (nrow(existing) > 0) {
-      return(existing$id[1])  # Return existing document ID
-    }
-    
-    # Insert new document
-    DBI::dbExecute(con, "
-      INSERT INTO documents (
-        file_name, file_path, file_hash, file_size, upload_timestamp,
-        title, first_author_lastname, publication_year, doi,
-        document_content, ocr_audit, ocr_status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ", params = list(
-      basename(file_path),
-      file_path,
-      file_hash,
-      if (file.exists(file_path)) as.numeric(file.info(file_path)$size) else NA_integer_,
-      as.character(Sys.time()),
-      metadata$title %||% NA_character_,
-      metadata$first_author_lastname %||% NA_character_,
-      metadata$publication_year %||% NA_integer_,
-      metadata$doi %||% NA_character_,
-      metadata$document_content %||% NA_character_,
-      metadata$ocr_audit %||% NA_character_,
-      metadata$ocr_status %||% "pending"
-    ))
-    
-    # Get the new document ID
-    new_id <- DBI::dbGetQuery(con, "SELECT last_insert_rowid() as id")$id
-    return(new_id)
-    
-  }, error = function(e) {
-    cat("Error saving document to database:", e$message, "\n")
-    return(NULL)
-  }, finally = {
-    DBI::dbDisconnect(con)
-  })
+  # Check if document already exists
+  existing <- DBI::dbGetQuery(con, "
+    SELECT id FROM documents WHERE file_hash = ?
+  ", params = list(file_hash))
+
+  if (nrow(existing) > 0) {
+    return(existing$id[1])  # Return existing document ID
+  }
+
+  # Insert new document
+  DBI::dbExecute(con, "
+    INSERT INTO documents (
+      file_name, file_path, file_hash, file_size, upload_timestamp,
+      title, first_author_lastname, publication_year, doi,
+      document_content, ocr_audit, ocr_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ", params = list(
+    basename(file_path),
+    file_path,
+    file_hash,
+    if (file.exists(file_path)) as.numeric(file.info(file_path)$size) else NA_integer_,
+    as.character(Sys.time()),
+    metadata$title %||% NA_character_,
+    metadata$first_author_lastname %||% NA_character_,
+    metadata$publication_year %||% NA_integer_,
+    metadata$doi %||% NA_character_,
+    metadata$document_content %||% NA_character_,
+    metadata$ocr_audit %||% NA_character_,
+    metadata$ocr_status %||% "pending"
+  ))
+
+  # Get the new document ID
+  new_id <- DBI::dbGetQuery(con, "SELECT last_insert_rowid() as id")$id
+  return(new_id)
 }
 
 #' Save interactions to EcoExtract database
@@ -199,133 +192,126 @@ save_document_to_db <- function(db_path, file_path, file_hash = NULL, metadata =
 #' @return TRUE if successful
 #' @export
 save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list()) {
-  if (nrow(interactions_df) == 0) return(TRUE)
+  if (nrow(interactions_df) == 0) return(invisible(NULL))
 
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  on.exit(DBI::dbDisconnect(con), add = TRUE)
 
-  tryCatch({
-    # Add occurrence IDs if not present
-    if (!"occurrence_id" %in% names(interactions_df)) {
-      # Try to get author/year from publication_metadata in metadata or from interactions themselves
-      author_lastname <- metadata$publication_metadata$first_author_lastname %||%
-        (if ("first_author_lastname" %in% names(interactions_df)) interactions_df$first_author_lastname[1] else NULL) %||%
-        "Unknown"
-      publication_year <- metadata$publication_metadata$publication_year %||%
-        (if ("publication_year" %in% names(interactions_df)) interactions_df$publication_year[1] else NULL) %||%
-        format(Sys.Date(), "%Y")
+  # Add occurrence IDs if not present
+  if (!"occurrence_id" %in% names(interactions_df)) {
+    # Try to get author/year from publication_metadata in metadata or from interactions themselves
+    author_lastname <- metadata$publication_metadata$first_author_lastname %||%
+      (if ("first_author_lastname" %in% names(interactions_df)) interactions_df$first_author_lastname[1] else NULL) %||%
+      "Unknown"
+    publication_year <- metadata$publication_metadata$publication_year %||%
+      (if ("publication_year" %in% names(interactions_df)) interactions_df$publication_year[1] else NULL) %||%
+      format(Sys.Date(), "%Y")
 
-      interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
+    interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
+  }
+
+  # Add required metadata columns
+  interactions_df$document_id <- as.integer(document_id)
+  interactions_df$extraction_timestamp <- as.character(Sys.time())
+  interactions_df$llm_model_version <- metadata$model %||% "unknown"
+  interactions_df$prompt_hash <- metadata$prompt_hash %||% "unknown"
+
+  # Ensure all_supporting_source_sentences is JSON
+  if ("all_supporting_source_sentences" %in% names(interactions_df)) {
+    interactions_df$all_supporting_source_sentences <- vapply(
+      interactions_df$all_supporting_source_sentences,
+      function(x) {
+        if (is.list(x) || is.character(x) && length(x) > 1) {
+          jsonlite::toJSON(x, auto_unbox = FALSE)
+        } else {
+          as.character(x)
+        }
+      },
+      FUN.VALUE = character(1)
+    )
+  }
+
+  # Get database column names dynamically
+  db_columns <- DBI::dbListFields(con, "interactions")
+
+  # Add missing columns with NA values (must be same length as dataframe)
+  num_rows <- nrow(interactions_df)
+  for (col in db_columns) {
+    if (!col %in% names(interactions_df)) {
+      interactions_df[[col]] <- rep(NA, num_rows)
     }
+  }
 
-    # Add required metadata columns
-    interactions_df$document_id <- as.integer(document_id)
-    interactions_df$extraction_timestamp <- as.character(Sys.time())
-    interactions_df$llm_model_version <- metadata$model %||% "unknown"
-    interactions_df$prompt_hash <- metadata$prompt_hash %||% "unknown"
-    
-    # Ensure all_supporting_source_sentences is JSON
-    if ("all_supporting_source_sentences" %in% names(interactions_df)) {
-      interactions_df$all_supporting_source_sentences <- vapply(
-        interactions_df$all_supporting_source_sentences,
-        function(x) {
-          if (is.list(x) || is.character(x) && length(x) > 1) {
-            jsonlite::toJSON(x, auto_unbox = FALSE)
-          } else {
-            as.character(x)
-          }
-        },
-        FUN.VALUE = character(1)
+  # Filter to only include columns that exist in database (in correct order)
+  interactions_clean <- interactions_df |>
+    dplyr::select(dplyr::all_of(db_columns))
+
+  # Convert any list columns to character (JSON or string)
+  for (col in names(interactions_clean)) {
+    if (is.list(interactions_clean[[col]])) {
+      interactions_clean[[col]] <- vapply(interactions_clean[[col]],
+                                           function(x) if(is.null(x)) NA_character_ else as.character(x),
+                                           FUN.VALUE = character(1))
+    }
+  }
+
+  # Convert types to match database schema
+  # SQLite stores BOOLEAN as INTEGER (0/1), so convert logical to integer
+  if ("flagged_for_review" %in% names(interactions_clean)) {
+    interactions_clean$flagged_for_review <- vapply(interactions_clean$flagged_for_review,
+      function(x) {
+        if (is.logical(x)) return(as.integer(x))
+        if (is.character(x)) return(as.integer(tolower(x) %in% c("true", "t", "1", "yes")))
+        return(as.integer(as.logical(x)))
+      }, FUN.VALUE = integer(1))
+  }
+  if ("organisms_identifiable" %in% names(interactions_clean)) {
+    interactions_clean$organisms_identifiable <- vapply(interactions_clean$organisms_identifiable,
+      function(x) {
+        if (is.logical(x)) return(as.integer(x))
+        if (is.character(x)) return(as.integer(tolower(x) %in% c("true", "t", "1", "yes")))
+        return(as.integer(as.logical(x)))
+      }, FUN.VALUE = integer(1))
+  }
+  if ("page_number" %in% names(interactions_clean)) {
+    interactions_clean$page_number <- as.integer(interactions_clean$page_number)
+  }
+  if ("publication_year" %in% names(interactions_clean)) {
+    interactions_clean$publication_year <- as.integer(interactions_clean$publication_year)
+  }
+
+  # Use UPSERT logic: update existing records, insert new ones
+  # This preserves data and handles both extraction (new records) and refinement (updates)
+
+  for (i in 1:nrow(interactions_clean)) {
+    row <- interactions_clean[i, ]
+
+    # Check if this occurrence_id already exists for this document
+    existing <- DBI::dbGetQuery(con,
+      "SELECT id FROM interactions WHERE document_id = ? AND occurrence_id = ?",
+      params = list(row$document_id, row$occurrence_id))
+
+    if (nrow(existing) > 0) {
+      # Update existing record (only if not human_edited and not rejected)
+      # Build SET clause dynamically for all columns except id
+      cols_to_update <- setdiff(names(row), c("id"))
+      set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
+
+      update_sql <- paste0(
+        "UPDATE interactions SET ", set_clause,
+        " WHERE id = ? AND human_edited = 0 AND rejected = 0"
       )
+
+      params <- c(as.list(row[cols_to_update]), list(existing$id[1]))
+      DBI::dbExecute(con, update_sql, params = params)
+    } else {
+      # Insert new record
+      DBI::dbWriteTable(con, "interactions", row, append = TRUE, row.names = FALSE)
     }
-    
-    # Get database column names dynamically
-    db_columns <- DBI::dbListFields(con, "interactions")
+  }
 
-    # Add missing columns with NA values (must be same length as dataframe)
-    num_rows <- nrow(interactions_df)
-    for (col in db_columns) {
-      if (!col %in% names(interactions_df)) {
-        interactions_df[[col]] <- rep(NA, num_rows)
-      }
-    }
-
-    # Filter to only include columns that exist in database (in correct order)
-    interactions_clean <- interactions_df |>
-      dplyr::select(dplyr::all_of(db_columns))
-
-    # Convert any list columns to character (JSON or string)
-    for (col in names(interactions_clean)) {
-      if (is.list(interactions_clean[[col]])) {
-        interactions_clean[[col]] <- vapply(interactions_clean[[col]],
-                                             function(x) if(is.null(x)) NA_character_ else as.character(x),
-                                             FUN.VALUE = character(1))
-      }
-    }
-
-    # Convert types to match database schema
-    # SQLite stores BOOLEAN as INTEGER (0/1), so convert logical to integer
-    if ("flagged_for_review" %in% names(interactions_clean)) {
-      interactions_clean$flagged_for_review <- vapply(interactions_clean$flagged_for_review,
-        function(x) {
-          if (is.logical(x)) return(as.integer(x))
-          if (is.character(x)) return(as.integer(tolower(x) %in% c("true", "t", "1", "yes")))
-          return(as.integer(as.logical(x)))
-        }, FUN.VALUE = integer(1))
-    }
-    if ("organisms_identifiable" %in% names(interactions_clean)) {
-      interactions_clean$organisms_identifiable <- vapply(interactions_clean$organisms_identifiable,
-        function(x) {
-          if (is.logical(x)) return(as.integer(x))
-          if (is.character(x)) return(as.integer(tolower(x) %in% c("true", "t", "1", "yes")))
-          return(as.integer(as.logical(x)))
-        }, FUN.VALUE = integer(1))
-    }
-    if ("page_number" %in% names(interactions_clean)) {
-      interactions_clean$page_number <- as.integer(interactions_clean$page_number)
-    }
-    if ("publication_year" %in% names(interactions_clean)) {
-      interactions_clean$publication_year <- as.integer(interactions_clean$publication_year)
-    }
-
-    # Use UPSERT logic: update existing records, insert new ones
-    # This preserves data and handles both extraction (new records) and refinement (updates)
-
-    for (i in 1:nrow(interactions_clean)) {
-      row <- interactions_clean[i, ]
-
-      # Check if this occurrence_id already exists for this document
-      existing <- DBI::dbGetQuery(con,
-        "SELECT id FROM interactions WHERE document_id = ? AND occurrence_id = ?",
-        params = list(row$document_id, row$occurrence_id))
-
-      if (nrow(existing) > 0) {
-        # Update existing record (only if not human_edited and not rejected)
-        # Build SET clause dynamically for all columns except id
-        cols_to_update <- setdiff(names(row), c("id"))
-        set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
-
-        update_sql <- paste0(
-          "UPDATE interactions SET ", set_clause,
-          " WHERE id = ? AND human_edited = 0 AND rejected = 0"
-        )
-
-        params <- c(as.list(row[cols_to_update]), list(existing$id[1]))
-        DBI::dbExecute(con, update_sql, params = params)
-      } else {
-        # Insert new record
-        DBI::dbWriteTable(con, "interactions", row, append = TRUE, row.names = FALSE)
-      }
-    }
-
-    cat("Saved", nrow(interactions_clean), "rows to database\n")
-    return(TRUE)
-    
-  }, error = function(e) {
-    cat("Error saving interactions to database:", e$message, "\n")
-    return(FALSE)
-  }, finally = {
-    DBI::dbDisconnect(con)
-  })
+  message(glue::glue("Saved {nrow(interactions_clean)} records to database"))
+  invisible(NULL)
 }
 
 #' Get database statistics
@@ -524,7 +510,7 @@ get_document_content <- function(document_id, db_conn) {
     
     return(result$document_content[1])
   }, error = function(e) {
-    cat("Error retrieving document content:", e$message, "\n")
+    message("Error retrieving document content: ", e$message)
     return(NA)
   })
 }
@@ -546,7 +532,7 @@ get_ocr_audit <- function(document_id, db_conn) {
     
     return(result$ocr_audit[1])
   }, error = function(e) {
-    cat("Error retrieving OCR audit:", e$message, "\n")
+    message("Error retrieving OCR audit: ", e$message)
     return(NA)
   })
 }
@@ -556,19 +542,14 @@ get_ocr_audit <- function(document_id, db_conn) {
 #' @param db_conn Database connection
 #' @return Dataframe with existing interactions, or NA if none found
 #' @export
-get_existing_interactions <- function(document_id, db_conn) {
+get_existing_records <- function(document_id, db_conn) {
   tryCatch({
     result <- DBI::dbGetQuery(db_conn, "
       SELECT * FROM interactions WHERE document_id = ?
-    ", params = list(document_id))
-    
-    if (nrow(result) == 0) {
-      return(NA)
-    }
-    
+    ", params = list(document_id)) |> as_tibble()
     return(result)
   }, error = function(e) {
-    cat("Error retrieving existing interactions:", e$message, "\n")
+    message("Error retrieving existing interactions: ", e$message)
     return(NA)
   })
 }

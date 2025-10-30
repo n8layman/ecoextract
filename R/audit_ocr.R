@@ -32,8 +32,6 @@ perform_ocr_audit <- function(markdown_text, model = "anthropic/claude-sonnet-4-
   # Execute audit
   audit_result <- audit_chat$chat(audit_context)
 
-  message("OCR audit completed")
-
   # Return audit results
   list(
     original_markdown = markdown_text,

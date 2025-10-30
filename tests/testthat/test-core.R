@@ -33,10 +33,9 @@ test_that("save and retrieve records workflow", {
   doc_id <- save_document_to_db(db_path, "test.pdf")
   expect_type(doc_id, "integer")
 
-  # Save records
+  # Save records (will throw error if it fails)
   records <- sample_records()
-  result <- save_records_to_db(db_path, doc_id, records, list())
-  expect_true(result)
+  save_records_to_db(db_path, doc_id, records, list())
 
   # Verify saved
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
