@@ -74,18 +74,9 @@ extract_records <- function(document_id = NA,
                                  ...) {
 
   # Document content must be available either through the db or provided
-  # otherwise gracefully exit and suggest OCR
-  # CLAUDE: I removed existing records from context. Initial extraction should only run when db is empty. Otherwise we should just refine what is there since refinment can also find new records UPSERT
   if(!is.na(document_id) && !inherits(interaction_db, "logical")) {
     document_content <- get_document_content(document_id, interaction_db)
     ocr_audit = get_ocr_audit(document_id, interaction_db)
-    existing_records = get_existing_records(document_id, interaction_db)
-    if(nrow(existing_records) > 0) {
-      return(list(
-          status = "skipped",
-          records_extracted = NA
-        ))
-    }
   }
   if(is.na(document_content)) {
     stop("ERROR message please provide either the id of a document in the database or markdown OCR document content.")
