@@ -162,6 +162,13 @@ extract_records <- function(document_id = NA,
           )
         )
 
+        # Update extraction status in documents table
+        db_conn <- DBI::dbConnect(RSQLite::SQLite(), interaction_db@dbname)
+        DBI::dbExecute(db_conn,
+          "UPDATE documents SET extraction_status = 'completed' WHERE id = ?",
+          params = list(document_id))
+        DBI::dbDisconnect(db_conn)
+
         return(list(
           status = "completed",
           records_extracted = nrow(extraction_df)

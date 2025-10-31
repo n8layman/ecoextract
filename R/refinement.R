@@ -140,12 +140,23 @@ refine_records <- function(db_conn = NULL, document_id,
         )
       )
 
+      # Update refinement status in documents table
+      DBI::dbExecute(db_conn,
+        "UPDATE documents SET refinement_status = 'completed' WHERE id = ?",
+        params = list(document_id))
+
       return(list(
         status = "completed",
         records_extracted = nrow(refined_df)
       ))
     } else {
       message("No valid refined records returned")
+
+      # Still mark as completed even if no refinements needed
+      DBI::dbExecute(db_conn,
+        "UPDATE documents SET refinement_status = 'completed' WHERE id = ?",
+        params = list(document_id))
+
       return(list(
         status = "completed",
         records_extracted = 0

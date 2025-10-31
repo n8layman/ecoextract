@@ -38,9 +38,9 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
         journal TEXT,
         
         -- Processing status
-        ocr_status TEXT DEFAULT 'pending',
-        extraction_status TEXT DEFAULT 'pending',
-        refinement_status TEXT DEFAULT 'pending',
+        ocr_status TEXT DEFAULT 'skipped',
+        extraction_status TEXT DEFAULT 'skipped',
+        refinement_status TEXT DEFAULT 'skipped',
         
         -- Content storage
         document_content TEXT,  -- OCR markdown results
