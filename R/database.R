@@ -200,13 +200,17 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 
   # Add occurrence IDs if not present
   if (!"occurrence_id" %in% names(interactions_df)) {
-    # Try to get author/year from publication_metadata in metadata or from interactions themselves
-    author_lastname <- metadata$publication_metadata$first_author_lastname %||%
+    # Get publication metadata from documents table (populated by document_audit step)
+    doc_meta <- DBI::dbGetQuery(con,
+      "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
+      params = list(document_id))
+
+    author_lastname <- doc_meta$first_author_lastname[1] %||%
       (if ("first_author_lastname" %in% names(interactions_df)) interactions_df$first_author_lastname[1] else NULL) %||%
       "Unknown"
-    publication_year <- metadata$publication_metadata$publication_year %||%
+    publication_year <- doc_meta$publication_year[1] %||%
       (if ("publication_year" %in% names(interactions_df)) interactions_df$publication_year[1] else NULL) %||%
-      format(Sys.Date(), "%Y")
+      as.integer(format(Sys.Date(), "%Y"))
 
     interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
   }

@@ -162,12 +162,12 @@ process_single_document <- function(pdf_file,
     return(status_tracking)
   }
 
-  # Step 2: OCR Audit
-  message("\n[2/4] OCR Quality Audit...")
-  audit_result <- audit_ocr(status_tracking$document_id, db_conn)
+  # Step 2: Document Audit (extract metadata + review OCR quality)
+  message("\n[2/4] Document Audit...")
+  audit_result <- audit_document(status_tracking$document_id, db_conn)
   status_tracking$audit_status <- audit_result$status
   if(status_tracking$audit_status != "completed") {
-    message(paste("audit OCR error detected:", status_tracking$audit_status))
+    message(paste("Document audit error detected:", status_tracking$audit_status))
     return(status_tracking)
   }
 

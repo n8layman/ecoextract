@@ -105,30 +105,45 @@ extraction_result <- extract_records(
 ```r
 library(ecoextract)
 
-# Process all PDFs in a folder
-results <- process_ecological_documents(
-  pdf_folder = "path/to/pdfs/",
-  output_db = "ecological_interactions.sqlite"
+# Process all PDFs in a folder through complete 4-step workflow:
+# 1. OCR (extract text from PDF)
+# 2. Document Audit (extract metadata + review OCR quality)
+# 3. Extraction (extract domain-specific records)
+# 4. Refinement (refine and validate records)
+results <- process_documents(
+  pdf_path = "path/to/pdfs/",
+  db_path = "ecological_records.sqlite"
 )
 
 print(results)
 ```
 
-### Individual Document Processing
+### Individual Step Processing
 
 ```r
-# Extract interactions from OCR text
+# Initialize database
+db_conn <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
+init_ecoextract_database("ecoextract.sqlite")
+
+# Step 1: OCR
+ocr_result <- ocr_document("paper.pdf", db_conn)
+
+# Step 2: Document Audit (extract metadata + review OCR quality)
+audit_result <- audit_document(ocr_result$document_id, db_conn)
+
+# Step 3: Extract domain-specific records
 extraction_result <- extract_records(
-  markdown_text = your_ocr_text,
-  ocr_audit = quality_analysis
+  document_id = ocr_result$document_id,
+  interaction_db = db_conn
 )
 
-# Refine the extracted interactions  
+# Step 4: Refine records
 refinement_result <- refine_records(
-  interactions = extraction_result$interactions,
-  markdown_text = your_ocr_text,
-  ocr_audit = quality_analysis
+  db_conn = db_conn,
+  document_id = ocr_result$document_id
 )
+
+DBI::dbDisconnect(db_conn)
 ```
 
 ## Database Operations
@@ -203,33 +218,26 @@ print(schema_info$columns)
 
 ## Package Functions
 
-### Core Processing
-- `process_ecological_documents()` - Batch process PDFs
-- `extract_records()` - Extract structured records from markdown
-- `refine_records()` - Refine extracted records
-- `perform_ocr_audit()` - Check OCR output for errors
+### Workflow
+- `process_documents()` - Complete 4-step workflow (OCR → Audit → Extract → Refine)
+- `ocr_document()` - Step 1: Extract text from PDF
+- `audit_document()` - Step 2: Extract metadata + review OCR quality
+- `extract_records()` - Step 3: Extract domain-specific records
+- `refine_records()` - Step 4: Refine and validate records
 
 ### Database Operations
 - `init_ecoextract_database()` - Initialize database with schema
-- `save_document_to_db()` - Save document metadata
-- `save_records_to_db()` - Save extracted records
 - `get_db_stats()` - Get database statistics
+- `get_document_content()` - Get OCR text from database
+- `get_ocr_audit()` - Get OCR audit from database
+- `get_records()` - Get extracted records from database
 
 ### Schema & Validation
 - `validate_interactions_schema()` - Validate data against schema
-- `get_database_schema()` - Get schema information
-- `filter_to_schema_columns()` - Filter data to schema columns
 
-### Prompts
-- `get_extraction_prompt()` - Get extraction prompt
-- `get_refinement_prompt()` - Get refinement prompt
-- `get_ocr_audit_prompt()` - Get OCR audit prompt
-- `get_extraction_context_template()` - Get context template
-
-### Utilities
-- `generate_occurrence_id()` - Generate unique occurrence IDs
-- `add_occurrence_ids()` - Add IDs to dataframe
-- `merge_refinements()` - Merge refined data back
+### Custom Configuration
+- Schema files in `inst/extdata/`: `schema.json`, `document_audit_schema.json`
+- Prompt files in `inst/prompts/`: extraction, refinement, document audit prompts
 
 ## Testing
 
