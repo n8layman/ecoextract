@@ -4,14 +4,14 @@
 \alias{ocr_document}
 \title{OCR Document and Save to Database (Atomic)}
 \usage{
-ocr_document(pdf_file, db_conn, skip_existing = TRUE)
+ocr_document(pdf_file, db_conn, force_reprocess = FALSE)
 }
 \arguments{
 \item{pdf_file}{Path to PDF file}
 
 \item{db_conn}{Database connection}
 
-\item{skip_existing}{If TRUE, skip if document already exists}
+\item{force_reprocess}{If TRUE, re-run OCR even if document_content already exists (default: FALSE)}
 }
 \value{
 List with status ("completed"/"skipped"/<error message>) and document_id

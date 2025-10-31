@@ -36,12 +36,7 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
         publication_year INTEGER,
         doi TEXT,
         journal TEXT,
-        
-        -- Processing status
-        ocr_status TEXT DEFAULT 'skipped',
-        extraction_status TEXT DEFAULT 'skipped',
-        refinement_status TEXT DEFAULT 'skipped',
-        
+
         -- Content storage
         document_content TEXT,  -- OCR markdown results
         ocr_audit TEXT,         -- OCR quality audit (JSON)
@@ -149,40 +144,106 @@ save_document_to_db <- function(db_path, file_path, file_hash = NULL, metadata =
     }
   }
 
-  # Check if document already exists
+  # Check if document already exists (to preserve document ID)
   existing <- DBI::dbGetQuery(con, "
     SELECT id FROM documents WHERE file_hash = ?
   ", params = list(file_hash))
 
-  if (nrow(existing) > 0) {
-    return(existing$id[1])  # Return existing document ID
+  doc_id <- if (nrow(existing) > 0) existing$id[1] else NULL
+
+  # INSERT OR REPLACE - overwrites entire row if exists, inserts if new
+  file_size <- if (file.exists(file_path)) {
+    as.numeric(file.info(file_path)$size)
+  } else {
+    NA_integer_
   }
 
-  # Insert new document
-  DBI::dbExecute(con, "
-    INSERT INTO documents (
-      file_name, file_path, file_hash, file_size, upload_timestamp,
-      title, first_author_lastname, publication_year, doi,
-      document_content, ocr_audit, ocr_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  ", params = list(
-    basename(file_path),
-    file_path,
-    file_hash,
-    if (file.exists(file_path)) as.numeric(file.info(file_path)$size) else NA_integer_,
-    as.character(Sys.time()),
-    metadata$title %||% NA_character_,
-    metadata$first_author_lastname %||% NA_character_,
-    metadata$publication_year %||% NA_integer_,
-    metadata$doi %||% NA_character_,
-    metadata$document_content %||% NA_character_,
-    metadata$ocr_audit %||% NA_character_,
-    metadata$ocr_status %||% "pending"
-  ))
+  if (is.null(doc_id)) {
+    # New document - INSERT without specifying id (auto-generated)
+    DBI::dbExecute(con, "
+      INSERT INTO documents (
+        file_name, file_path, file_hash, file_size, upload_timestamp,
+        title, first_author_lastname, publication_year, doi, journal,
+        document_content, ocr_audit, ocr_images
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ", params = list(
+      basename(file_path),
+      file_path,
+      file_hash,
+      file_size,
+      as.character(Sys.time()),
+      metadata$title %||% NA_character_,
+      metadata$first_author_lastname %||% NA_character_,
+      metadata$publication_year %||% NA_integer_,
+      metadata$doi %||% NA_character_,
+      metadata$journal %||% NA_character_,
+      metadata$document_content %||% NA_character_,
+      metadata$ocr_audit %||% NA_character_,
+      metadata$ocr_images %||% NA_character_
+    ))
 
-  # Get the new document ID
-  new_id <- DBI::dbGetQuery(con, "SELECT last_insert_rowid() as id")$id
-  return(new_id)
+    # Get the new document ID
+    return(DBI::dbGetQuery(con, "SELECT last_insert_rowid() as id")$id)
+
+  } else {
+    # Existing document - REPLACE with explicit id
+    DBI::dbExecute(con, "
+      INSERT OR REPLACE INTO documents (
+        id, file_name, file_path, file_hash, file_size, upload_timestamp,
+        title, first_author_lastname, publication_year, doi, journal,
+        document_content, ocr_audit, ocr_images
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ", params = list(
+      doc_id,
+      basename(file_path),
+      file_path,
+      file_hash,
+      file_size,
+      as.character(Sys.time()),
+      metadata$title %||% NA_character_,
+      metadata$first_author_lastname %||% NA_character_,
+      metadata$publication_year %||% NA_integer_,
+      metadata$doi %||% NA_character_,
+      metadata$journal %||% NA_character_,
+      metadata$document_content %||% NA_character_,
+      metadata$ocr_audit %||% NA_character_,
+      metadata$ocr_images %||% NA_character_
+    ))
+
+    # Return the existing document ID
+    return(doc_id)
+  }
+}
+
+#' Save publication metadata to existing document (internal)
+#' @param document_id Document ID
+#' @param db_conn Database connection
+#' @param metadata List with metadata fields (title, first_author_lastname, publication_year, doi, journal, ocr_audit)
+#' @return Document ID
+#' @keywords internal
+save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
+  # Update documents table with metadata
+  DBI::dbExecute(db_conn,
+    "UPDATE documents
+     SET title = ?,
+         first_author_lastname = ?,
+         publication_year = ?,
+         doi = ?,
+         journal = ?,
+         ocr_audit = ?
+     WHERE id = ?",
+    params = list(
+      metadata$title %||% NA_character_,
+      metadata$first_author_lastname %||% NA_character_,
+      metadata$publication_year %||% NA_integer_,
+      metadata$doi %||% NA_character_,
+      metadata$journal %||% NA_character_,
+      metadata$ocr_audit %||% NA_character_,
+      document_id
+    )
+  )
+
+  return(document_id)
 }
 
 #' Save records to EcoExtract database (internal)
@@ -198,8 +259,19 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   on.exit(DBI::dbDisconnect(con), add = TRUE)
 
-  # Add occurrence IDs if not present
-  if (!"occurrence_id" %in% names(interactions_df)) {
+  # Generate occurrence IDs (always, ignoring any LLM-provided values)
+  # Check if existing IDs are valid (from refinement) or invalid (from LLM extraction)
+  has_valid_ids <- "occurrence_id" %in% names(interactions_df) &&
+                   nrow(interactions_df) > 0 &&
+                   all(!is.na(interactions_df$occurrence_id)) &&
+                   all(grepl("^[A-Za-z]+[0-9]+-o[0-9]+$", interactions_df$occurrence_id))
+
+  if (!has_valid_ids) {
+    # Remove invalid/LLM-generated IDs if present
+    if ("occurrence_id" %in% names(interactions_df)) {
+      interactions_df$occurrence_id <- NULL
+    }
+
     # Get publication metadata from documents table (populated by document_audit step)
     doc_meta <- DBI::dbGetQuery(con,
       "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
@@ -223,7 +295,11 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       as.integer(format(Sys.Date(), "%Y"))
     }
 
+    # Generate proper occurrence IDs
     interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
+    message(glue::glue("Generated occurrence IDs for {nrow(interactions_df)} records"))
+  } else {
+    message(glue::glue("Preserving existing occurrence IDs for {nrow(interactions_df)} records"))
   }
 
   # Add required metadata columns

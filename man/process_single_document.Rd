@@ -10,7 +10,7 @@ process_single_document(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  skip_existing = TRUE
+  force_reprocess = FALSE
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ process_single_document(
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
-\item{skip_existing}{Skip if already in database}
+\item{force_reprocess}{If TRUE, re-run all steps even if outputs exist (default: FALSE)}
 }
 \value{
 List with processing result

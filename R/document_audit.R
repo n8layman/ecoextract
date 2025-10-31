@@ -11,17 +11,33 @@
 #'
 #' @param document_id Document ID in database
 #' @param db_conn Database connection
+#' @param force_reprocess If TRUE, re-run audit even if ocr_audit already exists (default: FALSE)
 #' @param model LLM model for document audit (default: "anthropic/claude-sonnet-4-20250514")
 #' @return List with status ("completed"/"skipped"/<error message>)
 #' @export
-audit_document <- function(document_id, db_conn, model = "anthropic/claude-sonnet-4-20250514") {
+audit_document <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-20250514") {
+
+  # Check if audit already completed
+  if (!force_reprocess) {
+    existing_audit <- DBI::dbGetQuery(db_conn,
+      "SELECT ocr_audit FROM documents WHERE id = ?",
+      params = list(document_id))
+
+    if (nrow(existing_audit) > 0 &&
+        !is.na(existing_audit$ocr_audit[1]) &&
+        nchar(existing_audit$ocr_audit[1]) > 0) {
+      message("Document audit already completed for document ", document_id,
+              ", skipping (force_reprocess=FALSE)")
+      return(list(status = "skipped", document_id = document_id))
+    }
+  }
 
   tryCatch({
     # Read document content from database
     document_content <- get_document_content(document_id, db_conn)
 
     if (is.na(document_content) || is.null(document_content)) {
-      return(list(status = "No document content found in database"))
+      return(list(status = "No document content found in database", document_id = document_id))
     }
 
     message("Performing document audit (metadata extraction + OCR quality review)...")
@@ -62,33 +78,26 @@ audit_document <- function(document_id, db_conn, model = "anthropic/claude-sonne
     pub_metadata <- audit_result$publication_metadata
     ocr_audit <- audit_result$ocr_audit
 
-    # Update documents table with metadata
-    DBI::dbExecute(db_conn,
-      "UPDATE documents
-       SET title = ?,
-           first_author_lastname = ?,
-           publication_year = ?,
-           doi = ?,
-           journal = ?,
-           ocr_audit = ?
-       WHERE id = ?",
-      params = list(
-        pub_metadata$title %||% NA_character_,
-        pub_metadata$first_author_lastname %||% NA_character_,
-        pub_metadata$publication_year %||% NA_integer_,
-        pub_metadata$doi %||% NA_character_,
-        pub_metadata$journal %||% NA_character_,
-        jsonlite::toJSON(ocr_audit, auto_unbox = TRUE),
-        document_id
+    # Save metadata and audit to database
+    save_metadata_to_db(
+      document_id = document_id,
+      db_conn = db_conn,
+      metadata = list(
+        title = pub_metadata$title,
+        first_author_lastname = pub_metadata$first_author_lastname,
+        publication_year = pub_metadata$publication_year,
+        doi = pub_metadata$doi,
+        journal = pub_metadata$journal,
+        ocr_audit = jsonlite::toJSON(ocr_audit, auto_unbox = TRUE)
       )
     )
 
     message("Document audit completed")
     message(glue::glue("  Metadata extracted: {pub_metadata$first_author_lastname %||% 'Unknown'} ({pub_metadata$publication_year %||% 'Year unknown'})"))
 
-    return(list(status = "completed"))
+    return(list(status = "completed", document_id = document_id))
   }, error = function(e) {
-    return(list(status = paste("Document audit failed:", e$message)))
+    return(list(status = paste("Document audit failed:", e$message), document_id = document_id))
   })
 }
 

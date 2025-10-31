@@ -7,7 +7,7 @@
 #' @param schema_file Optional custom schema file
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
-#' @param skip_existing Skip files already processed in database
+#' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
 #' @return List with processing results
 #' @export
 #'
@@ -19,6 +19,9 @@
 #' # Process a single PDF with custom database
 #' process_documents("paper.pdf", "my_interactions.db")
 #'
+#' # Force reprocess existing documents
+#' process_documents("pdfs/", force_reprocess = TRUE)
+#'
 #' # With custom schema and prompts
 #' process_documents("pdfs/", "interactions.db",
 #'                   schema_file = "ecoextract/schema.json",
@@ -29,7 +32,7 @@ process_documents <- function(pdf_path,
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
-                             skip_existing = TRUE) {
+                             force_reprocess = FALSE) {
 
   # Determine if processing single file or directory
   if (file.exists(pdf_path)) {
@@ -71,7 +74,7 @@ process_documents <- function(pdf_path,
       schema_file = schema_file,
       extraction_prompt_file = extraction_prompt_file,
       refinement_prompt_file = refinement_prompt_file,
-      skip_existing = skip_existing
+      force_reprocess = force_reprocess
     )
     results_list[[length(results_list) + 1]] <- result
   }
@@ -114,7 +117,7 @@ process_documents <- function(pdf_path,
   cat("Processed:", processed, "\n")
   cat("Skipped:", skipped, "\n")
   cat("Errors:", errors, "\n")
-  cat("Total rows extracted:", total_rows, "\n")
+  cat("Records:", total_rows, "\n")
   cat("Duration:", round(attr(results_tibble, "duration"), 2), "seconds\n")
   cat("Database:", db_path, "\n")
   cat(strrep("=", 70), "\n\n")
@@ -129,7 +132,7 @@ process_documents <- function(pdf_path,
 #' @param schema_file Optional custom schema
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
-#' @param skip_existing Skip if already in database
+#' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
 #' @return List with processing result
 #' @keywords internal
 process_single_document <- function(pdf_file,
@@ -137,14 +140,14 @@ process_single_document <- function(pdf_file,
                                     schema_file = NULL,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
-                                    skip_existing = TRUE) {
+                                    force_reprocess = FALSE) {
 
   # Log header
   message(strrep("=", 70))
   message(glue::glue("Processing: {basename(pdf_file)}"))
   message(strrep("=", 70))
 
-  # Initialize status tracking with filename only
+  # Initialize status tracking with filename only (all start as 'skipped')
   status_tracking <- list(filename = basename(pdf_file),
                           ocr_status = "skipped",
                           audit_status = "skipped",
@@ -154,19 +157,21 @@ process_single_document <- function(pdf_file,
 
   # Step 1: OCR Processing
   message("\n[1/4] OCR Processing...")
-  ocr_result <- ocr_document(pdf_file, db_conn, skip_existing)
+  ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess)
   status_tracking$document_id <- ocr_result$document_id
   status_tracking$ocr_status <- ocr_result$status
-  if(status_tracking$ocr_status != "completed") {
+  # Continue if completed or skipped, stop on error
+  if(status_tracking$ocr_status != "completed" && status_tracking$ocr_status != "skipped") {
     message(paste("OCR error detected:", status_tracking$ocr_status))
     return(status_tracking)
   }
 
   # Step 2: Document Audit (extract metadata + review OCR quality)
   message("\n[2/4] Document Audit...")
-  audit_result <- audit_document(status_tracking$document_id, db_conn)
+  audit_result <- audit_document(status_tracking$document_id, db_conn, force_reprocess)
   status_tracking$audit_status <- audit_result$status
-  if(status_tracking$audit_status != "completed") {
+  # Continue if completed or skipped, stop on error
+  if(status_tracking$audit_status != "completed" && status_tracking$audit_status != "skipped") {
     message(paste("Document audit error detected:", status_tracking$audit_status))
     return(status_tracking)
   }
@@ -176,18 +181,19 @@ process_single_document <- function(pdf_file,
   extraction_result <- extract_records(
     document_id = status_tracking$document_id,
     interaction_db = db_conn,
+    force_reprocess = force_reprocess,
     schema_file = schema_file,
     extraction_prompt_file = extraction_prompt_file
   )
   status_tracking$extraction_status <- extraction_result$status
   status_tracking$records_extracted <- extraction_result$records_extracted %||% 0
-  if(status_tracking$extraction_status != "completed") {
+  # Continue if completed or skipped, stop on error
+  if(status_tracking$extraction_status != "completed" && status_tracking$extraction_status != "skipped") {
     message(paste("Extraction error detected:", status_tracking$extraction_status))
     return(status_tracking)
   }
 
-  # Step 4: Refine records
-  # Note: records_extracted should be measured after refinement. Sometimes extraction will skip (if records already exist. Refinement never will.)
+  # Step 4: Refine records (always runs, ignores force_reprocess)
   message("\n[4/4] Refining Records...")
   refinement_result <- refine_records(
     db_conn = db_conn,
@@ -197,7 +203,8 @@ process_single_document <- function(pdf_file,
     refinement_prompt_file = refinement_prompt_file
   )
   status_tracking$refinement_status <- refinement_result$status
-  if(status_tracking$refinement_status != "completed") {
+  # Continue if completed or skipped, stop on error
+  if(status_tracking$refinement_status != "completed" && status_tracking$refinement_status != "skipped") {
     message(paste("Refinement error detected:", status_tracking$refinement_status))
     return(status_tracking)
   }

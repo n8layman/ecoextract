@@ -9,6 +9,7 @@ extract_records(
   interaction_db = NA,
   document_content = NA,
   ocr_audit = NA,
+  force_reprocess = FALSE,
   extraction_prompt_file = NULL,
   extraction_context_file = NULL,
   schema_file = NULL,
@@ -24,6 +25,8 @@ extract_records(
 \item{document_content}{OCR-processed markdown content}
 
 \item{ocr_audit}{Optional OCR quality analysis}
+
+\item{force_reprocess}{If TRUE, re-run extraction even if records already exist (default: FALSE)}
 
 \item{extraction_prompt_file}{Path to custom extraction prompt file (optional)}
 

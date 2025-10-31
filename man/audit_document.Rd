@@ -8,6 +8,7 @@
 audit_document(
   document_id,
   db_conn,
+  force_reprocess = FALSE,
   model = "anthropic/claude-sonnet-4-20250514"
 )
 
@@ -17,6 +18,8 @@ audit_ocr(document_id, db_conn, model = "anthropic/claude-sonnet-4-20250514")
 \item{document_id}{Document ID in database}
 
 \item{db_conn}{Database connection}
+
+\item{force_reprocess}{If TRUE, re-run audit even if ocr_audit already exists (default: FALSE)}
 
 \item{model}{LLM model for document audit (default: "anthropic/claude-sonnet-4-20250514")}
 }

@@ -31,17 +31,21 @@ perform_ocr <- function(pdf_file) {
 #'
 #' @param pdf_file Path to PDF file
 #' @param db_conn Database connection
-#' @param skip_existing If TRUE, skip if document already exists
+#' @param force_reprocess If TRUE, re-run OCR even if document_content already exists (default: FALSE)
 #' @return List with status ("completed"/"skipped"/<error message>) and document_id
 #' @export
-ocr_document <- function(pdf_file, db_conn, skip_existing = TRUE) {
+ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
 
-  # Check if already processed
-  if (skip_existing) {
+  # Check if already processed (document exists with valid OCR content)
+  if (!force_reprocess) {
     existing <- DBI::dbGetQuery(db_conn,
-      "SELECT id FROM documents WHERE file_path = ?",
+      "SELECT id, document_content FROM documents WHERE file_path = ?",
       params = list(pdf_file))
-    if (nrow(existing) > 0) {
+
+    if (nrow(existing) > 0 &&
+        !is.na(existing$document_content[1]) &&
+        nchar(existing$document_content[1]) > 0) {
+      message(glue::glue("OCR already completed for {basename(pdf_file)}, skipping (force_reprocess=FALSE)"))
       return(list(
         status = "skipped",
         document_id = existing$id[1]
@@ -59,8 +63,7 @@ ocr_document <- function(pdf_file, db_conn, skip_existing = TRUE) {
       file_path = pdf_file,
       metadata = list(
         document_content = ocr_result$markdown,
-        ocr_images = jsonlite::toJSON(list(pages = ocr_result$images), auto_unbox = TRUE),
-        ocr_status = "completed"
+        ocr_images = jsonlite::toJSON(list(pages = ocr_result$images), auto_unbox = TRUE)
       )
     )
 

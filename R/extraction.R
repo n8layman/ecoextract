@@ -56,6 +56,7 @@ json_schema_to_ellmer_type <- function(schema_path) {
 #' @param interaction_db Optional path to interaction database
 #' @param document_content OCR-processed markdown content
 #' @param ocr_audit Optional OCR quality analysis
+#' @param force_reprocess If TRUE, re-run extraction even if records already exist (default: FALSE)
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
 #' @param extraction_context_file Path to custom extraction context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
@@ -67,6 +68,7 @@ extract_records <- function(document_id = NA,
                                  interaction_db = NA,
                                  document_content = NA,
                                  ocr_audit = NA,
+                                 force_reprocess = FALSE,
                                  extraction_prompt_file = NULL,
                                  extraction_context_file = NULL,
                                  schema_file = NULL,
@@ -77,6 +79,19 @@ extract_records <- function(document_id = NA,
   if(!is.na(document_id) && !inherits(interaction_db, "logical")) {
     document_content <- get_document_content(document_id, interaction_db)
     ocr_audit = get_ocr_audit(document_id, interaction_db)
+
+    # Check if records already exist and skip if requested
+    if (!force_reprocess) {
+      existing_records <- get_records(document_id, interaction_db)
+      if (!is.null(existing_records) && nrow(existing_records) > 0) {
+        message("Records already exist for document ", document_id, ", skipping extraction (force_reprocess=FALSE)")
+        return(list(
+          status = "skipped",
+          records_extracted = nrow(existing_records),
+          document_id = document_id
+        ))
+      }
+    }
   }
   if(is.na(document_content)) {
     stop("ERROR message please provide either the id of a document in the database or markdown OCR document content.")
@@ -153,36 +168,33 @@ extract_records <- function(document_id = NA,
           )
         )
 
-        # Update extraction status in documents table
-        db_conn <- DBI::dbConnect(RSQLite::SQLite(), interaction_db@dbname)
-        DBI::dbExecute(db_conn,
-          "UPDATE documents SET extraction_status = 'completed' WHERE id = ?",
-          params = list(document_id))
-        DBI::dbDisconnect(db_conn)
-
         return(list(
           status = "completed",
-          records_extracted = nrow(extraction_df)
+          records_extracted = nrow(extraction_df),
+          document_id = document_id
         ))
       } else {
         # No DB connection - return data without saving
         return(list(
           status = "completed (not saved - no DB connection)",
           records_extracted = nrow(extraction_df),
-          records = extraction_df  # Include data when not saving
+          records = extraction_df,  # Include data when not saving
+          document_id = if (!is.na(document_id)) document_id else NA
         ))
       }
     } else {
       message("No valid records extracted")
       return(list(
         status = "completed",
-        records_extracted = 0
+        records_extracted = 0,
+        document_id = if (!is.na(document_id)) document_id else NA
       ))
     }
   }, error = function(e) {
     return(list(
       status = paste("Extraction failed:", e$message),
-      records_extracted = 0
+      records_extracted = 0,
+      document_id = if (!is.na(document_id)) document_id else NA
     ))
   })
 }

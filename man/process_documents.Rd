@@ -10,7 +10,7 @@ process_documents(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  skip_existing = TRUE
+  force_reprocess = FALSE
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ process_documents(
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
-\item{skip_existing}{Skip files already processed in database}
+\item{force_reprocess}{If TRUE, re-run all steps even if outputs exist (default: FALSE)}
 }
 \value{
 List with processing results
@@ -39,6 +39,9 @@ process_documents("pdfs/")
 
 # Process a single PDF with custom database
 process_documents("paper.pdf", "my_interactions.db")
+
+# Force reprocess existing documents
+process_documents("pdfs/", force_reprocess = TRUE)
 
 # With custom schema and prompts
 process_documents("pdfs/", "interactions.db",
