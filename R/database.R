@@ -205,12 +205,23 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
       params = list(document_id))
 
-    author_lastname <- doc_meta$first_author_lastname[1] %||%
-      (if ("first_author_lastname" %in% names(interactions_df)) interactions_df$first_author_lastname[1] else NULL) %||%
+    # Get author lastname (handle NA values)
+    author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
+      doc_meta$first_author_lastname[1]
+    } else if ("first_author_lastname" %in% names(interactions_df) && !is.na(interactions_df$first_author_lastname[1])) {
+      interactions_df$first_author_lastname[1]
+    } else {
       "Unknown"
-    publication_year <- doc_meta$publication_year[1] %||%
-      (if ("publication_year" %in% names(interactions_df)) interactions_df$publication_year[1] else NULL) %||%
+    }
+
+    # Get publication year (handle NA values)
+    publication_year <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$publication_year[1])) {
+      doc_meta$publication_year[1]
+    } else if ("publication_year" %in% names(interactions_df) && !is.na(interactions_df$publication_year[1])) {
+      interactions_df$publication_year[1]
+    } else {
       as.integer(format(Sys.Date(), "%Y"))
+    }
 
     interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
   }
