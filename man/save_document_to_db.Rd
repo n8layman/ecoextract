@@ -2,7 +2,7 @@
 % Please edit documentation in R/database.R
 \name{save_document_to_db}
 \alias{save_document_to_db}
-\title{Save document to EcoExtract database}
+\title{Save document to EcoExtract database (internal)}
 \usage{
 save_document_to_db(db_path, file_path, file_hash = NULL, metadata = list())
 }
@@ -19,5 +19,6 @@ save_document_to_db(db_path, file_path, file_hash = NULL, metadata = list())
 Document ID or NULL if failed
 }
 \description{
-Save document to EcoExtract database
+Save document to EcoExtract database (internal)
 }
+\keyword{internal}

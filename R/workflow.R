@@ -7,29 +7,32 @@
 #' @param schema_file Optional custom schema file
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
-#' @param skip_existing Skip files already processed in database
+#' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
 #' @return List with processing results
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' # Process all PDFs in a folder (uses default database)
-#' process_document("pdfs/")
+#' process_documents("pdfs/")
 #'
 #' # Process a single PDF with custom database
-#' process_document("paper.pdf", "my_interactions.db")
+#' process_documents("paper.pdf", "my_interactions.db")
+#'
+#' # Force reprocess existing documents
+#' process_documents("pdfs/", force_reprocess = TRUE)
 #'
 #' # With custom schema and prompts
-#' process_document("pdfs/", "interactions.db",
-#'                  schema_file = "ecoextract/schema.json",
-#'                  extraction_prompt_file = "ecoextract/extraction_prompt.md")
+#' process_documents("pdfs/", "interactions.db",
+#'                   schema_file = "ecoextract/schema.json",
+#'                   extraction_prompt_file = "ecoextract/extraction_prompt.md")
 #' }
-process_document <- function(pdf_path,
+process_documents <- function(pdf_path,
                              db_path = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
-                             skip_existing = TRUE) {
+                             force_reprocess = FALSE) {
 
   # Determine if processing single file or directory
   if (file.exists(pdf_path)) {
@@ -58,15 +61,11 @@ process_document <- function(pdf_path,
   db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
 
-  # Process each PDF
-  results <- list(
-    total_files = length(pdf_files),
-    processed = 0,
-    skipped = 0,
-    errors = 0,
-    total_interactions = 0,
-    details = list()
-  )
+  # Track timing
+  start_time <- Sys.time()
+
+  # Process each PDF and collect results
+  results_list <- list()
 
   for (pdf_file in pdf_files) {
     result <- process_single_document(
@@ -75,34 +74,55 @@ process_document <- function(pdf_path,
       schema_file = schema_file,
       extraction_prompt_file = extraction_prompt_file,
       refinement_prompt_file = refinement_prompt_file,
-      skip_existing = skip_existing
+      force_reprocess = force_reprocess
     )
-
-    results$details[[basename(pdf_file)]] <- result
-
-    if (result$status == "success") {
-      results$processed <- results$processed + 1
-      results$total_interactions <- results$total_interactions + result$interaction_count
-    } else if (result$status == "skipped") {
-      results$skipped <- results$skipped + 1
-    } else {
-      results$errors <- results$errors + 1
-    }
+    results_list[[length(results_list) + 1]] <- result
   }
+
+  end_time <- Sys.time()
+
+  # Convert results to tibble
+  results_tibble <- tibble::tibble(
+    filename = sapply(results_list, function(x) x$filename),
+    document_id = sapply(results_list, function(x) x$document_id %||% NA),
+    ocr_status = sapply(results_list, function(x) x$ocr_status),
+    audit_status = sapply(results_list, function(x) x$audit_status %||% NA),
+    extraction_status = sapply(results_list, function(x) x$extraction_status),
+    refinement_status = sapply(results_list, function(x) x$refinement_status),
+    records_extracted = sapply(results_list, function(x) x$records_extracted %||% 0)
+  )
+
+  # Calculate summary stats
+  total_rows <- sum(results_tibble$records_extracted, na.rm = TRUE)
+  skipped <- sum(results_tibble$ocr_status == "skipped")
+  errors <- sum(
+    !results_tibble$ocr_status %in% c("completed", "skipped") |
+    !results_tibble$extraction_status %in% c("completed", "skipped") |
+    !results_tibble$refinement_status %in% c("completed", "skipped")
+  )
+  processed <- nrow(results_tibble) - skipped - errors
+
+  # Add attributes
+  attr(results_tibble, "start_time") <- start_time
+  attr(results_tibble, "end_time") <- end_time
+  attr(results_tibble, "duration") <- as.numeric(difftime(end_time, start_time, units = "secs"))
+  attr(results_tibble, "total_rows") <- total_rows
+  attr(results_tibble, "database") <- db_path
 
   # Summary
   cat("\n", strrep("=", 70), "\n")
   cat("PROCESSING COMPLETE\n")
   cat(strrep("=", 70), "\n")
-  cat("Total files:", results$total_files, "\n")
-  cat("Processed:", results$processed, "\n")
-  cat("Skipped:", results$skipped, "\n")
-  cat("Errors:", results$errors, "\n")
-  cat("Total interactions extracted:", results$total_interactions, "\n")
+  cat("Total files:", nrow(results_tibble), "\n")
+  cat("Processed:", processed, "\n")
+  cat("Skipped:", skipped, "\n")
+  cat("Errors:", errors, "\n")
+  cat("Records:", total_rows, "\n")
+  cat("Duration:", round(attr(results_tibble, "duration"), 2), "seconds\n")
   cat("Database:", db_path, "\n")
   cat(strrep("=", 70), "\n\n")
 
-  invisible(results)
+  results_tibble
 }
 
 #' Process Single Document Through Complete Pipeline
@@ -112,7 +132,7 @@ process_document <- function(pdf_path,
 #' @param schema_file Optional custom schema
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
-#' @param skip_existing Skip if already in database
+#' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
 #' @return List with processing result
 #' @keywords internal
 process_single_document <- function(pdf_file,
@@ -120,188 +140,79 @@ process_single_document <- function(pdf_file,
                                     schema_file = NULL,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
-                                    skip_existing = TRUE) {
+                                    force_reprocess = FALSE) {
 
-  cat("\n", strrep("=", 70), "\n")
-  cat("Processing:", basename(pdf_file), "\n")
-  cat(strrep("=", 70), "\n")
+  # Log header
+  message(strrep("=", 70))
+  message(glue::glue("Processing: {basename(pdf_file)}"))
+  message(strrep("=", 70))
 
-  tryCatch({
-    # Check if already processed
-    if (skip_existing) {
-      existing <- DBI::dbGetQuery(db_conn,
-                                  "SELECT document_id FROM documents WHERE file_path = ?",
-                                  params = list(pdf_file))
-      if (nrow(existing) > 0) {
-        cat("SKIPPED: Already processed (use skip_existing = FALSE to reprocess)\n")
-        return(list(status = "skipped", interaction_count = 0))
-      }
-    }
+  # Initialize status tracking with filename only (all start as 'skipped')
+  status_tracking <- list(filename = basename(pdf_file),
+                          ocr_status = "skipped",
+                          audit_status = "skipped",
+                          extraction_status = "skipped",
+                          records_extracted = 0,
+                          refinement_status = "skipped")
 
-    # Step 1: OCR Processing
-    cat("\n[1/4] OCR Processing...\n")
-    ocr_result <- perform_ocr(pdf_file)
+  # Step 1: OCR Processing
+  message("\n[1/4] OCR Processing...")
+  ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess)
+  status_tracking$document_id <- ocr_result$document_id
+  status_tracking$ocr_status <- ocr_result$status
+  # Continue if completed or skipped, stop on error
+  if(status_tracking$ocr_status != "completed" && status_tracking$ocr_status != "skipped") {
+    message(paste("OCR error detected:", status_tracking$ocr_status))
+    return(status_tracking)
+  }
 
-    # Step 2: OCR Audit
-    cat("\n[2/4] OCR Quality Audit...\n")
-    ocr_audit <- perform_ocr_audit(ocr_result$markdown)
+  # Step 2: Document Audit (extract metadata + review OCR quality)
+  message("\n[2/4] Document Audit...")
+  audit_result <- audit_document(status_tracking$document_id, db_conn, force_reprocess)
+  status_tracking$audit_status <- audit_result$status
+  # Continue if completed or skipped, stop on error
+  if(status_tracking$audit_status != "completed" && status_tracking$audit_status != "skipped") {
+    message(paste("Document audit error detected:", status_tracking$audit_status))
+    return(status_tracking)
+  }
 
-    # Step 3: Save document to database
-    document_id <- add_document_to_database(
-      db_conn = db_conn,
-      file_path = pdf_file,
-      markdown_content = ocr_result$markdown,
-      ocr_audit = ocr_audit
-    )
-
-    # Step 4: Extract interactions
-    cat("\n[3/4] Extracting Interactions...\n")
-    extraction_result <- extract_records(
-      document_id = document_id,
-      document_content = ocr_result$markdown,
-      ocr_audit = ocr_audit,
-      schema_file = schema_file,
-      extraction_prompt_file = extraction_prompt_file
-    )
-
-    if (!extraction_result$success || nrow(extraction_result$interactions) == 0) {
-      cat("No interactions extracted\n")
-      return(list(status = "success", interaction_count = 0))
-    }
-
-    cat("Extracted", nrow(extraction_result$interactions), "interactions\n")
-
-    # Step 5: Refine interactions
-    cat("\n[4/4] Refining Interactions...\n")
-    refinement_result <- refine_records(
-      interactions = extraction_result$interactions,
-      markdown_text = ocr_result$markdown,
-      ocr_audit = ocr_audit,
-      document_id = document_id,
-      schema_file = schema_file,
-      refinement_prompt_file = refinement_prompt_file
-    )
-
-    # Use refined interactions if refinement succeeded
-    final_interactions <- if (refinement_result$success) {
-      cat("Refined to", nrow(refinement_result$interactions), "interactions\n")
-      refinement_result$interactions
-    } else {
-      cat("Refinement failed, using original extraction\n")
-      extraction_result$interactions
-    }
-
-    # Step 6: Save to database
-    save_records_to_db(
-      db_path = db_conn@dbname,
-      document_id = document_id,
-      interactions_df = final_interactions,
-      metadata = list(
-        model = extraction_result$model,
-        prompt_hash = extraction_result$prompt_hash
-      )
-    )
-
-    cat("\n", strrep("-", 70), "\n")
-    cat("SUCCESS:", nrow(final_interactions), "interactions saved to database\n")
-    cat(strrep("-", 70), "\n")
-
-    return(list(
-      status = "success",
-      interaction_count = nrow(final_interactions),
-      document_id = document_id
-    ))
-
-  }, error = function(e) {
-    cat("\nERROR:", e$message, "\n")
-    return(list(
-      status = "error",
-      error_message = e$message,
-      interaction_count = 0
-    ))
-  })
-}
-
-#' Perform OCR on PDF
-#'
-#' Currently a placeholder - integrate with ohseer package for actual OCR
-#'
-#' @param pdf_file Path to PDF
-#' @return List with markdown content
-#' @keywords internal
-perform_ocr <- function(pdf_file) {
-  # Perform OCR using ohseer
-  ocr_result <- ohseer::mistral_ocr(pdf_file)
-  return(ocr_result)
-}
-
-#' Perform OCR Quality Audit
-#'
-#' Reviews OCR output for common errors using an LLM
-#'
-#' @param markdown_text Markdown content from OCR
-#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
-#' @return List with audit results including corrected markdown and error log
-#' @export
-perform_ocr_audit <- function(markdown_text, model = "anthropic/claude-sonnet-4-20250514") {
-
-  # Load OCR audit prompt
-  audit_prompt <- get_ocr_audit_prompt()
-
-  cat("Calling", model, "for OCR audit\n")
-
-  # Initialize audit chat
-  audit_chat <- ellmer::chat(
-    name = model,
-    system_prompt = audit_prompt,
-    echo = "none"
+  # Step 3: Extract records
+  message("\n[3/4] Extracting Records...")
+  extraction_result <- extract_records(
+    document_id = status_tracking$document_id,
+    interaction_db = db_conn,
+    force_reprocess = force_reprocess,
+    schema_file = schema_file,
+    extraction_prompt_file = extraction_prompt_file
   )
+  status_tracking$extraction_status <- extraction_result$status
+  status_tracking$records_extracted <- extraction_result$records_extracted %||% 0
+  # Continue if completed or skipped, stop on error
+  if(status_tracking$extraction_status != "completed" && status_tracking$extraction_status != "skipped") {
+    message(paste("Extraction error detected:", status_tracking$extraction_status))
+    return(status_tracking)
+  }
 
-  # Create audit context
-  audit_context <- glue::glue(
-    "Please review the following OCR output for common errors:\n\n{markdown_text}"
+  # Step 4: Refine records (always runs, ignores force_reprocess)
+  message("\n[4/4] Refining Records...")
+  refinement_result <- refine_records(
+    db_conn = db_conn,
+    document_id = status_tracking$document_id,
+    extraction_prompt_file = extraction_prompt_file,
+    schema_file = schema_file,
+    refinement_prompt_file = refinement_prompt_file
   )
+  status_tracking$refinement_status <- refinement_result$status
+  # Continue if completed or skipped, stop on error
+  if(status_tracking$refinement_status != "completed" && status_tracking$refinement_status != "skipped") {
+    message(paste("Refinement error detected:", status_tracking$refinement_status))
+    return(status_tracking)
+  }
 
-  # Execute audit
-  audit_result <- audit_chat$chat(audit_context)
+  # Summary
+  message(strrep("-", 70))
+  message(glue::glue("SUCCESS: {status_tracking$records_extracted} records in database"))
+  message(strrep("-", 70))
 
-  cat("OCR audit completed\n")
-
-  # Return audit results
-  list(
-    original_markdown = markdown_text,
-    audited_markdown = as.character(audit_result),
-    audit_notes = "OCR reviewed for common errors"
-  )
-}
-
-#' Add Document to Database
-#'
-#' @param db_conn Database connection
-#' @param file_path Path to original PDF
-#' @param markdown_content Markdown from OCR
-#' @param ocr_audit Audit results
-#' @return document_id
-#' @keywords internal
-add_document_to_database <- function(db_conn, file_path, markdown_content, ocr_audit = NULL) {
-  # Insert document
-  DBI::dbExecute(db_conn,
-    "INSERT INTO documents (file_path, file_name, markdown_content, ocr_status, ocr_audit)
-     VALUES (?, ?, ?, ?, ?)",
-    params = list(
-      file_path,
-      basename(file_path),
-      markdown_content,
-      "completed",
-      if (!is.null(ocr_audit)) jsonlite::toJSON(ocr_audit, auto_unbox = TRUE) else NA
-    )
-  )
-
-  # Get the document_id
-  document_id <- DBI::dbGetQuery(db_conn, "SELECT last_insert_rowid() as id")$id
-
-  # Log the process
-  log_processing_step(db_conn@dbname, document_id, "ocr", "completed", "OCR processing completed")
-
-  return(document_id)
+  return(status_tracking)
 }

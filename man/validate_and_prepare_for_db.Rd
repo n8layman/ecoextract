@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema.R
 \name{validate_and_prepare_for_db}
 \alias{validate_and_prepare_for_db}
-\title{Validate and prepare dataframe for database operations}
+\title{Validate and prepare dataframe for database operations (internal)}
 \usage{
 validate_and_prepare_for_db(df)
 }
@@ -13,5 +13,6 @@ validate_and_prepare_for_db(df)
 Clean dataframe ready for database operations
 }
 \description{
-Validate and prepare dataframe for database operations
+Validate and prepare dataframe for database operations (internal)
 }
+\keyword{internal}

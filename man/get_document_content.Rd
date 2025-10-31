@@ -2,7 +2,7 @@
 % Please edit documentation in R/database.R
 \name{get_document_content}
 \alias{get_document_content}
-\title{Get document content (OCR results) from database}
+\title{Get document content (OCR results) from database (internal)}
 \usage{
 get_document_content(document_id, db_conn)
 }
@@ -15,5 +15,6 @@ get_document_content(document_id, db_conn)
 Character string with OCR markdown content, or NA if not found
 }
 \description{
-Get document content (OCR results) from database
+Get document content (OCR results) from database (internal)
 }
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/prompts.R
 \name{get_ocr_audit_prompt}
 \alias{get_ocr_audit_prompt}
-\title{Get OCR audit prompt from package or custom location}
+\title{Get OCR audit prompt from package or custom location (internal)}
 \usage{
 get_ocr_audit_prompt(prompt_file = NULL)
 }
@@ -13,5 +13,6 @@ get_ocr_audit_prompt(prompt_file = NULL)
 Character string with OCR audit prompt
 }
 \description{
-Get OCR audit prompt from package or custom location
+Get OCR audit prompt from package or custom location (internal)
 }
+\keyword{internal}

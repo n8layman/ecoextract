@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema.R
 \name{get_database_schema}
 \alias{get_database_schema}
-\title{Get comprehensive schema information}
+\title{Get comprehensive schema information (internal)}
 \usage{
 get_database_schema()
 }
@@ -10,5 +10,6 @@ get_database_schema()
 List with schema details
 }
 \description{
-Get comprehensive schema information
+Get comprehensive schema information (internal)
 }
+\keyword{internal}

@@ -19,7 +19,9 @@ All test files are in `tests/testthat/` and follow these conventions:
 ### Special Files
 
 #### helper.R
+
 Contains reusable test fixtures and helper functions:
+
 - `local_test_db()` - Creates temporary test database with automatic cleanup
 - `sample_interactions()` - Sample interaction data for testing
 - `minimal_interactions()` - Minimal valid interaction data
@@ -28,12 +30,15 @@ Contains reusable test fixtures and helper functions:
 - `sample_ocr_audit()` - Mock OCR audit JSON
 
 **Purpose**: Helper files are automatically loaded before test files and should contain:
+
 - Test fixtures
 - Custom expectations
 - Utility functions used across multiple test files
 
 #### setup.R
+
 Runs once before any tests execute. Contains:
+
 - Package loading logic (for manual testing outside of `devtools` workflow)
 - Global test configuration
 - Options setting
@@ -62,6 +67,7 @@ test_that("database operations work", {
 ```
 
 **Benefits of withr**:
+
 - Cleanup happens in reverse order of setup
 - More robust error handling
 - Cleaner test code
@@ -98,6 +104,7 @@ test_that("function works", {
 ### 4. Testing Edge Cases
 
 Each function is tested for:
+
 - **Typical usage** - Expected inputs and outputs
 - **Edge cases** - Empty inputs, NULL values, boundary conditions
 - **Error conditions** - Invalid inputs, missing data
@@ -163,6 +170,7 @@ Current test coverage: **123 tests, 100% passing**
 #### test-schema.R (41 tests)
 
 **validate_interactions_schema() - 6 tests**
+
 - accepts valid data
 - handles empty dataframe
 - detects missing required columns in strict mode
@@ -171,73 +179,90 @@ Current test coverage: **123 tests, 100% passing**
 - detects empty required fields
 
 **get_schema_columns() - 1 test**
+
 - returns expected column names
 
 **get_schema_types() - 1 test**
+
 - returns correct SQL types
 
 **get_required_columns() - 1 test**
+
 - returns required fields
 
 **filter_to_schema_columns() - 2 tests**
+
 - removes unknown columns
 - preserves all schema columns present
 
 **add_missing_schema_columns() - 2 tests**
+
 - adds missing columns with correct types
 - doesn't overwrite existing columns
 
 **validate_and_prepare_for_db() - 1 test**
+
 - filters and adds columns
 
 **get_database_schema() - 1 test**
+
 - returns comprehensive schema info
 
 #### test-database.R (39 tests)
 
 **init_ecoextract_database() - 3 tests**
+
 - creates database with required tables
 - creates proper indexes
 - creates directory if needed
 
 **save_document_to_db() - 2 tests**
+
 - inserts new document
 - returns existing ID for duplicate hash
 
 **save_interactions_to_db() - 3 tests**
+
 - inserts interactions
 - handles empty dataframe
 - serializes JSON arrays
 
 **get_db_stats() - 2 tests**
+
 - returns correct counts
 - handles missing database
 
 **get_document_content() - 2 tests**
+
 - retrieves OCR content
 - returns NA when not found
 
 **get_ocr_audit() - 1 test**
+
 - retrieves audit data
 
-**get_existing_interactions() - 2 tests**
+**get_existing_records() - 2 tests**
+
 - retrieves interactions
 - returns NA when none found
 
 #### test-utils.R (43 tests)
 
 **generate_occurrence_id() - 4 tests**
+
 - creates proper format
 - handles special characters in author name
 - handles empty author name
 - creates unique sequential IDs
 
 **add_occurrence_ids() - 3 tests**
+
 - adds IDs to all rows
 - creates sequential IDs
 - handles empty dataframe
 
 **estimate_tokens() - 6 tests**
+
 - handles NULL input
 - handles empty string
 - handles NA input
@@ -246,16 +271,20 @@ Current test coverage: **123 tests, 100% passing**
 - handles conversion failures gracefully
 
 **log_message() - 2 tests**
+
 - outputs formatted message
 - handles different log levels
 
 **ecoextract_info() - 1 test**
+
 - prints package information
 
 **process_single_document() - 1 test**
+
 - handles errors gracefully
 
 **build_existing_interactions_context() - 5 tests**
+
 - handles empty interactions
 - handles zero-row dataframe
 - formats interactions properly
@@ -272,6 +301,7 @@ Current test coverage: **123 tests, 100% passing**
 ## Dependencies
 
 Test suite requires:
+
 - `testthat` (>= 3.0.0)
 - `withr` - For automatic cleanup
 - `DBI` & `RSQLite` - For database testing

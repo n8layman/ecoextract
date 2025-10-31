@@ -5,10 +5,9 @@
 \title{Ecological Data Refinement Functions}
 \usage{
 refine_records(
-  interactions,
-  markdown_text,
-  ocr_audit = NULL,
-  document_id = NULL,
+  db_conn = NULL,
+  document_id,
+  extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
   refinement_context_file = NULL,
   schema_file = NULL,
@@ -16,15 +15,13 @@ refine_records(
 )
 }
 \arguments{
-\item{interactions}{Dataframe of extracted interactions to refine}
+\item{db_conn}{Database connection}
 
-\item{markdown_text}{Original OCR-processed markdown content}
+\item{document_id}{Document ID}
 
-\item{ocr_audit}{Optional OCR quality analysis}
+\item{extraction_prompt_file}{Path to extraction prompt file (provides domain context)}
 
-\item{document_id}{Optional document ID for context}
-
-\item{refinement_prompt_file}{Path to custom refinement prompt file (optional)}
+\item{refinement_prompt_file}{Path to custom refinement prompt file (optional, uses generic if not provided)}
 
 \item{refinement_context_file}{Path to custom refinement context template file (optional)}
 
@@ -37,5 +34,5 @@ List with refinement results
 }
 \description{
 Refine and enhance extracted ecological interaction data
-Refine extracted interactions with additional context
+Refine extracted records with additional context
 }

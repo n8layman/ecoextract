@@ -15,11 +15,14 @@ Imports:
     dplyr,
     ellmer,
     glue,
+    htmltools,
     jsonlite,
+    markdown,
     ohseer,
     readr,
     RSQLite,
-    stringr
+    stringr,
+    tibble
 Suggests:
     devtools,
     dotenv,

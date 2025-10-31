@@ -11,7 +11,7 @@ test_that("database initialization creates required tables", {
 
   tables <- DBI::dbListTables(con)
   expect_true("documents" %in% tables)
-  expect_true("interactions" %in% tables)
+  expect_true("records" %in% tables)
 })
 
 test_that("database schema matches JSON schema definition", {
@@ -19,7 +19,7 @@ test_that("database schema matches JSON schema definition", {
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   withr::defer(DBI::dbDisconnect(con))
 
-  db_columns <- DBI::dbListFields(con, "interactions")
+  db_columns <- DBI::dbListFields(con, "records")
   schema_columns <- get_db_schema_columns()
 
   # Database should contain all schema columns
@@ -33,15 +33,14 @@ test_that("save and retrieve records workflow", {
   doc_id <- save_document_to_db(db_path, "test.pdf")
   expect_type(doc_id, "integer")
 
-  # Save records
+  # Save records (will throw error if it fails)
   records <- sample_records()
-  result <- save_records_to_db(db_path, doc_id, records, list())
-  expect_true(result)
+  save_records_to_db(db_path, doc_id, records, list())
 
   # Verify saved
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   withr::defer(DBI::dbDisconnect(con))
-  saved <- DBI::dbReadTable(con, "interactions")
+  saved <- DBI::dbReadTable(con, "records")
   expect_equal(nrow(saved), nrow(records))
 })
 

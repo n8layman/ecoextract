@@ -2,13 +2,9 @@
 % Please edit documentation in R/database.R
 \name{validate_ellmer_schema_with_db}
 \alias{validate_ellmer_schema_with_db}
-\title{Validate ellmer schema compatibility with database}
+\title{Validate ellmer schema compatibility with database (internal)}
 \usage{
-validate_ellmer_schema_with_db(
-  db_conn,
-  ellmer_schema,
-  table_name = "interactions"
-)
+validate_ellmer_schema_with_db(db_conn, ellmer_schema, table_name = "records")
 }
 \arguments{
 \item{db_conn}{Database connection}
@@ -21,5 +17,6 @@ validate_ellmer_schema_with_db(
 List with validation results
 }
 \description{
-Validate ellmer schema compatibility with database
+Validate ellmer schema compatibility with database (internal)
 }
+\keyword{internal}

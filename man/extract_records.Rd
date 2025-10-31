@@ -2,14 +2,14 @@
 % Please edit documentation in R/extraction.R
 \name{extract_records}
 \alias{extract_records}
-\title{Ecological Data Extraction Functions}
+\title{Extract records from markdown text}
 \usage{
 extract_records(
   document_id = NA,
   interaction_db = NA,
   document_content = NA,
   ocr_audit = NA,
-  existing_interactions = NA,
+  force_reprocess = FALSE,
   extraction_prompt_file = NULL,
   extraction_context_file = NULL,
   schema_file = NULL,
@@ -26,7 +26,7 @@ extract_records(
 
 \item{ocr_audit}{Optional OCR quality analysis}
 
-\item{existing_interactions}{Optional dataframe of existing interactions (JSON or character)}
+\item{force_reprocess}{If TRUE, re-run extraction even if records already exist (default: FALSE)}
 
 \item{extraction_prompt_file}{Path to custom extraction prompt file (optional)}
 
@@ -42,6 +42,5 @@ extract_records(
 List with extraction results
 }
 \description{
-Extract structured ecological interaction data from OCR-processed documents
-Extract interactions from markdown text
+Extract records from markdown text
 }

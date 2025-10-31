@@ -4,27 +4,9 @@
   "description": "Schema for extracting ecological interaction data from scientific literature",
   "type": "object",
   "properties": {
-    "publication_metadata": {
-      "type": "object",
-      "description": "Publication metadata",
-      "properties": {
-        "first_author_lastname": {
-          "type": "string",
-          "description": "Last name of first author"
-        },
-        "publication_year": {
-          "type": "integer",
-          "description": "Year of publication"
-        },
-        "doi": {
-          "type": "string",
-          "description": "DOI if available"
-        }
-      }
-    },
-    "interactions": {
+    "records": {
       "type": "array",
-      "description": "Array of ecological interactions",
+      "description": "Array of ecological records",
       "items": {
         "type": "object",
         "description": "Ecological interaction between identifiable organisms",
@@ -85,5 +67,5 @@
       }
     }
   },
-  "required": ["interactions"]
+  "required": ["records"]
 }

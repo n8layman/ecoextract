@@ -2,7 +2,7 @@
 % Please edit documentation in R/prompts.R
 \name{get_refinement_prompt}
 \alias{get_refinement_prompt}
-\title{Get refinement prompt from package or custom location}
+\title{Get refinement prompt from package or custom location (internal)}
 \usage{
 get_refinement_prompt(prompt_file = NULL)
 }
@@ -13,5 +13,6 @@ get_refinement_prompt(prompt_file = NULL)
 Character string with refinement prompt
 }
 \description{
-Get refinement prompt from package or custom location
+Get refinement prompt from package or custom location (internal)
 }
+\keyword{internal}

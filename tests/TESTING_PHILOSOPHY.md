@@ -96,17 +96,111 @@ This separation allows:
 - `ecovalidate` tests to thoroughly evaluate extraction quality
 - Different schemas/prompts to be tested independently
 
+## Test Inventory
+
+### Core Tests (test-core.R) - 10 test cases, ~24 assertions
+**No API keys required** - Fast execution (<1 second)
+
+#### Database Core (3 tests)
+1. **"database initialization creates required tables"**
+   - Verifies `init_ecoextract_database()` creates `documents` and `interactions` tables
+   - Tests: Table existence in SQLite database
+
+2. **"database schema matches JSON schema definition"**
+   - Ensures database columns match the schema JSON definition
+   - Tests: Column names alignment between DB and schema
+
+3. **"save and retrieve records workflow"**
+   - Tests full cycle: save document → save records → verify in database
+   - Tests: Document ID generation, record persistence, row counts
+
+#### Schema Validation (3 tests)
+4. **"validate_interactions_schema accepts valid data"**
+   - Checks that valid sample records pass validation
+   - Tests: Validation returns `valid=TRUE`, no errors
+
+5. **"validate_interactions_schema reports warnings for unknown columns"**
+   - Ensures extra columns are detected but don't fail validation
+   - Tests: Unknown columns flagged, validation still passes
+
+6. **"filter_to_schema_columns removes unknown columns"**
+   - Tests that unknown columns are properly filtered out
+   - Tests: Extra columns removed, schema columns retained
+
+#### ID Generation (3 tests)
+7. **"generate_occurrence_id creates correct format"**
+   - Verifies occurrence ID format: `AuthorYear-oN`
+   - Tests: String format matches pattern
+
+8. **"generate_occurrence_id handles special characters"**
+   - Tests that special chars like apostrophes are stripped
+   - Tests: Clean IDs without special characters
+
+9. **"add_occurrence_ids adds IDs to all rows"**
+   - Ensures all records get unique occurrence IDs
+   - Tests: All rows have non-NA IDs
+
+#### Utilities (1 test)
+10. **"estimate_tokens handles various inputs"**
+    - Tests token estimation for NULL, empty, NA, and regular text
+    - Tests: Returns 0 for empty inputs, positive for text
+
+### Integration Tests (test-integration.R) - 5 test cases, ~27 assertions
+**Requires API keys** - Slower execution (10-60 seconds depending on API speed)
+
+#### Step 1: OCR (1 test)
+11. **"step 1: OCR with Mistral"**
+    - **Requires**: `MISTRAL_API_KEY`
+    - Calls `ohseer::mistral_ocr()` on test PDF
+    - Tests: Response structure, pages array, markdown content
+    - Purpose: Verify OCR API integration works
+
+#### Step 2: OCR Audit (1 test)
+12. **"step 2: OCR audit and save to database"**
+    - **Requires**: `ANTHROPIC_API_KEY`
+    - Calls `perform_ocr_audit()` with sample OCR content
+    - Saves document to database
+    - Tests: Audited markdown returned, document saved with correct ID
+    - Purpose: Verify OCR audit API and database save
+
+#### Step 3: Extraction (1 test)
+13. **"step 3: extraction and save to database"**
+    - **Requires**: `ANTHROPIC_API_KEY`
+    - Calls `extract_records()` standalone (without DB connection)
+    - Manually saves extracted records to database
+    - Tests: Status/records_extracted in response, records saved to DB
+    - Purpose: Verify **standalone extraction** use case
+
+#### Step 4: Refinement (1 test)
+14. **"step 4: refinement and save to database"**
+    - **Requires**: `ANTHROPIC_API_KEY`
+    - Pre-populates database with sample records
+    - Calls `refine_records()` which reads from DB and saves back
+    - Tests: Status is "completed", refined records in database
+    - Purpose: Verify **atomic refinement** (DB → process → DB)
+
+#### Step 5: Full Pipeline (1 test)
+15. **"step 5: full pipeline from PDF to database"**
+    - **Requires**: `MISTRAL_API_KEY` + `ANTHROPIC_API_KEY`
+    - Calls `process_documents()` on real PDF
+    - Tests **complete 4-step workflow**: OCR → Audit → Extract → Refine
+    - Tests: All statuses "completed" or "skipped", records extracted > 0, data in database
+    - Purpose: **Main integration test** - verifies end-to-end pipeline
+
+### Total: 15 test cases, 51 assertions
+
 ## Running Tests
 
 ```r
-# Run all tests
+# Run all tests (51 assertions)
 devtools::test()
 
-# Run only core tests (no API)
+# Run only core tests (no API, ~24 assertions)
 testthat::test_file("tests/testthat/test-core.R")
 
-# Run integration tests (requires API keys)
+# Run integration tests (requires API keys, ~27 assertions)
 Sys.setenv(ANTHROPIC_API_KEY = "your-key")
+Sys.setenv(MISTRAL_API_KEY = "your-key")
 testthat::test_file("tests/testthat/test-integration.R")
 ```
 

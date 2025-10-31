@@ -2,7 +2,7 @@
 % Please edit documentation in R/extraction.R
 \name{generate_occurrence_id}
 \alias{generate_occurrence_id}
-\title{Generate occurrence ID for interaction}
+\title{Generate occurrence ID for interaction (internal)}
 \usage{
 generate_occurrence_id(author_lastname, publication_year, sequence_number = 1)
 }
@@ -17,5 +17,6 @@ generate_occurrence_id(author_lastname, publication_year, sequence_number = 1)
 Character occurrence ID
 }
 \description{
-Generate occurrence ID for interaction
+Generate occurrence ID for interaction (internal)
 }
+\keyword{internal}

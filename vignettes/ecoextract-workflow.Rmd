@@ -22,7 +22,7 @@ This vignette demonstrates the complete workflow for extracting ecological inter
 The pipeline consists of four main steps:
 
 1. **OCR Processing** - Convert PDF to markdown text
-2. **OCR Audit** - Quality check the OCR output
+2. **Document Audit** - Quality check the OCR output
 3. **Extraction** - Extract structured interaction data using LLM
 4. **Refinement** - Enhance and verify extracted data
 
@@ -37,17 +37,17 @@ Sys.setenv(ANTHROPIC_API_KEY = "your-api-key-here")
 
 ## Quick Start: Process a Single File or Folder
 
-The simplest way to process documents is using `process_document()`:
+The simplest way to process documents is using `process_documents()`:
 
 ```{r quickstart}
 # Process a single PDF
-process_document(
+process_documents(
   pdf_path = "my_paper.pdf",
   db_path = "interactions.db"
 )
 
 # Process all PDFs in a folder
-process_document(
+process_documents(
   pdf_path = "pdfs/",
   db_path = "interactions.db"
 )
@@ -111,10 +111,10 @@ The package automatically detects and uses files in `ecoextract/`:
 
 ```{r custom-process}
 # Automatically uses ecoextract/schema.json, ecoextract/extraction_prompt.md, etc.
-process_document("pdfs/", "interactions.db")
+process_documents("pdfs/", "interactions.db")
 
 # Or specify custom files explicitly
-process_document(
+process_documents(
   pdf_path = "pdfs/",
   db_path = "interactions.db",
   schema_file = "my_custom/schema.json",
@@ -122,87 +122,31 @@ process_document(
 )
 ```
 
-## Step-by-Step Manual Workflow
+## Understanding the Workflow Steps
 
-For more control, you can run each step manually:
+The `process_documents()` function handles all steps automatically, but you can understand what happens at each stage:
 
-### Step 1: Initialize Database
+### Step 1: OCR Processing
 
-```{r init-db}
-# Create a new SQLite database
-db_path <- "my_interactions.db"
-init_ecoextract_database(db_path)
-```
+Converts PDF to markdown text using OCR. The package uses external OCR libraries and stores the result in the database.
 
-### Step 2: OCR Processing
+### Step 2: Document Audit
 
-```{r ocr}
-# OCR processing (requires ohseer package)
-# ocr_result <- ohseer::mistral_ocr("paper.pdf")
-# markdown_text <- ocr_result$markdown
+Quality check of the OCR output to identify potential issues (missing tables, unclear text, etc.).
 
-# For this example, assume you already have markdown text
-markdown_text <- "... your OCR text here ..."
-```
+### Step 3: Extraction
 
-### Step 3: Extract Interactions
+Uses LLM (Claude) to extract structured interaction data from the markdown text according to your schema.
 
-```{r extract}
-# Extract structured data
-extraction_result <- extract_records(
-  document_content = markdown_text,
-  schema_file = NULL  # Uses default or ecoextract/schema.json
-)
+### Step 4: Refinement
 
-# View results
-print(extraction_result$success)
-print(nrow(extraction_result$interactions))
-head(extraction_result$interactions)
-```
+Enhances extracted data by filling missing information, improving evidence quality, and cross-referencing with document tables.
 
-### Step 4: Refine Interactions
-
-```{r refine}
-# Refine the extracted data
-refinement_result <- refine_records(
-  interactions = extraction_result$interactions,
-  markdown_text = markdown_text
-)
-
-# Use refined interactions
-final_interactions <- refinement_result$interactions
-```
-
-### Step 5: Save to Database
-
-```{r save}
-# Connect to database
-db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-
-# Add document
-document_id <- add_document_to_database(
-  db_conn = db_conn,
-  file_path = "paper.pdf",
-  markdown_content = markdown_text
-)
-
-# Save interactions
-save_interactions_to_database(
-  db_conn = db_conn,
-  document_id = document_id,
-  interactions = final_interactions,
-  metadata = list(
-    model = extraction_result$model,
-    prompt_hash = extraction_result$prompt_hash
-  )
-)
-
-DBI::dbDisconnect(db_conn)
-```
+All results are automatically saved to the SQLite database with proper occurrence IDs.
 
 ## Working with the Database
 
-### Query Interactions
+### Query Records
 
 ```{r query}
 library(DBI)
@@ -211,17 +155,17 @@ library(dplyr)
 # Connect to database
 db_conn <- dbConnect(RSQLite::SQLite(), "interactions.db")
 
-# Get all interactions
-interactions <- tbl(db_conn, "interactions") %>%
+# Get all records
+records <- tbl(db_conn, "records") %>%
   collect()
 
 # Filter by species
-bat_interactions <- tbl(db_conn, "interactions") %>%
+bat_records <- tbl(db_conn, "records") %>%
   filter(grepl("Myotis", bat_species_scientific_name)) %>%
   collect()
 
 # Join with document info
-full_data <- tbl(db_conn, "interactions") %>%
+full_data <- tbl(db_conn, "records") %>%
   left_join(tbl(db_conn, "documents"), by = "document_id") %>%
   collect()
 
@@ -233,7 +177,7 @@ dbDisconnect(db_conn)
 ```{r export}
 # Export to CSV
 library(readr)
-write_csv(interactions, "extracted_interactions.csv")
+write_csv(records, "extracted_records.csv")
 ```
 
 ## Configuration Priority
@@ -271,7 +215,7 @@ The package looks for configuration files in this order:
 
 ```{r defaults}
 # Use package defaults first to understand the system
-process_document("test.pdf", "test.db")
+process_documents("test.pdf", "test.db")
 ```
 
 ### 2. Customize Incrementally
@@ -301,7 +245,7 @@ git commit -m "Add custom extraction schema for bird interactions"
 test_files <- list.files("pdfs", pattern = "\\.pdf$", full.names = TRUE)[1:3]
 
 for (file in test_files) {
-  process_document(file, "test.db")
+  process_documents(file, "test.db")
 }
 
 # Review results before processing entire corpus

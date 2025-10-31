@@ -2,7 +2,7 @@
 % Please edit documentation in R/prompts.R
 \name{get_extraction_prompt}
 \alias{get_extraction_prompt}
-\title{Prompt Management Functions}
+\title{Internal prompt management functions}
 \usage{
 get_extraction_prompt(prompt_file = NULL)
 }
@@ -14,5 +14,6 @@ Character string with extraction prompt
 }
 \description{
 Handle system prompts and templates for ecological data extraction
-Get extraction prompt from package or custom location
+Get extraction prompt from package or custom location (internal)
 }
+\keyword{internal}
