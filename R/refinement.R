@@ -237,14 +237,25 @@ merge_refinements <- function(original_records, refined_records) {
 #' @return Dataframe with occurrence_ids restored for matches, NULL for new records
 #' @keywords internal
 match_and_restore_occurrence_ids <- function(refined_records, existing_records) {
-  # Key fields to match on (adjust based on your schema)
-  match_fields <- c("bat_species_scientific_name", "interacting_organism_scientific_name", "location")
+  # Identify key fields to match on based on schema
+  # Look for common patterns: species names, organism names, location
+  all_columns <- names(refined_records)
 
-  # Ensure match fields exist in both dataframes
-  match_fields <- intersect(match_fields, intersect(names(refined_records), names(existing_records)))
+  potential_match_fields <- c(
+    # Bat interaction schema
+    "bat_species_scientific_name", "interacting_organism_scientific_name",
+    # Pollination schema
+    "plant_species_scientific_name", "pollinator_species_scientific_name",
+    # Generic fields
+    "location", "observation_start_date", "interaction_start_date"
+  )
+
+  # Use fields that exist in both dataframes
+  match_fields <- intersect(potential_match_fields, intersect(names(refined_records), names(existing_records)))
 
   if (length(match_fields) == 0) {
-    warning("No common fields to match records - all will be treated as new")
+    warning("No suitable fields to match records - all will be treated as new. ",
+            "Consider adding organism names or location to your schema for better matching.")
     return(refined_records)
   }
 

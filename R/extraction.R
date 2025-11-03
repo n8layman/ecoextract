@@ -2,55 +2,6 @@
 #'
 #' Extract structured ecological interaction data from OCR-processed documents
 
-#' Convert JSON schema to native ellmer type specification
-#'
-#' Converts a JSON schema file to ellmer's native type functions for proper
-#' dataframe conversion of array results
-#'
-#' @param schema_path Path to JSON schema file
-#' @return Ellmer type specification object
-#' @keywords internal
-json_schema_to_ellmer_type <- function(schema_path) {
-  # Read and parse JSON schema
-  schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-  schema <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
-
-  # Build record object type (the items in the records array)
-  record_props <- schema$properties$records$items$properties
-  record_fields <- list()
-
-  for (field_name in names(record_props)) {
-    field_spec <- record_props[[field_name]]
-    field_type <- field_spec$type
-    field_desc <- field_spec$description
-
-    # Convert JSON schema types to ellmer types
-    record_fields[[field_name]] <- switch(field_type,
-      "string" = ellmer::type_string(description = field_desc, required = FALSE),
-      "integer" = ellmer::type_integer(description = field_desc, required = FALSE),
-      "number" = ellmer::type_number(description = field_desc, required = FALSE),
-      "array" = {
-        # Handle nested arrays (e.g., all_supporting_source_sentences)
-        if (field_spec$items$type == "string") {
-          ellmer::type_array(ellmer::type_string(), description = field_desc, required = FALSE)
-        } else {
-          stop("Unsupported nested array type: ", field_spec$items$type)
-        }
-      },
-      stop("Unsupported field type: ", field_type)
-    )
-  }
-
-  # Build complete schema: object with records array only
-  # (publication_metadata now extracted in document_audit step)
-  ellmer::type_object(
-    records = ellmer::type_array(
-      do.call(ellmer::type_object, record_fields),
-      description = schema$properties$records$description
-    )
-  )
-}
-
 #' Extract records from markdown text
 #' @param document_id Optional document ID for context
 #' @param interaction_db Optional path to interaction database
@@ -98,10 +49,14 @@ extract_records <- function(document_id = NA,
   }
 
   tryCatch({
-    # Load schema JSON for prompt and convert to native ellmer types for dataframe conversion
+    # Load schema JSON and convert to ellmer TypeJsonSchema
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
     schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-    schema <- json_schema_to_ellmer_type(schema_path)
+    schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+    schema <- ellmer::TypeJsonSchema(
+      description = schema_list$description %||% "Record schema",
+      json = schema_list
+    )
 
     # Load extraction prompt (custom or default)
     extraction_prompt <- get_extraction_prompt(extraction_prompt_file)

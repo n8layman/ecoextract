@@ -4,10 +4,10 @@
 \alias{get_record_columns_sql}
 \title{Get record table column definitions as SQL}
 \usage{
-get_record_columns_sql(ellmer_schema = NULL)
+get_record_columns_sql(schema_json_list = NULL)
 }
 \arguments{
-\item{ellmer_schema}{Optional ellmer schema object to generate columns from}
+\item{schema_json_list}{Optional parsed JSON schema to generate columns from}
 }
 \value{
 Character string with column definitions
