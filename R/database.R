@@ -259,47 +259,90 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   on.exit(DBI::dbDisconnect(con), add = TRUE)
 
-  # Generate occurrence IDs (always, ignoring any LLM-provided values)
-  # Check if existing IDs are valid (from refinement) or invalid (from LLM extraction)
-  has_valid_ids <- "occurrence_id" %in% names(interactions_df) &&
-                   nrow(interactions_df) > 0 &&
-                   all(!is.na(interactions_df$occurrence_id)) &&
-                   all(grepl("^[A-Za-z]+[0-9]+-o[0-9]+$", interactions_df$occurrence_id))
+  # Handle occurrence IDs - mix of existing (valid) and new (null/invalid) records
+  # Valid IDs: Match pattern "Author2023-o1" format (from refinement preserving existing records)
+  # Invalid IDs: Don't match pattern, are NA, or are null (from extraction or refinement's new records)
 
-  if (!has_valid_ids) {
-    # Remove invalid/LLM-generated IDs if present
-    if ("occurrence_id" %in% names(interactions_df)) {
-      interactions_df$occurrence_id <- NULL
+  if ("occurrence_id" %in% names(interactions_df) && nrow(interactions_df) > 0) {
+    # Check each ID for validity
+    valid_pattern <- "^[A-Za-z]+[0-9]+-o[0-9]+$"
+    is_valid <- !is.na(interactions_df$occurrence_id) &
+                grepl(valid_pattern, interactions_df$occurrence_id)
+
+    valid_count <- sum(is_valid)
+    invalid_count <- sum(!is_valid)
+
+    if (valid_count > 0 && invalid_count > 0) {
+      message(glue::glue("Mixed IDs: {valid_count} existing (preserved), {invalid_count} new (generating)"))
+    } else if (valid_count > 0) {
+      message(glue::glue("Preserving existing occurrence IDs for {valid_count} records"))
+    } else {
+      message(glue::glue("Generating occurrence IDs for {invalid_count} new records"))
     }
 
-    # Get publication metadata from documents table (populated by document_audit step)
+    # Only generate IDs for records with invalid/missing IDs
+    if (invalid_count > 0) {
+      # Get publication metadata
+      doc_meta <- DBI::dbGetQuery(con,
+        "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
+        params = list(document_id))
+
+      author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
+        doc_meta$first_author_lastname[1]
+      } else if ("first_author_lastname" %in% names(interactions_df) && !is.na(interactions_df$first_author_lastname[1])) {
+        interactions_df$first_author_lastname[1]
+      } else {
+        "Unknown"
+      }
+
+      publication_year <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$publication_year[1])) {
+        doc_meta$publication_year[1]
+      } else if ("publication_year" %in% names(interactions_df) && !is.na(interactions_df$publication_year[1])) {
+        interactions_df$publication_year[1]
+      } else {
+        as.integer(format(Sys.Date(), "%Y"))
+      }
+
+      # Generate IDs only for records that need them
+      # Get existing max sequence number to avoid conflicts
+      existing_ids <- DBI::dbGetQuery(con,
+        "SELECT occurrence_id FROM records WHERE document_id = ?",
+        params = list(document_id))$occurrence_id
+
+      max_seq <- 0
+      if (length(existing_ids) > 0) {
+        # Extract sequence numbers from existing IDs
+        seqs <- as.integer(sub(".*-o([0-9]+)$", "\\1", existing_ids))
+        max_seq <- max(seqs, na.rm = TRUE)
+      }
+
+      # Generate new IDs starting after max existing
+      new_id_count <- 0
+      for (i in which(!is_valid)) {
+        new_id_count <- new_id_count + 1
+        interactions_df$occurrence_id[i] <- paste0(author_lastname, publication_year, "-o", max_seq + new_id_count)
+      }
+    }
+  } else {
+    # No occurrence_id column or empty dataframe - generate all IDs
     doc_meta <- DBI::dbGetQuery(con,
       "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
       params = list(document_id))
 
-    # Get author lastname (handle NA values)
     author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
       doc_meta$first_author_lastname[1]
-    } else if ("first_author_lastname" %in% names(interactions_df) && !is.na(interactions_df$first_author_lastname[1])) {
-      interactions_df$first_author_lastname[1]
     } else {
       "Unknown"
     }
 
-    # Get publication year (handle NA values)
     publication_year <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$publication_year[1])) {
       doc_meta$publication_year[1]
-    } else if ("publication_year" %in% names(interactions_df) && !is.na(interactions_df$publication_year[1])) {
-      interactions_df$publication_year[1]
     } else {
       as.integer(format(Sys.Date(), "%Y"))
     }
 
-    # Generate proper occurrence IDs
     interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
     message(glue::glue("Generated occurrence IDs for {nrow(interactions_df)} records"))
-  } else {
-    message(glue::glue("Preserving existing occurrence IDs for {nrow(interactions_df)} records"))
   }
 
   # Add required metadata columns

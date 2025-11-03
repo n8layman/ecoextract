@@ -104,6 +104,12 @@ refine_records <- function(db_conn = NULL, document_id,
     # Process result - chat_structured can return either a list or JSON string
     cat("Refinement completed\n")
 
+    # DEBUG: Check what we got back
+    cat("DEBUG: Result type:", class(refine_result), "\n")
+    if (is.list(refine_result)) {
+      cat("DEBUG: List names:", paste(names(refine_result), collapse=", "), "\n")
+    }
+
     # Parse if it's a JSON string
     if (is.character(refine_result)) {
       refine_result <- jsonlite::fromJSON(refine_result, simplifyVector = FALSE)
@@ -113,8 +119,30 @@ refine_records <- function(db_conn = NULL, document_id,
     # ellmer automatically converts array of objects to data.frame
     if (is.list(refine_result) && "records" %in% names(refine_result)) {
       records_data <- refine_result$records
+      cat("DEBUG: records_data type:", class(records_data), "length/nrow:", if(is.data.frame(records_data)) nrow(records_data) else length(records_data), "\n")
       if (is.data.frame(records_data) && nrow(records_data) > 0) {
         refined_df <- tibble::as_tibble(records_data)
+      } else if (is.list(records_data) && length(records_data) > 0) {
+        # Convert list of records to dataframe using jsonlite (handles nested structures better)
+        refined_df <- tibble::as_tibble(jsonlite::fromJSON(jsonlite::toJSON(records_data, auto_unbox = TRUE)))
+
+        # Fix any columns that came through as dataframes or weird structures
+        for (col in names(refined_df)) {
+          if (is.data.frame(refined_df[[col]]) || (is.list(refined_df[[col]]) && !is.null(names(refined_df[[col]])))) {
+            # Extract actual values from nested structure
+            refined_df[[col]] <- vapply(records_data, function(x) {
+              val <- x[[col]]
+              if (is.null(val) || (length(val) == 0)) {
+                NA_character_
+              } else if (is.list(val)) {
+                # Keep lists as-is for arrays like all_supporting_source_sentences
+                list(val)
+              } else {
+                as.character(val)
+              }
+            }, FUN.VALUE = if (col == "all_supporting_source_sentences") list(NULL) else character(1), USE.NAMES = FALSE)
+          }
+        }
       } else {
         refined_df <- tibble::tibble()
       }
