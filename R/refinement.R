@@ -31,11 +31,17 @@ refine_records <- function(db_conn = NULL, document_id,
     # This might have to be a part of the refinement prompt. Strong language not to alter rows with human_edited = TRUE or rejected = TRUE.
     # Maybe a good place to insert a test. Did those lines get changed? If so error out rather than refine.
     if (nrow(existing_records) > 0) {
-      protected_count <- sum(existing_records$human_edited | existing_records$rejected, na.rm = TRUE)
+      # Handle NA values in human_edited and rejected columns (treat NA as FALSE)
+      is_human_edited <- !is.na(existing_records$human_edited) & existing_records$human_edited
+      is_rejected <- !is.na(existing_records$rejected) & existing_records$rejected
+
+      protected_count <- sum(is_human_edited | is_rejected)
       if (protected_count > 0) {
         message(glue::glue("Skipping {protected_count} protected records (human_edited or rejected)"))
       }
-      existing_records <- existing_records[!existing_records$human_edited & !existing_records$rejected, ]
+
+      # Keep only records that are NOT human_edited and NOT rejected
+      existing_records <- existing_records[!is_human_edited & !is_rejected, ]
     }
 
     # Load schema
@@ -104,12 +110,6 @@ refine_records <- function(db_conn = NULL, document_id,
     # Process result - chat_structured can return either a list or JSON string
     cat("Refinement completed\n")
 
-    # DEBUG: Check what we got back
-    cat("DEBUG: Result type:", class(refine_result), "\n")
-    if (is.list(refine_result)) {
-      cat("DEBUG: List names:", paste(names(refine_result), collapse=", "), "\n")
-    }
-
     # Parse if it's a JSON string
     if (is.character(refine_result)) {
       refine_result <- jsonlite::fromJSON(refine_result, simplifyVector = FALSE)
@@ -119,7 +119,6 @@ refine_records <- function(db_conn = NULL, document_id,
     # ellmer automatically converts array of objects to data.frame
     if (is.list(refine_result) && "records" %in% names(refine_result)) {
       records_data <- refine_result$records
-      cat("DEBUG: records_data type:", class(records_data), "length/nrow:", if(is.data.frame(records_data)) nrow(records_data) else length(records_data), "\n")
       if (is.data.frame(records_data) && nrow(records_data) > 0) {
         refined_df <- tibble::as_tibble(records_data)
       } else if (is.list(records_data) && length(records_data) > 0) {
@@ -156,6 +155,12 @@ refine_records <- function(db_conn = NULL, document_id,
       cat("\nRefinement output:\n")
       print(refined_df)
       cat("Rows refined:", nrow(refined_df), "rows\n")
+
+      # Match refined records to existing records by content and restore occurrence_ids
+      # This allows us to preserve IDs without relying on LLM to copy them correctly
+      if (nrow(existing_records) > 0) {
+        refined_df <- match_and_restore_occurrence_ids(refined_df, existing_records)
+      }
 
       # Save refined records back to database
       save_records_to_db(
@@ -226,6 +231,67 @@ merge_refinements <- function(original_records, refined_records) {
   return(updated_records)
 }
 
+#' Match refined records to existing records and restore occurrence_ids
+#' @param refined_records Dataframe of records from LLM refinement
+#' @param existing_records Dataframe of existing records from database
+#' @return Dataframe with occurrence_ids restored for matches, NULL for new records
+#' @keywords internal
+match_and_restore_occurrence_ids <- function(refined_records, existing_records) {
+  # Key fields to match on (adjust based on your schema)
+  match_fields <- c("bat_species_scientific_name", "interacting_organism_scientific_name", "location")
+
+  # Ensure match fields exist in both dataframes
+  match_fields <- intersect(match_fields, intersect(names(refined_records), names(existing_records)))
+
+  if (length(match_fields) == 0) {
+    warning("No common fields to match records - all will be treated as new")
+    return(refined_records)
+  }
+
+  cat("Matching refined records to existing records using fields:", paste(match_fields, collapse = ", "), "\n")
+
+  # Initialize occurrence_id column if it doesn't exist
+  if (!"occurrence_id" %in% names(refined_records)) {
+    refined_records$occurrence_id <- NA_character_
+  }
+
+  matched_count <- 0
+  new_count <- 0
+
+  # For each refined record, try to find a match in existing records
+  for (i in 1:nrow(refined_records)) {
+    # Build match conditions
+    matches_existing <- rep(TRUE, nrow(existing_records))
+
+    for (field in match_fields) {
+      refined_val <- refined_records[[field]][i]
+      existing_vals <- existing_records[[field]]
+
+      # Handle NA values
+      if (is.na(refined_val)) {
+        matches_existing <- matches_existing & is.na(existing_vals)
+      } else {
+        matches_existing <- matches_existing & (existing_vals == refined_val)
+      }
+    }
+
+    # If we found a match, restore the occurrence_id
+    match_idx <- which(matches_existing)
+    if (length(match_idx) > 0) {
+      refined_records$occurrence_id[i] <- existing_records$occurrence_id[match_idx[1]]
+      matched_count <- matched_count + 1
+    } else {
+      # No match - this is a new record, leave occurrence_id as NA
+      refined_records$occurrence_id[i] <- NA_character_
+      new_count <- new_count + 1
+    }
+  }
+
+  cat("Matched", matched_count, "existing records,", new_count, "new records\n")
+
+  return(refined_records)
+}
+
 #' Build context string for existing records
 #' @param existing_records Dataframe of existing records
 #' @param document_id Document ID for getting human edit summary
@@ -235,8 +301,9 @@ build_existing_records_context <- function(existing_records, document_id = NULL)
     return("No records have been extracted from this document yet.")
   }
 
-  # Exclude metadata columns from display
-  metadata_cols <- c("id", "document_id", "extraction_timestamp",
+  # Exclude metadata columns AND occurrence_id from display
+  # We don't show occurrence_id to LLM - we'll match records by content instead
+  metadata_cols <- c("id", "occurrence_id", "document_id", "extraction_timestamp",
                      "llm_model_version", "prompt_hash", "flagged_for_review",
                      "review_reason", "human_edited", "rejected")
   data_cols <- setdiff(names(existing_records), metadata_cols)
@@ -251,9 +318,23 @@ build_existing_records_context <- function(existing_records, document_id = NULL)
     record_parts <- character(0)
     for (col in data_cols) {
       val <- row[[col]]
-      if (is.list(val)) val <- jsonlite::toJSON(val, auto_unbox = TRUE)
-      if (!is.na(val) && val != "") {
-        record_parts <- c(record_parts, paste0(col, ": ", val))
+
+      # Convert lists to JSON strings
+      if (is.list(val)) {
+        val <- jsonlite::toJSON(val, auto_unbox = TRUE)
+      }
+
+      # Include value if it's not NA and not empty
+      # Need to check for length > 0 first to avoid issues with lists/vectors
+      if (length(val) > 0 && !all(is.na(val))) {
+        val_str <- as.character(val)
+        if (nchar(val_str) > 0 && val_str != "") {
+          # Truncate very long values (like supporting_source_sentences)
+          if (nchar(val_str) > 100) {
+            val_str <- paste0(substr(val_str, 1, 97), "...")
+          }
+          record_parts <- c(record_parts, paste0(col, ": ", val_str))
+        }
       }
     }
 

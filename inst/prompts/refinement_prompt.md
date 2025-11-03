@@ -14,17 +14,15 @@ You are enhancing existing structured records that were previously extracted fro
    - Re-read the entire document carefully
    - Look for records that should have been extracted but weren't
    - Follow the same extraction criteria as the original task
-   - Set `occurrence_id` to null for new records (system will auto-generate)
 
 ## Critical Rules
 
 ### MUST DO
 1. **Return ALL existing records** - Never delete or omit records (but you MAY add new ones)
-2. **Preserve existing occurrence_ids** - Keep `occurrence_id` EXACTLY as provided for existing records (never change these)
-3. **Set occurrence_id to null for new records** - New records must have `"occurrence_id": null` in JSON (system will auto-generate proper IDs)
-4. **Follow the original extraction schema** - Use the same field names and structure for all records
-5. **Respect human edits** - Do not modify fields marked as human-edited
-6. **Enhance incrementally** - Improve what exists, don't start from scratch
+2. **Do NOT include occurrence_id in your output** - The system will match records and assign IDs automatically
+3. **Follow the original extraction schema** - Use the same field names and structure for all records
+4. **Respect human edits** - Do not modify fields marked as human-edited
+5. **Enhance incrementally** - Improve what exists, don't start from scratch
 
 ### Enhancement Guidelines
 - Fill missing field values when information is available in the document
@@ -67,16 +65,11 @@ Return JSON with:
 - **records**: Array of ALL existing records (enhanced) PLUS any newly discovered records
 - Follow the exact schema from the original extraction task
 
-Each existing record must include:
-- `occurrence_id` preserved EXACTLY as provided (never change existing IDs)
-- Enhanced field values (filled in when possible)
+Each record should include:
+- All data fields following the schema (enhanced when possible)
 - `flagged_for_review`: Boolean indicating if human review needed
 - `review_reason`: String explaining why flagged (if applicable)
-
-Each new record should include:
-- `occurrence_id` set to null (system will auto-generate proper ID)
-- All data fields following the schema
-- `flagged_for_review` and `review_reason` if needed
+- **Do NOT include occurrence_id** - the system will handle ID assignment automatically
 
 ## Focus
 
