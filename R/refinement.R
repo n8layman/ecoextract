@@ -83,7 +83,7 @@ refine_records <- function(db_conn = NULL, document_id,
     # Report inputs
     markdown_chars <- nchar(markdown_text)
     record_count <- nrow(existing_records)
-    cat("Inputs loaded: OCR data (", markdown_chars, " chars), OCR audit (", nchar(ocr_audit %||% ""), " chars), ", record_count, " records, refinement prompt (", nchar(refinement_prompt), " chars, hash:", substring(prompt_hash, 1, 8), ")\n")
+    cat(glue::glue("Inputs loaded: OCR data ({markdown_chars} chars), OCR audit ({nchar(ocr_audit %||% '')} chars), {record_count} records, refinement prompt ({nchar(refinement_prompt)} chars, hash: {substring(prompt_hash, 1, 8)})"), "\n")
 
     # Initialize refinement chat
     cat("Calling", model, "for refinement\n")
