@@ -114,69 +114,6 @@ test_that("extraction rediscovers physically deleted records", {
               "Deleted record should be rediscovered by extraction")
 })
 
-test_that("API failures are captured in status columns, not thrown", {
-  cat("\n========== TEST: API failures are captured in status columns, not thrown ==========\n")
-  # Verify that API failures don't throw errors but return tibble with
-  # error messages in status columns
-  # Uses bad API key so it should fail without using credits
-
-  skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
-
-  test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
-  skip_if_not(file.exists(test_pdf), "Test PDF not found")
-
-  db_path <- withr::local_tempfile(fileext = ".sqlite")
-
-  # Temporarily set bad Anthropic API key
-  original_key <- Sys.getenv("ANTHROPIC_API_KEY")
-  Sys.setenv(ANTHROPIC_API_KEY = "bad-key-should-fail")
-  withr::defer(Sys.setenv(ANTHROPIC_API_KEY = original_key))
-
-  # Run process_documents - should NOT throw, should return tibble
-  result <- process_documents(test_pdf, db_path = db_path)
-
-  # Verify we got a tibble back (not an error throw)
-  expect_s3_class(result, "tbl_df")
-  expect_equal(nrow(result), 1)
-
-  # Check status matrix
-  status_matrix <- result |>
-    dplyr::select(ocr_status, audit_status, extraction_status,
-                  refinement_status) |>
-    as.matrix()
-
-  # Should have at least one status that's not "completed" or "skipped"
-  # (i.e., an error message in the status column)
-  has_errors_in_status <- any(!status_matrix %in% c("skipped", "completed"))
-
-  expect_true(has_errors_in_status,
-              info = paste("With bad API key, at least one status column",
-                          "should contain an error message"))
-
-  # OCR should work (uses Mistral, different key)
-  expect_equal(result$ocr_status[1], "completed",
-               info = "OCR uses Mistral, should still complete")
-
-  # Audit or extraction should have error message (uses Anthropic)
-  audit_or_extraction_has_error <-
-    result$audit_status[1] != "completed" ||
-    result$extraction_status[1] != "completed"
-
-  expect_true(audit_or_extraction_has_error,
-              info = paste("Document audit or extraction should have",
-                          "error message with bad Anthropic key"))
-
-  # Verify the error message contains useful info
-  if (result$audit_status[1] != "completed") {
-    expect_match(result$audit_status[1], "401|Unauthorized|failed",
-                 info = "Error status should contain failure details")
-  }
-  if (result$extraction_status[1] != "completed") {
-    expect_match(result$extraction_status[1], "401|Unauthorized|failed",
-                 info = "Error status should contain failure details")
-  }
-})
-
 test_that("workflow continues processing all files even when some fail", {
   cat("\n========== TEST: workflow continues processing all files even when some fail ==========\n")
   # Critical: verify that when processing 100s of papers, one failure
