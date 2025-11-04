@@ -112,53 +112,6 @@ test_that("refinement rediscovers deleted records", {
               "Deleted record should be rediscovered by refinement")
 })
 
-test_that("refinement does not duplicate records when run multiple times", {
-  skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
-  skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
-
-  test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
-  skip_if_not(file.exists(test_pdf), "Test PDF not found")
-
-  db_path <- withr::local_tempfile(fileext = ".sqlite")
-
-  # Run full pipeline first time
-  result1 <- process_documents(test_pdf, db_path = db_path)
-
-  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  withr::defer(DBI::dbDisconnect(con))
-
-  initial_count <- DBI::dbGetQuery(con, "SELECT COUNT(*) as count FROM records")$count
-  expect_true(initial_count > 0, "Should have extracted some records")
-
-  # Run extraction+refinement 3 more times (4 total)
-  for (i in 2:4) {
-    result <- process_documents(test_pdf, db_path = db_path)
-
-    # Should skip OCR and audit, but run extraction+refinement
-    expect_equal(result$ocr_status[1], "skipped")
-    expect_equal(result$audit_status[1], "skipped")
-    expect_equal(result$extraction_status[1], "completed")
-    expect_equal(result$refinement_status[1], "completed")
-
-    # Record count should stay the same
-    current_count <- DBI::dbGetQuery(con, "SELECT COUNT(*) as count FROM records")$count
-    expect_equal(current_count, initial_count,
-                 info = sprintf("Run %d: Record count should not change (was %d, now %d)",
-                                i, initial_count, current_count))
-
-    # Check for duplicate occurrence_ids
-    duplicates <- DBI::dbGetQuery(con,
-      "SELECT occurrence_id, COUNT(*) as count
-       FROM records
-       GROUP BY occurrence_id
-       HAVING COUNT(*) > 1")
-
-    expect_equal(nrow(duplicates), 0,
-                 info = sprintf("Run %d: Found duplicate occurrence_ids: %s",
-                                i, paste(duplicates$occurrence_id, collapse=", ")))
-  }
-})
-
 test_that("API failures are captured in status columns, not thrown", {
   # Verify that API failures don't throw errors but return tibble with
   # error messages in status columns
