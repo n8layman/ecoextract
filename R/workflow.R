@@ -34,8 +34,16 @@ process_documents <- function(pdf_path,
                              refinement_prompt_file = NULL,
                              force_reprocess = FALSE) {
 
-  # Determine if processing single file or directory
-  if (file.exists(pdf_path)) {
+  # Determine if processing single file, multiple files, or directory
+  if (length(pdf_path) > 1) {
+    # Multiple files provided as vector
+    pdf_files <- pdf_path
+    # Check all files exist
+    missing <- pdf_files[!file.exists(pdf_files)]
+    if (length(missing) > 0) {
+      stop("Files do not exist: ", paste(missing, collapse = ", "))
+    }
+  } else if (file.exists(pdf_path)) {
     if (dir.exists(pdf_path)) {
       # Process directory
       pdf_files <- list.files(pdf_path, pattern = "\\.pdf$", full.names = TRUE, ignore.case = TRUE)

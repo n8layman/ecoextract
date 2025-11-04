@@ -70,6 +70,7 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite", sche
         review_reason TEXT,
         human_edited BOOLEAN DEFAULT FALSE,
         rejected BOOLEAN DEFAULT FALSE,
+        deleted_by_user BOOLEAN DEFAULT FALSE,
 
         UNIQUE(document_id, occurrence_id),
         FOREIGN KEY (document_id) REFERENCES documents (id)
@@ -96,7 +97,17 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite", sche
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_occurrence ON records (occurrence_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_processing_log_document ON processing_log (document_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_processing_log_type ON processing_log (process_type)")
-    
+
+    # Migration: Add deleted_by_user column if it doesn't exist
+    tryCatch({
+      # Check if column exists by trying to query it
+      DBI::dbGetQuery(con, "SELECT deleted_by_user FROM records LIMIT 0")
+    }, error = function(e) {
+      # Column doesn't exist, add it
+      cat("Migrating database: Adding deleted_by_user column\n")
+      DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN deleted_by_user BOOLEAN DEFAULT FALSE")
+    })
+
     cat("EcoExtract database initialized:", db_path, "\n")
     
   }, error = function(e) {

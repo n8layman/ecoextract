@@ -84,16 +84,16 @@ test_that("refinement rediscovers deleted records", {
   expect_equal(after_delete_count, initial_count - 1,
     info = "Should have one less record after deletion")
 
-  # Re-run pipeline (will skip OCR/audit/extraction, run refinement)
+  # Re-run pipeline (will skip OCR/audit, run extraction+refinement)
   result2 <- process_documents(test_pdf, db_path = db_path)
 
-  # Check that early steps were skipped
+  # Check that early steps were skipped, but extraction+refinement run
   expect_equal(result2$ocr_status[1], "skipped")
   expect_equal(result2$audit_status[1], "skipped")
-  expect_equal(result2$extraction_status[1], "skipped")
+  expect_equal(result2$extraction_status[1], "completed")
   expect_equal(result2$refinement_status[1], "completed")
 
-  # Check that refinement rediscovered the deleted record
+  # Check that extraction rediscovered the deleted record
   final_count <- DBI::dbGetQuery(
     con, "SELECT COUNT(*) as count FROM records")$count
   expect_equal(final_count, initial_count,
@@ -130,14 +130,14 @@ test_that("refinement does not duplicate records when run multiple times", {
   initial_count <- DBI::dbGetQuery(con, "SELECT COUNT(*) as count FROM records")$count
   expect_true(initial_count > 0, "Should have extracted some records")
 
-  # Run refinement 3 more times (4 total)
+  # Run extraction+refinement 3 more times (4 total)
   for (i in 2:4) {
     result <- process_documents(test_pdf, db_path = db_path)
 
-    # Should skip OCR, audit, extraction
+    # Should skip OCR and audit, but run extraction+refinement
     expect_equal(result$ocr_status[1], "skipped")
     expect_equal(result$audit_status[1], "skipped")
-    expect_equal(result$extraction_status[1], "skipped")
+    expect_equal(result$extraction_status[1], "completed")
     expect_equal(result$refinement_status[1], "completed")
 
     # Record count should stay the same
@@ -219,4 +219,44 @@ test_that("API failures are captured in status columns, not thrown", {
     expect_match(result$extraction_status[1], "401|Unauthorized|failed",
                  info = "Error status should contain failure details")
   }
+})
+
+test_that("workflow continues processing all files even when some fail", {
+  # Critical: verify that when processing 100s of papers, one failure
+  # doesn't stop the entire batch
+  skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
+  skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
+
+  test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
+  skip_if_not(file.exists(test_pdf), "Test PDF not found")
+
+  # Create a bad PDF that will fail OCR
+  bad_pdf <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("This is not a valid PDF", bad_pdf)
+
+  db_path <- withr::local_tempfile(fileext = ".sqlite")
+
+  # Process both files: one good, one bad
+  # The workflow should process both and return results for both
+  result <- process_documents(c(test_pdf, bad_pdf), db_path = db_path)
+
+  # Should get results for BOTH files (2 rows)
+  expect_equal(nrow(result), 2,
+               info = "Should process all files even if some fail")
+
+  # First file should succeed
+  expect_equal(result$ocr_status[1], "completed",
+               info = "Good PDF should process successfully")
+
+  # Second file should fail at OCR but still be in results
+  expect_false(result$ocr_status[2] %in% c("completed", "skipped"),
+               info = "Bad PDF should have error status")
+
+  # Verify we got records from the good file
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  records <- DBI::dbReadTable(con, "records")
+  expect_true(nrow(records) > 0,
+              info = "Should have records from successful file")
 })

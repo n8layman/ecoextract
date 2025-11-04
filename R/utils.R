@@ -55,3 +55,67 @@ estimate_tokens <- function(text) {
 
   ceiling(nchar(text) / 4)
 }
+
+#' Build existing records context for LLM prompts
+#' @param existing_records Dataframe of existing records
+#' @param document_id Optional document ID for context
+#' @return Character string with existing records formatted for LLM context
+#' @keywords internal
+build_existing_records_context <- function(existing_records, document_id = NULL) {
+  if (is.null(existing_records) || !is.data.frame(existing_records) || nrow(existing_records) == 0) {
+    return("No records have been extracted from this document yet.")
+  }
+
+  # Filter out deleted records - they should not be shown to extraction/refinement
+  if ("deleted_by_user" %in% names(existing_records)) {
+    existing_records <- existing_records[is.na(existing_records$deleted_by_user) | !existing_records$deleted_by_user, ]
+  }
+
+  # Recheck if any records remain after filtering
+  if (nrow(existing_records) == 0) {
+    return("No records have been extracted from this document yet.")
+  }
+
+  # Exclude metadata columns AND occurrence_id from display
+  # We don't show occurrence_id to LLM - we'll match records by content instead
+  metadata_cols <- c("id", "occurrence_id", "document_id", "extraction_timestamp",
+                     "llm_model_version", "prompt_hash", "flagged_for_review",
+                     "review_reason", "human_edited", "rejected", "deleted_by_user")
+  data_cols <- setdiff(names(existing_records), metadata_cols)
+
+  # Build context as simple JSON representation
+  context_lines <- c("Existing records:", "")
+
+  for (i in seq_len(nrow(existing_records))) {
+    row <- existing_records[i, data_cols, drop = FALSE]
+
+    # Convert row to simple key-value format
+    record_parts <- character(0)
+    for (col in data_cols) {
+      val <- row[[col]]
+
+      # Convert lists to JSON strings
+      if (is.list(val)) {
+        val <- jsonlite::toJSON(val, auto_unbox = TRUE)
+      }
+
+      # Include value if it's not NA and not empty
+      # Need to check for length > 0 first to avoid issues with lists/vectors
+      if (length(val) > 0 && !all(is.na(val))) {
+        val_str <- as.character(val)
+        if (nchar(val_str) > 0 && val_str != "") {
+          # Truncate very long values (like supporting_source_sentences)
+          if (nchar(val_str) > 100) {
+            val_str <- paste0(substr(val_str, 1, 97), "...")
+          }
+          record_parts <- c(record_parts, paste0(col, ": ", val_str))
+        }
+      }
+    }
+
+    context_line <- paste0("- ", paste(record_parts, collapse = ", "))
+    context_lines <- c(context_lines, context_line)
+  }
+
+  return(paste(context_lines, collapse = "\n"))
+}

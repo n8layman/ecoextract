@@ -5,9 +5,17 @@ Extract ecological interactions between bat species and other organisms from sci
 ## Instructions
 
 1. **FIRST: Extract publication metadata** - Look for author name and publication year
-2. **Read the entire context** including the document and OCR audit
-3. **Identify bat species and their interacting organisms** using tables and text
-4. **Return empty interactions array if no valid interactions found, but ALWAYS extract publication metadata**
+2. **Read the entire context** including the document, OCR audit, and existing records
+3. **Extract ONLY NEW interactions** - Do NOT duplicate any existing records shown in the context
+4. **Identify bat species and their interacting organisms** using tables and text
+5. **Return empty interactions array if no NEW interactions found, but ALWAYS extract publication metadata**
+
+## Critical: Avoid Duplicating Existing Records
+
+- You will be shown existing records that have already been extracted from this document
+- **Do NOT extract records that match existing ones** - even if worded slightly differently
+- Focus on finding NEW interactions not yet in the database
+- When in doubt about whether a record is a duplicate, skip it (refinement will handle enhancements)
 
 ### Publication Metadata
 
