@@ -100,15 +100,23 @@ process_documents <- function(pdf_path,
     records_extracted = sapply(results_list, function(x) x$records_extracted %||% 0)
   )
 
-  # Calculate summary stats
+  # Calculate summary stats using matrix approach (like tests)
   total_rows <- sum(results_tibble$records_extracted, na.rm = TRUE)
-  skipped <- sum(results_tibble$ocr_status == "skipped")
-  errors <- sum(
-    !results_tibble$ocr_status %in% c("completed", "skipped") |
-    !results_tibble$extraction_status %in% c("completed", "skipped") |
-    !results_tibble$refinement_status %in% c("completed", "skipped")
-  )
-  processed <- nrow(results_tibble) - skipped - errors
+
+  # Check for errors across all status columns
+  status_matrix <- results_tibble |>
+    dplyr::select(ocr_status, audit_status, extraction_status, refinement_status) |>
+    as.matrix()
+
+  # A file has an error if ANY of its status columns is not "completed" or "skipped"
+  file_has_error <- apply(status_matrix, 1, function(row) {
+    any(!row %in% c("completed", "skipped"))
+  })
+
+  errors <- sum(file_has_error)
+
+  # Processed successfully = no errors (all steps completed or skipped)
+  processed <- nrow(results_tibble) - errors
 
   # Add attributes
   attr(results_tibble, "start_time") <- start_time
@@ -118,14 +126,16 @@ process_documents <- function(pdf_path,
   attr(results_tibble, "database") <- db_path
 
   # Summary
+  # Total files = all files attempted
+  # Processed successfully = files where all 4 steps reached completion (completed or skipped)
+  # Errors = files where at least one step failed
   cat("\n", strrep("=", 70), "\n")
   cat("PROCESSING COMPLETE\n")
   cat(strrep("=", 70), "\n")
   cat("Total files:", nrow(results_tibble), "\n")
-  cat("Processed:", processed, "\n")
-  cat("Skipped:", skipped, "\n")
+  cat("Processed successfully:", processed, "\n")
   cat("Errors:", errors, "\n")
-  cat("Records:", total_rows, "\n")
+  cat("Records in database:", total_rows, "\n")
   cat("Duration:", round(attr(results_tibble, "duration"), 2), "seconds\n")
   cat("Database:", db_path, "\n")
   cat(strrep("=", 70), "\n\n")
