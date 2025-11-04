@@ -1,67 +1,80 @@
-# BAT INTERACTION REFINEMENT SYSTEM
+# RECORD REFINEMENT SYSTEM
 
-Enhance and improve existing ecological interaction data between bat species and other organisms.
+You are enhancing existing structured records that were previously extracted from a document AND discovering any new records that were missed in the initial extraction.
 
-## Refinement Rules
+## Your Task
 
-### Enhancement Goals
-- **Fill missing organism names** using document tables and cross-references
-- **Add missing location/date information** when available in document
-- **Improve supporting evidence** by adding complete table captions when referenced
-- **Split multi-sentence evidence** into individual array elements
-- **Cross-reference with OCR audit tables** for better organism identifications
+1. **Enhance each existing record** by:
+   - Filling in missing fields using information from the document
+   - Improving supporting evidence with better quotes
+   - Cross-referencing with tables, figures, and other document sections
+   - Flagging quality issues for human review
 
-### Critical Validation Override
-- **MUST return ALL existing interactions** even if some have missing data
-- **Do NOT apply strict validation** - work with what exists and improve incrementally
-- **NEVER delete interactions** that don't meet full identification criteria
-- **Preserve all human-edited fields** marked as such in audit context
+2. **Extract any NEW records** that were missed in the initial extraction:
+   - Re-read the entire document carefully
+   - Look for records that should have been extracted but weren't
+   - Follow the same extraction criteria as the original task
 
-### Supporting Evidence Enhancement  
-- **VERBATIM QUOTES ONLY** - all sentences must match the source document exactly word-for-word
-- **NO paraphrasing or synthesis** - copy sentences exactly as written in the document
-- **One complete sentence per array element** - split multi-sentence evidence into separate elements
-- **MANDATORY: Add complete table captions** when ANY supporting sentence references tables (e.g., "see Table 2", "Table 1 shows"). The full table caption with "TABLE X: [caption text]" must be included as a separate array element.
-- **Include organism identification sentences** exactly as written in the source
+## Critical Rules
 
-## Output Schema
+### MUST DO
+1. **Return ALL existing records** - Never delete or omit records (but you MAY add new ones)
+2. **Do NOT include occurrence_id in your output** - The system will match records and assign IDs automatically
+3. **Follow the original extraction schema** - Use the same field names and structure for all records
+4. **Respect human edits** - Do not modify fields marked as human-edited
+5. **Enhance incrementally** - Improve what exists, don't start from scratch
+
+### Enhancement Guidelines
+- Fill missing field values when information is available in the document
+- Improve supporting evidence by finding better verbatim quotes
+- Split multi-sentence evidence into separate array elements
+- Add table/figure captions when they provide context
+- Cross-reference different sections of the document
+- Use OCR audit information to find additional context
+
+### Supporting Evidence Rules
+- **VERBATIM QUOTES ONLY** - Copy sentences exactly as written in the source document
+- **NO paraphrasing or synthesis** - Must match the original text word-for-word
+- **One complete sentence per array element** - Split compound evidence into individual sentences
+- **Include table captions** when evidence references tables/figures
+- **Include identification sentences** that establish organism/entity names
+
+### Quality Flagging
+
+Flag records for human review (set `flagged_for_review: true`) when they have:
+- **Missing critical fields** - Core identifiers or required data missing
+- **Vague or generic identifications** - Non-specific terms that should be more precise
+- **Insufficient supporting evidence** - Weak or missing source quotes
+- **Potential duplicates** - Records that appear to describe the same thing
+- **Conflicting information** - Data that contradicts itself or other records
+- **Schema violations** - Data that doesn't match expected formats
+
+**Do NOT flag** records just because they're incomplete - only flag clear quality problems.
+
+### What NOT to Do
+- ❌ Delete records that don't meet full criteria
+- ❌ Apply strict validation that removes borderline records
+- ❌ Modify records marked as human-edited
+- ❌ Change IDs or occurrence identifiers
+- ❌ Paraphrase or reword supporting evidence
+- ❌ Merge or split records without explicit instruction
+
+## Output Format
 
 Return JSON with:
-- **interactions**: Array of ALL refined interactions (with occurrence_ids preserved)
-- **validation_flags**: Array of interactions that need human review
+- **records**: Array of ALL existing records (enhanced) PLUS any newly discovered records
+- Follow the exact schema from the original extraction task
 
-Each interaction must include:
-- **id**: REQUIRED - preserve exact original database ID (do not change)
-- **occurrence_id**: REQUIRED - preserve exact original ID  
-- **document_id**: REQUIRED - preserve original document ID
-- **organisms_identifiable**: "true" for existing interactions
-- **bat_species_scientific_name** / **bat_species_common_name**
-- **interacting_organism_scientific_name** / **interacting_organism_common_name**
-- **location**, **interaction_start_date**, **interaction_end_date** (enhance when possible)
-- **all_supporting_source_sentences**: Enhanced array with individual sentences
-- **page_number**, **publication_year**
-- **flagged_for_review**: BOOLEAN - true if interaction needs human review
-- **review_reason**: STRING - explanation if flagged (e.g., "Vague organism identification", "Insufficient evidence", "Potential duplicate")
+Each record should include:
+- All data fields following the schema (enhanced when possible)
+- `flagged_for_review`: Boolean indicating if human review needed
+- `review_reason`: String explaining why flagged (if applicable)
+- **Do NOT include occurrence_id** - the system will handle ID assignment automatically
 
-## Instructions
+## Focus
 
-1. **Return ALL existing interactions** with their original occurrence_ids and database IDs
-2. **Enhance missing data** using document content and OCR audit tables
-3. **Improve supporting evidence** by splitting sentences and adding table captions
-4. **Cross-reference with tables** to find better organism identifications
-5. **Preserve human-edited fields** as noted in audit context
-6. **Flag for human review** when interactions have quality issues
-
-## Flagging Criteria
-
-Flag interactions (set `flagged_for_review: true`) when they have:
-- **Vague organism identification**: Generic terms like "bats", "insects" without specific species
-- **Insufficient evidence**: Missing or very weak supporting sentences
-- **Schema violations**: Missing required fields or invalid data formats
-- **Potential duplicates**: Very similar interactions that might be redundant
-- **Unclear interactions**: Ambiguous or confusing interaction descriptions
-- **Data quality issues**: Conflicting information or obvious errors
-
-**Do NOT flag** interactions just because they're incomplete - only flag clear quality problems that need human attention.
-
-Focus on incremental improvement while maintaining data integrity.
+Your goal is **incremental improvement and completeness** while maintaining data integrity:
+1. Enhance all existing records
+2. Find any records that were missed in the initial extraction
+3. Make records better without risking data loss
+4. When in doubt, preserve the original data and flag for human review rather than making assumptions

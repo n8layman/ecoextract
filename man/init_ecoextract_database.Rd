@@ -4,10 +4,15 @@
 \alias{init_ecoextract_database}
 \title{Database Functions for EcoExtract Package}
 \usage{
-init_ecoextract_database(db_path = "ecoextract_results.sqlite")
+init_ecoextract_database(
+  db_path = "ecoextract_results.sqlite",
+  schema_file = NULL
+)
 }
 \arguments{
 \item{db_path}{Path to SQLite database file}
+
+\item{schema_file}{Optional path to JSON schema file (determines record columns)}
 }
 \value{
 NULL (creates database with required tables)

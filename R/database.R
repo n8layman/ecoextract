@@ -4,21 +4,22 @@
 
 #' Initialize EcoExtract database
 #' @param db_path Path to SQLite database file
+#' @param schema_file Optional path to JSON schema file (determines record columns)
 #' @return NULL (creates database with required tables)
 #' @export
-init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
+init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite", schema_file = NULL) {
   if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("RSQLite", quietly = TRUE)) {
     stop("DBI and RSQLite packages required for database operations")
   }
-  
+
   # Create database directory if needed
   db_dir <- dirname(db_path)
   if (!dir.exists(db_dir) && db_dir != ".") {
     dir.create(db_dir, recursive = TRUE)
   }
-  
+
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  
+
   tryCatch({
     # Create documents table
     DBI::dbExecute(con, "
@@ -29,7 +30,7 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
         file_hash TEXT UNIQUE NOT NULL,
         file_size INTEGER,
         upload_timestamp TEXT NOT NULL,
-        
+
         -- Publication metadata
         title TEXT,
         first_author_lastname TEXT,
@@ -43,16 +44,24 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
         ocr_images TEXT         -- OCR images (JSON array of base64 images)
       )
     ")
-    
-    # Create records table with dynamic schema based on ellmer
-    schema_columns <- get_record_columns_sql()
+
+    # Load schema if provided
+    schema_json_list <- NULL
+    if (!is.null(schema_file)) {
+      schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
+      schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
+      schema_json_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+    }
+
+    # Create records table with dynamic schema
+    schema_columns <- get_record_columns_sql(schema_json_list)
     record_table_sql <- paste0("
       CREATE TABLE IF NOT EXISTS records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         document_id INTEGER NOT NULL,
         occurrence_id TEXT NOT NULL,
         ", schema_columns, "
-        
+
         -- Processing metadata
         extraction_timestamp TEXT NOT NULL,
         llm_model_version TEXT NOT NULL,
@@ -99,15 +108,15 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite") {
 }
 
 #' Get record table column definitions as SQL
-#' @param ellmer_schema Optional ellmer schema object to generate columns from
+#' @param schema_json_list Optional parsed JSON schema to generate columns from
 #' @return Character string with column definitions
-get_record_columns_sql <- function(ellmer_schema = NULL) {
-  if (!is.null(ellmer_schema)) {
-    # Generate columns dynamically from ellmer schema
-    return(paste0(generate_columns_from_ellmer_schema(ellmer_schema), ","))
+get_record_columns_sql <- function(schema_json_list = NULL) {
+  if (!is.null(schema_json_list)) {
+    # Generate columns dynamically from JSON schema
+    return(paste0(generate_columns_from_json_schema(schema_json_list), ","))
   }
-  
-  # Fallback to basic schema if no ellmer schema provided
+
+  # Fallback to basic schema if no schema provided
   "
     bat_species_scientific_name TEXT,
     bat_species_common_name TEXT,
@@ -259,47 +268,90 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   on.exit(DBI::dbDisconnect(con), add = TRUE)
 
-  # Generate occurrence IDs (always, ignoring any LLM-provided values)
-  # Check if existing IDs are valid (from refinement) or invalid (from LLM extraction)
-  has_valid_ids <- "occurrence_id" %in% names(interactions_df) &&
-                   nrow(interactions_df) > 0 &&
-                   all(!is.na(interactions_df$occurrence_id)) &&
-                   all(grepl("^[A-Za-z]+[0-9]+-o[0-9]+$", interactions_df$occurrence_id))
+  # Handle occurrence IDs - mix of existing (valid) and new (null/invalid) records
+  # Valid IDs: Match pattern "Author2023-o1" format (from refinement preserving existing records)
+  # Invalid IDs: Don't match pattern, are NA, or are null (from extraction or refinement's new records)
 
-  if (!has_valid_ids) {
-    # Remove invalid/LLM-generated IDs if present
-    if ("occurrence_id" %in% names(interactions_df)) {
-      interactions_df$occurrence_id <- NULL
+  if ("occurrence_id" %in% names(interactions_df) && nrow(interactions_df) > 0) {
+    # Check each ID for validity
+    valid_pattern <- "^[A-Za-z]+[0-9]+-o[0-9]+$"
+    is_valid <- !is.na(interactions_df$occurrence_id) &
+                grepl(valid_pattern, interactions_df$occurrence_id)
+
+    valid_count <- sum(is_valid)
+    invalid_count <- sum(!is_valid)
+
+    if (valid_count > 0 && invalid_count > 0) {
+      message(glue::glue("Mixed IDs: {valid_count} existing (preserved), {invalid_count} new (generating)"))
+    } else if (valid_count > 0) {
+      message(glue::glue("Preserving existing occurrence IDs for {valid_count} records"))
+    } else {
+      message(glue::glue("Generating occurrence IDs for {invalid_count} new records"))
     }
 
-    # Get publication metadata from documents table (populated by document_audit step)
+    # Only generate IDs for records with invalid/missing IDs
+    if (invalid_count > 0) {
+      # Get publication metadata
+      doc_meta <- DBI::dbGetQuery(con,
+        "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
+        params = list(document_id))
+
+      author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
+        doc_meta$first_author_lastname[1]
+      } else if ("first_author_lastname" %in% names(interactions_df) && !is.na(interactions_df$first_author_lastname[1])) {
+        interactions_df$first_author_lastname[1]
+      } else {
+        "Unknown"
+      }
+
+      publication_year <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$publication_year[1])) {
+        doc_meta$publication_year[1]
+      } else if ("publication_year" %in% names(interactions_df) && !is.na(interactions_df$publication_year[1])) {
+        interactions_df$publication_year[1]
+      } else {
+        as.integer(format(Sys.Date(), "%Y"))
+      }
+
+      # Generate IDs only for records that need them
+      # Get existing max sequence number to avoid conflicts
+      existing_ids <- DBI::dbGetQuery(con,
+        "SELECT occurrence_id FROM records WHERE document_id = ?",
+        params = list(document_id))$occurrence_id
+
+      max_seq <- 0
+      if (length(existing_ids) > 0) {
+        # Extract sequence numbers from existing IDs
+        seqs <- as.integer(sub(".*-o([0-9]+)$", "\\1", existing_ids))
+        max_seq <- max(seqs, na.rm = TRUE)
+      }
+
+      # Generate new IDs starting after max existing
+      new_id_count <- 0
+      for (i in which(!is_valid)) {
+        new_id_count <- new_id_count + 1
+        interactions_df$occurrence_id[i] <- paste0(author_lastname, publication_year, "-o", max_seq + new_id_count)
+      }
+    }
+  } else {
+    # No occurrence_id column or empty dataframe - generate all IDs
     doc_meta <- DBI::dbGetQuery(con,
       "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
       params = list(document_id))
 
-    # Get author lastname (handle NA values)
     author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
       doc_meta$first_author_lastname[1]
-    } else if ("first_author_lastname" %in% names(interactions_df) && !is.na(interactions_df$first_author_lastname[1])) {
-      interactions_df$first_author_lastname[1]
     } else {
       "Unknown"
     }
 
-    # Get publication year (handle NA values)
     publication_year <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$publication_year[1])) {
       doc_meta$publication_year[1]
-    } else if ("publication_year" %in% names(interactions_df) && !is.na(interactions_df$publication_year[1])) {
-      interactions_df$publication_year[1]
     } else {
       as.integer(format(Sys.Date(), "%Y"))
     }
 
-    # Generate proper occurrence IDs
     interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
     message(glue::glue("Generated occurrence IDs for {nrow(interactions_df)} records"))
-  } else {
-    message(glue::glue("Preserving existing occurrence IDs for {nrow(interactions_df)} records"))
   }
 
   # Add required metadata columns
@@ -468,63 +520,60 @@ log_processing_step <- function(db_path, document_id, process_type, status, deta
   })
 }
 
-#' Extract field definitions from ellmer schema
-#' @param ellmer_schema ellmer schema object (type_object)
+#' Extract field definitions from JSON schema
+#' @param schema_json_list Parsed JSON schema as list
 #' @return Named list with field names, types, and requirements
-extract_ellmer_schema_fields <- function(ellmer_schema) {
-  if (!inherits(ellmer_schema, "TypeObject")) {
-    stop("Schema must be an ellmer TypeObject")
-  }
-  
-  # Get the records type from the schema
-  records_type <- NULL
-  if ("records" %in% names(ellmer_schema$properties)) {
-    # Extract the items type from the array
-    records_array <- ellmer_schema$properties$records
-    if (inherits(records_array, "TypeArray")) {
-      records_type <- records_array$items
-    }
+extract_fields_from_json_schema <- function(schema_json_list) {
+  # Navigate JSON structure to get record properties
+  if (!("properties" %in% names(schema_json_list) &&
+        "records" %in% names(schema_json_list$properties))) {
+    stop("Schema must contain 'properties.records'")
   }
 
-  if (is.null(records_type) || !inherits(records_type, "TypeObject")) {
-    stop("Schema must contain 'records' array with TypeObject items")
+  records_schema <- schema_json_list$properties$records
+  if (!("items" %in% names(records_schema) &&
+        "properties" %in% names(records_schema$items))) {
+    stop("Schema must contain 'properties.records.items.properties'")
   }
-  
+
+  record_props <- records_schema$items$properties
+  required_fields <- records_schema$items$required %||% character()
+
   # Extract field information
   fields <- list()
-  for (field_name in names(records_type$properties)) {
-    field_obj <- records_type$properties[[field_name]]
-    
-    # Map ellmer types to SQL types
-    sql_type <- switch(class(field_obj)[1],
-      "TypeString" = "TEXT",
-      "TypeInteger" = "INTEGER", 
-      "TypeNumber" = "REAL",
-      "TypeBoolean" = "BOOLEAN",
-      "TypeArray" = "TEXT", # Store as JSON
-      "TypeObject" = "TEXT", # Store as JSON
+  for (field_name in names(record_props)) {
+    field_spec <- record_props[[field_name]]
+
+    # Map JSON schema types to SQL types
+    sql_type <- switch(field_spec$type,
+      "string" = "TEXT",
+      "integer" = "INTEGER",
+      "number" = "REAL",
+      "boolean" = "BOOLEAN",
+      "array" = "TEXT",  # Store as JSON
+      "object" = "TEXT", # Store as JSON
       "TEXT" # Default fallback
     )
-    
+
     fields[[field_name]] <- list(
       sql_type = sql_type,
-      required = field_obj$required %||% TRUE,
-      description = field_obj$description %||% ""
+      required = field_name %in% required_fields,
+      description = field_spec$description %||% ""
     )
   }
-  
+
   return(fields)
 }
 
-#' Validate ellmer schema compatibility with database (internal)
+#' Validate schema compatibility with database (internal)
 #' @param db_conn Database connection
-#' @param ellmer_schema ellmer schema object
+#' @param schema_json_list Parsed JSON schema as list
 #' @param table_name Database table name to validate against
 #' @return List with validation results
 #' @keywords internal
-validate_ellmer_schema_with_db <- function(db_conn, ellmer_schema, table_name = "records") {
+validate_schema_with_db <- function(db_conn, schema_json_list, table_name = "records") {
   # Extract schema fields
-  schema_fields <- extract_ellmer_schema_fields(ellmer_schema)
+  schema_fields <- extract_fields_from_json_schema(schema_json_list)
   
   # Get database table structure
   tryCatch({
@@ -581,20 +630,20 @@ validate_ellmer_schema_with_db <- function(db_conn, ellmer_schema, table_name = 
   ))
 }
 
-#' Generate SQL column definitions from ellmer schema
-#' @param ellmer_schema ellmer schema object
+#' Generate SQL column definitions from JSON schema
+#' @param schema_json_list Parsed JSON schema as list
 #' @return Character string with SQL column definitions
-generate_columns_from_ellmer_schema <- function(ellmer_schema) {
-  schema_fields <- extract_ellmer_schema_fields(ellmer_schema)
-  
+generate_columns_from_json_schema <- function(schema_json_list) {
+  schema_fields <- extract_fields_from_json_schema(schema_json_list)
+
   columns <- character(0)
   for (field_name in names(schema_fields)) {
     field_info <- schema_fields[[field_name]]
     null_constraint <- if (field_info$required) " NOT NULL" else ""
-    
+
     columns <- c(columns, paste0("    ", field_name, " ", field_info$sql_type, null_constraint))
   }
-  
+
   return(paste(columns, collapse = ",\n"))
 }
 

@@ -168,23 +168,21 @@ Your schema MUST follow this structure:
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Your Domain Schema",
+  "description": "Schema for extracting your domain-specific data",
   "type": "object",
   "properties": {
-    "publication_metadata": {
-      "type": "object",
-      "properties": {
-        "first_author_lastname": { "type": "string" },
-        "publication_year": { "type": "integer" }
-      }
-    },
     "records": {
       "type": "array",
       "description": "Your domain-specific records",
       "items": {
         "type": "object",
         "properties": {
-          "occurrence_id": { "type": "string" },
-          // ... your custom fields here
+          "your_field_1": { "type": "string", "description": "..." },
+          "your_field_2": { "type": "integer", "description": "..." },
+          "location": { "type": "string", "description": "..." },
+          "observation_date": { "type": "string", "description": "..." }
+          // ... add your custom fields here
         }
       }
     }
@@ -195,9 +193,9 @@ Your schema MUST follow this structure:
 
 **Key requirements:**
 1. Top-level must have a `records` property (array of objects)
-2. `publication_metadata` with `first_author_lastname` and `publication_year` is recommended for occurrence ID generation
-3. Each record should have an `occurrence_id` field (or one will be auto-generated)
-4. Use JSON Schema draft-07 format
+2. Each field should have a `type` and `description` (description helps the LLM understand what to extract)
+3. Use JSON Schema draft-07 format
+4. Occurrence IDs are auto-generated from publication metadata (extracted in document_audit step)
 
 See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete example.
 

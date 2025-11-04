@@ -56,7 +56,7 @@ process_documents <- function(pdf_path,
   # Initialize database
   if (!file.exists(db_path)) {
     cat("Initializing new database:", db_path, "\n")
-    init_ecoextract_database(db_path)
+    init_ecoextract_database(db_path, schema_file = schema_file)
   }
   db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   on.exit(DBI::dbDisconnect(db_conn), add = TRUE)

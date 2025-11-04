@@ -2,7 +2,7 @@
 % Please edit documentation in R/extraction.R
 \name{extract_records}
 \alias{extract_records}
-\title{Extract records from markdown text}
+\title{Ecological Data Extraction Functions}
 \usage{
 extract_records(
   document_id = NA,
@@ -42,5 +42,6 @@ extract_records(
 List with extraction results
 }
 \description{
+Extract structured ecological interaction data from OCR-processed documents
 Extract records from markdown text
 }

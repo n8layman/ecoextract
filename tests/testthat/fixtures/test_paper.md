@@ -58,6 +58,9 @@ A mixed-species maternity colony was discovered on July 20, 2022 in the fictiona
 **Observation 4 (Fake Data):**
 Single males of Myotis volans and Myotis thysanodes were found co-roosting under loose bark of a Ponderosa pine on August 5, 2022 at the made-up Eastside Forest site. This interaction occurred during the post-reproductive period.
 
+**Observation 5 (Fake Data - NEW):**
+On August 12, 2022, at the fictional Snoqualmie Ridge site, we documented a mixed colony of Myotis lucifugus and Myotis septentrionalis sharing a large red alder cavity. The roost contained 19 M. lucifugus and 11 M. septentrionalis individuals. This represents the first documented co-roosting event between these species in our fictional study area.
+
 ### Roosting Substrate Preferences
 
 **Fake Finding:** All observed co-roosting events occurred in cavities >15cm diameter or under bark with >3cm gap depth (fabricated measurement).
@@ -110,5 +113,6 @@ Demo, G.H. & Sample, I.J. (2019). Synthetic observations of Myotis behavior. *Fi
 2. Myotis volans + Myotis evotis (co-roosting, Cascade Valley, July 3 2022)
 3. Myotis lucifugus + Myotis yumanensis + Myotis californicus (co-roosting, Olympic Mountains, July 20 2022)
 4. Myotis volans + Myotis thysanodes (co-roosting, Eastside Forest, August 5 2022)
+5. Myotis lucifugus + Myotis septentrionalis (co-roosting, Snoqualmie Ridge, August 12 2022)
 
-Total expected extractions: 4 interaction events (or 6 if counting pairwise interactions in the 3-species roost)
+Total expected extractions: 5 interaction events (or 7 if counting pairwise interactions in the 3-species roost)

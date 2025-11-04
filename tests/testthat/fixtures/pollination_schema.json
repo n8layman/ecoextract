@@ -1,0 +1,67 @@
+{
+  "description": "Schema for extracting plant-pollinator interaction data from scientific literature",
+  "type": "object",
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "organisms_identifiable": {
+            "type": "string",
+            "description": "Whether both plant and pollinator can be identified to species level ('true' or 'false')"
+          },
+          "plant_species_scientific_name": {
+            "type": "string",
+            "description": "Scientific name of the plant species"
+          },
+          "plant_species_common_name": {
+            "type": "string",
+            "description": "Common name of the plant species"
+          },
+          "pollinator_species_scientific_name": {
+            "type": "string",
+            "description": "Scientific name of the pollinator species"
+          },
+          "pollinator_species_common_name": {
+            "type": "string",
+            "description": "Common name of the pollinator species"
+          },
+          "pollinator_type": {
+            "type": "string",
+            "description": "Type of pollinator (e.g., bee, butterfly, hummingbird, moth, beetle, fly, bat, wind)"
+          },
+          "observation_start_date": {
+            "type": "string",
+            "description": "Start date of observation period (YYYY-MM-DD format)"
+          },
+          "observation_end_date": {
+            "type": "string",
+            "description": "End date of observation period (YYYY-MM-DD format)"
+          },
+          "location": {
+            "type": "string",
+            "description": "Geographic location where pollination was observed"
+          },
+          "all_supporting_source_sentences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of verbatim sentences from the document that support this pollination record"
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Page number where this information appears"
+          },
+          "publication_year": {
+            "type": "integer",
+            "description": "Year of publication"
+          }
+        },
+        "required": ["organisms_identifiable", "plant_species_scientific_name", "pollinator_species_scientific_name"]
+      }
+    }
+  },
+  "required": ["records"]
+}
