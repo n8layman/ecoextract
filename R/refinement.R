@@ -179,8 +179,9 @@ refine_records <- function(db_conn = NULL, document_id,
       }
 
       # Save refined records back to database
+      # Pass the connection object directly (not the path) so it uses the same transaction
       save_records_to_db(
-        db_path = db_conn@dbname,
+        db_path = db_conn,  # Now accepts connection object
         document_id = document_id,
         interactions_df = refined_df,
         metadata = list(

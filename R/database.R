@@ -276,8 +276,18 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
 save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list()) {
   if (nrow(interactions_df) == 0) return(invisible(NULL))
 
-  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  on.exit(DBI::dbDisconnect(con), add = TRUE)
+  # Accept either a path (string) or a connection object
+  if (inherits(db_path, "SQLiteConnection")) {
+    con <- db_path
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
 
   # Handle occurrence IDs - mix of existing (valid) and new (null/invalid) records
   # Valid IDs: Match pattern "Author2023-o1" format (from refinement preserving existing records)

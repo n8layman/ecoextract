@@ -109,7 +109,7 @@ extract_records <- function(document_id = NA,
       # Save to database (atomic step)
       if (!is.na(document_id) && !inherits(interaction_db, "logical")) {
         save_records_to_db(
-          db_path = interaction_db@dbname,
+          db_path = interaction_db,  # Pass connection object, not path
           document_id = document_id,
           interactions_df = extraction_df,
           metadata = list(
