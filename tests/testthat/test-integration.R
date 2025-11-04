@@ -44,8 +44,8 @@ test_that("full pipeline from PDF to database", {
   expect_true(nrow(records) >= 0)  # Zero is valid - paper may not contain data
 })
 
-test_that("refinement rediscovers deleted records", {
-  cat("\n========== TEST: refinement rediscovers deleted records ==========\n")
+test_that("extraction rediscovers physically deleted records", {
+  cat("\n========== TEST: extraction rediscovers physically deleted records ==========\n")
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
 
@@ -99,7 +99,7 @@ test_that("refinement rediscovers deleted records", {
   final_count <- DBI::dbGetQuery(
     con, "SELECT COUNT(*) as count FROM records")$count
   expect_equal(final_count, initial_count,
-    info = sprintf(paste("Refinement should rediscover deleted record.",
+    info = sprintf(paste("Extraction should rediscover physically deleted record.",
                          "Initial: %d, After delete: %d, Final: %d"),
                    initial_count, after_delete_count, final_count))
 
@@ -111,7 +111,7 @@ test_that("refinement rediscovers deleted records", {
     params = list(deleted_record$bat_species_scientific_name[1],
                   deleted_record$interacting_organism_scientific_name[1]))$count
   expect_true(rediscovered > 0,
-              "Deleted record should be rediscovered by refinement")
+              "Deleted record should be rediscovered by extraction")
 })
 
 test_that("API failures are captured in status columns, not thrown", {
