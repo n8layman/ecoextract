@@ -159,8 +159,9 @@ test_that("refinement does not duplicate records when run multiple times", {
   }
 })
 
-test_that("integration tests properly detect API failures", {
-  # This is a meta-test: verify that our tests actually fail when APIs fail
+test_that("API failures are captured in status columns, not thrown", {
+  # Verify that API failures don't throw errors but return tibble with
+  # error messages in status columns
   # Uses bad API key so it should fail without using credits
 
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
@@ -175,8 +176,12 @@ test_that("integration tests properly detect API failures", {
   Sys.setenv(ANTHROPIC_API_KEY = "bad-key-should-fail")
   withr::defer(Sys.setenv(ANTHROPIC_API_KEY = original_key))
 
-  # Run process_documents - should fail at document audit or extraction
+  # Run process_documents - should NOT throw, should return tibble
   result <- process_documents(test_pdf, db_path = db_path)
+
+  # Verify we got a tibble back (not an error throw)
+  expect_s3_class(result, "tbl_df")
+  expect_equal(nrow(result), 1)
 
   # Check status matrix
   status_matrix <- result |>
@@ -184,22 +189,34 @@ test_that("integration tests properly detect API failures", {
                   refinement_status) |>
     as.matrix()
 
-  # Should have at least one failure (not "completed" or "skipped")
-  has_failures <- any(!status_matrix %in% c("skipped", "completed"))
+  # Should have at least one status that's not "completed" or "skipped"
+  # (i.e., an error message in the status column)
+  has_errors_in_status <- any(!status_matrix %in% c("skipped", "completed"))
 
-  expect_true(has_failures,
-              info = "With bad API key, at least one step should fail")
+  expect_true(has_errors_in_status,
+              info = paste("With bad API key, at least one status column",
+                          "should contain an error message"))
 
-  # OCR should work (uses Mistral)
+  # OCR should work (uses Mistral, different key)
   expect_equal(result$ocr_status[1], "completed",
                info = "OCR uses Mistral, should still complete")
 
-  # Audit or extraction should fail (uses Anthropic)
-  audit_or_extraction_failed <-
+  # Audit or extraction should have error message (uses Anthropic)
+  audit_or_extraction_has_error <-
     result$audit_status[1] != "completed" ||
     result$extraction_status[1] != "completed"
 
-  expect_true(audit_or_extraction_failed,
-              info = paste("Document audit or extraction should fail",
-                           "with bad Anthropic key"))
+  expect_true(audit_or_extraction_has_error,
+              info = paste("Document audit or extraction should have",
+                          "error message with bad Anthropic key"))
+
+  # Verify the error message contains useful info
+  if (result$audit_status[1] != "completed") {
+    expect_match(result$audit_status[1], "401|Unauthorized|failed",
+                 info = "Error status should contain failure details")
+  }
+  if (result$extraction_status[1] != "completed") {
+    expect_match(result$extraction_status[1], "401|Unauthorized|failed",
+                 info = "Error status should contain failure details")
+  }
 })
