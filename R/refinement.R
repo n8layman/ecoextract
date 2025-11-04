@@ -50,6 +50,16 @@ refine_records <- function(db_conn = NULL, document_id,
       existing_records <- existing_records[!is_human_edited & !is_rejected & !is_deleted, ]
     }
 
+    # Skip refinement if no records to refine (refinement only enhances, doesn't create)
+    if (nrow(existing_records) == 0) {
+      message("No records to refine (refinement only enhances existing records)")
+      return(list(
+        status = "skipped",
+        records_refined = 0,
+        document_id = document_id
+      ))
+    }
+
     # Load schema
     # Step 1: Identify schema file path
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)

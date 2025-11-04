@@ -227,6 +227,12 @@ process_single_document <- function(pdf_file,
     return(status_tracking)
   }
 
+  # Get final record count from database (after extraction + refinement)
+  final_count <- DBI::dbGetQuery(db_conn,
+    "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
+    params = list(status_tracking$document_id))$count
+  status_tracking$records_extracted <- final_count
+
   # Summary
   message(strrep("-", 70))
   message(glue::glue("SUCCESS: {status_tracking$records_extracted} records in database"))
