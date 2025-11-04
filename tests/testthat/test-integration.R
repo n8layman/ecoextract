@@ -3,6 +3,7 @@
 # This test validates that all steps work together correctly and error handling propagates properly
 
 test_that("full pipeline from PDF to database", {
+  cat("\n========== TEST: full pipeline from PDF to database ==========\n")
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
 
@@ -44,6 +45,7 @@ test_that("full pipeline from PDF to database", {
 })
 
 test_that("refinement rediscovers deleted records", {
+  cat("\n========== TEST: refinement rediscovers deleted records ==========\n")
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
 
@@ -113,6 +115,7 @@ test_that("refinement rediscovers deleted records", {
 })
 
 test_that("API failures are captured in status columns, not thrown", {
+  cat("\n========== TEST: API failures are captured in status columns, not thrown ==========\n")
   # Verify that API failures don't throw errors but return tibble with
   # error messages in status columns
   # Uses bad API key so it should fail without using credits
@@ -175,6 +178,7 @@ test_that("API failures are captured in status columns, not thrown", {
 })
 
 test_that("workflow continues processing all files even when some fail", {
+  cat("\n========== TEST: workflow continues processing all files even when some fail ==========\n")
   # Critical: verify that when processing 100s of papers, one failure
   # doesn't stop the entire batch
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")

@@ -3,6 +3,7 @@
 # This ensures no hard-coded assumptions about "bats" or "interactions"
 
 test_that("pollination schema works end-to-end", {
+  cat("\n========== TEST: pollination schema works end-to-end ==========\n")
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
 
@@ -68,6 +69,7 @@ test_that("pollination schema works end-to-end", {
 })
 
 test_that("matching works with different schema fields", {
+  cat("\n========== TEST: matching works with different schema fields ==========\n")
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
 
