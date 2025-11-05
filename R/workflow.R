@@ -34,8 +34,16 @@ process_documents <- function(pdf_path,
                              refinement_prompt_file = NULL,
                              force_reprocess = FALSE) {
 
-  # Determine if processing single file or directory
-  if (file.exists(pdf_path)) {
+  # Determine if processing single file, multiple files, or directory
+  if (length(pdf_path) > 1) {
+    # Multiple files provided as vector
+    pdf_files <- pdf_path
+    # Check all files exist
+    missing <- pdf_files[!file.exists(pdf_files)]
+    if (length(missing) > 0) {
+      stop("Files do not exist: ", paste(missing, collapse = ", "))
+    }
+  } else if (file.exists(pdf_path)) {
     if (dir.exists(pdf_path)) {
       # Process directory
       pdf_files <- list.files(pdf_path, pattern = "\\.pdf$", full.names = TRUE, ignore.case = TRUE)
@@ -92,15 +100,23 @@ process_documents <- function(pdf_path,
     records_extracted = sapply(results_list, function(x) x$records_extracted %||% 0)
   )
 
-  # Calculate summary stats
+  # Calculate summary stats using matrix approach (like tests)
   total_rows <- sum(results_tibble$records_extracted, na.rm = TRUE)
-  skipped <- sum(results_tibble$ocr_status == "skipped")
-  errors <- sum(
-    !results_tibble$ocr_status %in% c("completed", "skipped") |
-    !results_tibble$extraction_status %in% c("completed", "skipped") |
-    !results_tibble$refinement_status %in% c("completed", "skipped")
-  )
-  processed <- nrow(results_tibble) - skipped - errors
+
+  # Check for errors across all status columns
+  status_matrix <- results_tibble |>
+    dplyr::select(ocr_status, audit_status, extraction_status, refinement_status) |>
+    as.matrix()
+
+  # A file has an error if ANY of its status columns is not "completed" or "skipped"
+  file_has_error <- apply(status_matrix, 1, function(row) {
+    any(!row %in% c("completed", "skipped"))
+  })
+
+  errors <- sum(file_has_error)
+
+  # Processed successfully = no errors (all steps completed or skipped)
+  processed <- nrow(results_tibble) - errors
 
   # Add attributes
   attr(results_tibble, "start_time") <- start_time
@@ -110,14 +126,16 @@ process_documents <- function(pdf_path,
   attr(results_tibble, "database") <- db_path
 
   # Summary
+  # Total files = all files attempted
+  # Processed successfully = files where all 4 steps reached completion (completed or skipped)
+  # Errors = files where at least one step failed
   cat("\n", strrep("=", 70), "\n")
   cat("PROCESSING COMPLETE\n")
   cat(strrep("=", 70), "\n")
   cat("Total files:", nrow(results_tibble), "\n")
-  cat("Processed:", processed, "\n")
-  cat("Skipped:", skipped, "\n")
+  cat("Processed successfully:", processed, "\n")
   cat("Errors:", errors, "\n")
-  cat("Records:", total_rows, "\n")
+  cat("Records in database:", total_rows, "\n")
   cat("Duration:", round(attr(results_tibble, "duration"), 2), "seconds\n")
   cat("Database:", db_path, "\n")
   cat(strrep("=", 70), "\n\n")
@@ -208,6 +226,12 @@ process_single_document <- function(pdf_file,
     message(paste("Refinement error detected:", status_tracking$refinement_status))
     return(status_tracking)
   }
+
+  # Get final record count from database (after extraction + refinement)
+  final_count <- DBI::dbGetQuery(db_conn,
+    "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
+    params = list(status_tracking$document_id))$count
+  status_tracking$records_extracted <- final_count
 
   # Summary
   message(strrep("-", 70))

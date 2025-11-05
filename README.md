@@ -17,24 +17,25 @@ devtools::install_github("n8layman/ohseer")
 
 # Option 3: Using remotes
 remotes::install_github("n8layman/ohseer")
+
+# Option 4: Using renv
+renv::install("n8layman/ohseer")
 ```
 
-### Development Installation (Local)
+### Install ecoextract
 
 ```r
-# Load locally during development
-devtools::load_all("./ecoextract")
-```
+# Option 1: Using pak (recommended)
+pak::pak("n8layman/ecoextract")
 
-### Production Installation (GitHub)
+# Option 2: Using devtools
+devtools::install_github("n8layman/ecoextract")
 
-```r
-# Install from GitHub (when package has its own repository)
-devtools::install_github("yourorg/ecoextract")
+# Option 3: Using remotes
+remotes::install_github("n8layman/ecoextract")
 
-# Modern alternatives
-pak::pkg_install("yourorg/ecoextract")
-renv::install("yourorg/ecoextract")
+# Option 4: Using renv
+renv::install("n8layman/ecoextract")
 
 # Then load the library
 library(ecoextract)
@@ -47,6 +48,7 @@ EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions, wh
 ### Getting API Keys
 
 Examples in this README use:
+
 - Anthropic Claude: https://console.anthropic.com/
 - Mistral (for OCR): https://console.mistral.ai/
 
@@ -54,7 +56,7 @@ You can use any provider supported by ellmer - see [ellmer documentation](https:
 
 ### Setting Up API Keys
 
-Create a `.env` file in your project directory:
+Create a `.env` file in the project root directory:
 
 ```bash
 # .env
@@ -68,16 +70,20 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 **Important:** The `.env` file is gitignored by default. Never commit API keys to version control.
 
-Load environment variables in R:
+**The `.env` file is automatically loaded** when you start R in this project directory (via `.Rprofile`). Just restart your R session after creating the file.
+
+Alternatively, load manually:
 
 ```r
-# Option 1: Use dotenv package to load from .env file (recommended)
-# install.packages("dotenv")
-dotenv::load_dot_env()
+# Option 1: Use ecoextract's load_env() function (loads all .env* files)
+library(ecoextract)
+load_env()
 
-# Option 2: Set them directly in R
+# Option 2: Use readRenviron for a specific file
+readRenviron(".env")
+
+# Option 3: Set directly in R
 Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
-Sys.setenv(MISTRAL_API_KEY = "your_key_here")
 ```
 
 ### Using Different LLM Providers
@@ -134,7 +140,7 @@ audit_result <- audit_document(ocr_result$document_id, db_conn)
 # Step 3: Extract domain-specific records
 extraction_result <- extract_records(
   document_id = ocr_result$document_id,
-  interaction_db = db_conn
+  db_conn = db_conn
 )
 
 # Step 4: Refine records
@@ -144,17 +150,6 @@ refinement_result <- refine_records(
 )
 
 DBI::dbDisconnect(db_conn)
-```
-
-## Database Operations
-
-```r
-# Initialize a new database
-init_ecoextract_database("my_results.sqlite")
-
-# Get database statistics
-stats <- get_db_stats("my_results.sqlite")
-print(stats)
 ```
 
 ## Custom Schemas
@@ -192,6 +187,7 @@ Your schema MUST follow this structure:
 ```
 
 **Key requirements:**
+
 1. Top-level must have a `records` property (array of objects)
 2. Each field should have a `type` and `description` (description helps the LLM understand what to extract)
 3. Use JSON Schema draft-07 format
@@ -199,24 +195,10 @@ Your schema MUST follow this structure:
 
 See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete example.
 
-## Schema Validation
-
-```r
-# Validate your data against the schema
-validation <- validate_interactions_schema(your_data)
-
-if (!validation$valid) {
-  print(validation$errors)
-}
-
-# Get schema information
-schema_info <- get_database_schema()
-print(schema_info$columns)
-```
-
 ## Package Functions
 
 ### Workflow
+
 - `process_documents()` - Complete 4-step workflow (OCR → Audit → Extract → Refine)
 - `ocr_document()` - Step 1: Extract text from PDF
 - `audit_document()` - Step 2: Extract metadata + review OCR quality
@@ -224,16 +206,14 @@ print(schema_info$columns)
 - `refine_records()` - Step 4: Refine and validate records
 
 ### Database Operations
+
 - `init_ecoextract_database()` - Initialize database with schema
-- `get_db_stats()` - Get database statistics
 - `get_document_content()` - Get OCR text from database
 - `get_ocr_audit()` - Get OCR audit from database
 - `get_records()` - Get extracted records from database
 
-### Schema & Validation
-- `validate_interactions_schema()` - Validate data against schema
-
 ### Custom Configuration
+
 - Schema files in `inst/extdata/`: `schema.json`, `document_audit_schema.json`
 - Prompt files in `inst/prompts/`: extraction, refinement, document audit prompts
 
@@ -249,10 +229,11 @@ devtools::check()
 
 ### Integration Tests
 
-Integration tests verify API interactions with LLM providers. To run these locally, set up API keys in a `.env` file (see API Key Setup above) and load them before testing:
+Integration tests verify API interactions with LLM providers. To run these locally, set up API keys in a `.env` file (see API Key Setup above). The tests will automatically load `.env` files, or you can load them manually:
 
 ```r
-dotenv::load_dot_env()
+library(ecoextract)
+load_env()
 devtools::test()
 ```
 
@@ -263,19 +244,29 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on testing and developme
 ```
 ecoextract/
 ├── R/
+│   ├── workflow.R          # Main process_documents() workflow
+│   ├── ocr.R               # OCR processing
+│   ├── document_audit.R    # Metadata extraction & OCR quality review
 │   ├── extraction.R        # Data extraction functions
-│   ├── refinement.R        # Data refinement functions  
-│   ├── schema.R            # Schema validation
-│   ├── enrichment.R        # Metadata enrichment
+│   ├── refinement.R        # Data refinement functions
 │   ├── database.R          # Database operations
-│   ├── prompts.R           # Prompt management
-│   ├── config.R            # Configuration & API keys
-│   └── utils.R             # Main CLI and utilities
+│   ├── schema.R            # Schema validation
+│   ├── prompts.R           # Prompt loading
+│   ├── getters.R           # Getter functions for DB
+│   ├── config_loader.R     # Configuration file loading
+│   └── utils.R             # Utilities
 ├── inst/
+│   ├── extdata/            # Schema files
+│   │   ├── schema.json
+│   │   └── document_audit_schema.json
 │   └── prompts/            # System prompts
 │       ├── extraction_prompt.md
+│       ├── extraction_context.md
 │       ├── refinement_prompt.md
-│       └── extraction_context.md
+│       ├── refinement_context.md
+│       ├── document_audit_prompt.md
+│       └── document_audit_context.md
+├── tests/testthat/         # Tests
 ├── DESCRIPTION
 ├── NAMESPACE
 └── README.md

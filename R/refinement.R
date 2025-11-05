@@ -27,21 +27,37 @@ refine_records <- function(db_conn = NULL, document_id,
 
     # Filter out human-edited and rejected records
     # We need to be careful here. We filter these out the LLM may just find them again but sligthly different
-    # CLAUDE: how should we deal with this simply? Tell me the plan do not automatically execute the fix without approval.
-    # This might have to be a part of the refinement prompt. Strong language not to alter rows with human_edited = TRUE or rejected = TRUE.
-    # Maybe a good place to insert a test. Did those lines get changed? If so error out rather than refine.
+    # Filter out records that should not be refined
+    # - human_edited: User manually edited, don't touch
+    # - rejected: User rejected this record
+    # - deleted_by_user: User flagged for deletion, don't re-extract or refine
     if (nrow(existing_records) > 0) {
-      # Handle NA values in human_edited and rejected columns (treat NA as FALSE)
+      # Handle NA values in protection columns (treat NA as FALSE)
       is_human_edited <- !is.na(existing_records$human_edited) & existing_records$human_edited
       is_rejected <- !is.na(existing_records$rejected) & existing_records$rejected
-
-      protected_count <- sum(is_human_edited | is_rejected)
-      if (protected_count > 0) {
-        message(glue::glue("Skipping {protected_count} protected records (human_edited or rejected)"))
+      is_deleted <- if ("deleted_by_user" %in% names(existing_records)) {
+        !is.na(existing_records$deleted_by_user) & existing_records$deleted_by_user
+      } else {
+        rep(FALSE, nrow(existing_records))
       }
 
-      # Keep only records that are NOT human_edited and NOT rejected
-      existing_records <- existing_records[!is_human_edited & !is_rejected, ]
+      protected_count <- sum(is_human_edited | is_rejected | is_deleted)
+      if (protected_count > 0) {
+        message(glue::glue("Skipping {protected_count} protected records (human_edited, rejected, or deleted_by_user)"))
+      }
+
+      # Keep only records that are NOT human_edited, NOT rejected, and NOT deleted
+      existing_records <- existing_records[!is_human_edited & !is_rejected & !is_deleted, ]
+    }
+
+    # Skip refinement if no records to refine (refinement only enhances, doesn't create)
+    if (nrow(existing_records) == 0) {
+      message("No records to refine (refinement only enhances existing records)")
+      return(list(
+        status = "skipped",
+        records_refined = 0,
+        document_id = document_id
+      ))
     }
 
     # Load schema
@@ -83,7 +99,7 @@ refine_records <- function(db_conn = NULL, document_id,
     # Report inputs
     markdown_chars <- nchar(markdown_text)
     record_count <- nrow(existing_records)
-    cat("Inputs loaded: OCR data (", markdown_chars, " chars), OCR audit (", nchar(ocr_audit %||% ""), " chars), ", record_count, " records, refinement prompt (", nchar(refinement_prompt), " chars, hash:", substring(prompt_hash, 1, 8), ")\n")
+    cat(glue::glue("Inputs loaded: OCR data ({markdown_chars} chars), OCR audit ({nchar(ocr_audit %||% '')} chars), {record_count} records, refinement prompt ({nchar(refinement_prompt)} chars, hash: {substring(prompt_hash, 1, 8)})"), "\n")
 
     # Initialize refinement chat
     cat("Calling", model, "for refinement\n")
@@ -163,8 +179,9 @@ refine_records <- function(db_conn = NULL, document_id,
       }
 
       # Save refined records back to database
+      # Pass the connection object directly (not the path) so it uses the same transaction
       save_records_to_db(
-        db_path = db_conn@dbname,
+        db_path = db_conn,  # Now accepts connection object
         document_id = document_id,
         interactions_df = refined_df,
         metadata = list(
@@ -307,51 +324,3 @@ match_and_restore_occurrence_ids <- function(refined_records, existing_records) 
 #' @param existing_records Dataframe of existing records
 #' @param document_id Document ID for getting human edit summary
 #' @return Character string with formatted context
-build_existing_records_context <- function(existing_records, document_id = NULL) {
-  if (is.null(existing_records) || !is.data.frame(existing_records) || nrow(existing_records) == 0) {
-    return("No records have been extracted from this document yet.")
-  }
-
-  # Exclude metadata columns AND occurrence_id from display
-  # We don't show occurrence_id to LLM - we'll match records by content instead
-  metadata_cols <- c("id", "occurrence_id", "document_id", "extraction_timestamp",
-                     "llm_model_version", "prompt_hash", "flagged_for_review",
-                     "review_reason", "human_edited", "rejected")
-  data_cols <- setdiff(names(existing_records), metadata_cols)
-
-  # Build context as simple JSON representation
-  context_lines <- c("Existing records:", "")
-
-  for (i in seq_len(nrow(existing_records))) {
-    row <- existing_records[i, data_cols, drop = FALSE]
-
-    # Convert row to simple key-value format
-    record_parts <- character(0)
-    for (col in data_cols) {
-      val <- row[[col]]
-
-      # Convert lists to JSON strings
-      if (is.list(val)) {
-        val <- jsonlite::toJSON(val, auto_unbox = TRUE)
-      }
-
-      # Include value if it's not NA and not empty
-      # Need to check for length > 0 first to avoid issues with lists/vectors
-      if (length(val) > 0 && !all(is.na(val))) {
-        val_str <- as.character(val)
-        if (nchar(val_str) > 0 && val_str != "") {
-          # Truncate very long values (like supporting_source_sentences)
-          if (nchar(val_str) > 100) {
-            val_str <- paste0(substr(val_str, 1, 97), "...")
-          }
-          record_parts <- c(record_parts, paste0(col, ": ", val_str))
-        }
-      }
-    }
-
-    context_line <- paste0("- ", paste(record_parts, collapse = ", "))
-    context_lines <- c(context_lines, context_line)
-  }
-
-  return(paste(context_lines, collapse = "\n"))
-}

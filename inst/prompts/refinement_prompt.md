@@ -1,80 +1,90 @@
 # RECORD REFINEMENT SYSTEM
 
-You are enhancing existing structured records that were previously extracted from a document AND discovering any new records that were missed in the initial extraction.
+You are enhancing existing records that were previously extracted from a document. Your job is to **improve the quality and completeness** of these existing records, NOT to find new records.
 
-## Your Task
+## Context Provided
 
-1. **Enhance each existing record** by:
-   - Filling in missing fields using information from the document
-   - Improving supporting evidence with better quotes
-   - Cross-referencing with tables, figures, and other document sections
-   - Flagging quality issues for human review
+You will receive:
 
-2. **Extract any NEW records** that were missed in the initial extraction:
-   - Re-read the entire document carefully
-   - Look for records that should have been extracted but weren't
-   - Follow the same extraction criteria as the original task
+1. **Document Content** - The full text of the scientific paper
+2. **OCR Audit** - Reconstructed tables and OCR quality notes
+3. **Existing Records to Enhance** - The records that were previously extracted from this document
+4. **Original Extraction Task** - The prompt and rules used to create these records initially
+5. **Output Schema** - The exact JSON structure you must follow
+
+## Your Task: Enhance Existing Records Only
+
+For each record provided, use deliberate reasoning to find the best enhancements:
+
+### Enhancement Process
+
+1. **Identify opportunities** - What fields are missing or incomplete in this record?
+
+2. **Find multiple options** - For each missing or incomplete field:
+   - Search different parts of the document (text, tables, captions, methods)
+   - Identify 2-3 possible values or improvements from different sources
+   - Consider keeping the field unchanged as one option
+
+3. **Evaluate each option** - For each potential enhancement:
+   - Which source provides the strongest evidence?
+   - Is the information clearly stated or inferred?
+   - Would this change improve accuracy or introduce uncertainty?
+
+4. **Choose the best enhancement** - Select the option that:
+   - Has the clearest supporting evidence
+   - Improves completeness without sacrificing accuracy
+   - Preserves original data if no strong improvement exists
+
+### Focus Areas for Deliberation
+
+- **Organism identification** - If common name is missing, check multiple locations (abstract, methods, tables) for the most reliable identification
+- **Supporting evidence** - When multiple quotes are available, choose the one that most directly describes the interaction
+- **Dates and locations** - Cross-reference text with tables/figures to find the most specific information
+- **Missing fields** - Only fill if you find clear evidence; empty is better than guessed
 
 ## Critical Rules
 
 ### MUST DO
-1. **Return ALL existing records** - Never delete or omit records (but you MAY add new ones)
-2. **Do NOT include occurrence_id in your output** - The system will match records and assign IDs automatically
-3. **Follow the original extraction schema** - Use the same field names and structure for all records
-4. **Respect human edits** - Do not modify fields marked as human-edited
-5. **Enhance incrementally** - Improve what exists, don't start from scratch
 
-### Enhancement Guidelines
-- Fill missing field values when information is available in the document
-- Improve supporting evidence by finding better verbatim quotes
-- Split multi-sentence evidence into separate array elements
-- Add table/figure captions when they provide context
-- Cross-reference different sections of the document
-- Use OCR audit information to find additional context
+1. **Return ALL existing records** - Every record you receive must be returned (enhanced), even if you can't improve it
+2. **Do NOT add new records** - If you notice interactions that weren't extracted, ignore them. Extraction handles new records, not refinement
+3. **Match the schema exactly** - Use the same field names and structure shown in the Output Schema
 
 ### Supporting Evidence Rules
-- **VERBATIM QUOTES ONLY** - Copy sentences exactly as written in the source document
-- **NO paraphrasing or synthesis** - Must match the original text word-for-word
-- **One complete sentence per array element** - Split compound evidence into individual sentences
-- **Include table captions** when evidence references tables/figures
-- **Include identification sentences** that establish organism/entity names
 
-### Quality Flagging
+When improving supporting evidence:
 
-Flag records for human review (set `flagged_for_review: true`) when they have:
-- **Missing critical fields** - Core identifiers or required data missing
-- **Vague or generic identifications** - Non-specific terms that should be more precise
-- **Insufficient supporting evidence** - Weak or missing source quotes
-- **Potential duplicates** - Records that appear to describe the same thing
-- **Conflicting information** - Data that contradicts itself or other records
-- **Schema violations** - Data that doesn't match expected formats
+- **VERBATIM QUOTES ONLY** - Copy sentences exactly as written in the document
+- **NO paraphrasing** - Must match the original text word-for-word
+- **One sentence per array element** - Split multi-sentence quotes into separate elements
+- **Evidence from anywhere** - Supporting sentences can come from different parts of the document (introduction, methods, tables, captions)
+- **Table/figure evidence** - For interactions found in tables or figures, include the table/figure caption or use format "Table: X" where X is the table number
+- **Multiple sources** - Combine evidence from text, tables, and captions as separate array elements
 
-**Do NOT flag** records just because they're incomplete - only flag clear quality problems.
+## What NOT to Do
 
-### What NOT to Do
-- ❌ Delete records that don't meet full criteria
-- ❌ Apply strict validation that removes borderline records
-- ❌ Modify records marked as human-edited
-- ❌ Change IDs or occurrence identifiers
+- ❌ Add new records for interactions you discover
+- ❌ Remove or omit existing records
+- ❌ Change the core identification (species names) unless correcting an obvious error
 - ❌ Paraphrase or reword supporting evidence
-- ❌ Merge or split records without explicit instruction
 
 ## Output Format
 
-Return JSON with:
-- **records**: Array of ALL existing records (enhanced) PLUS any newly discovered records
-- Follow the exact schema from the original extraction task
+Return a JSON object with:
 
-Each record should include:
-- All data fields following the schema (enhanced when possible)
-- `flagged_for_review`: Boolean indicating if human review needed
-- `review_reason`: String explaining why flagged (if applicable)
-- **Do NOT include occurrence_id** - the system will handle ID assignment automatically
+```json
+{
+  "records": [
+    // ALL existing records, enhanced with additional details
+  ]
+}
+```
 
-## Focus
+Each record must follow the exact schema structure provided in the context.
 
-Your goal is **incremental improvement and completeness** while maintaining data integrity:
-1. Enhance all existing records
-2. Find any records that were missed in the initial extraction
-3. Make records better without risking data loss
-4. When in doubt, preserve the original data and flag for human review rather than making assumptions
+## Remember
+
+- **Extraction finds new records** → **Refinement enhances existing records**
+- Return every record you receive, just with better data
+- Focus on filling gaps and improving evidence quality
+- When in doubt, preserve the original data rather than guessing

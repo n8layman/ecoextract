@@ -70,6 +70,7 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite", sche
         review_reason TEXT,
         human_edited BOOLEAN DEFAULT FALSE,
         rejected BOOLEAN DEFAULT FALSE,
+        deleted_by_user BOOLEAN DEFAULT FALSE,
 
         UNIQUE(document_id, occurrence_id),
         FOREIGN KEY (document_id) REFERENCES documents (id)
@@ -96,7 +97,17 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite", sche
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_occurrence ON records (occurrence_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_processing_log_document ON processing_log (document_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_processing_log_type ON processing_log (process_type)")
-    
+
+    # Migration: Add deleted_by_user column if it doesn't exist
+    tryCatch({
+      # Check if column exists by trying to query it
+      DBI::dbGetQuery(con, "SELECT deleted_by_user FROM records LIMIT 0")
+    }, error = function(e) {
+      # Column doesn't exist, add it
+      cat("Migrating database: Adding deleted_by_user column\n")
+      DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN deleted_by_user BOOLEAN DEFAULT FALSE")
+    })
+
     cat("EcoExtract database initialized:", db_path, "\n")
     
   }, error = function(e) {
@@ -265,8 +276,18 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
 save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list()) {
   if (nrow(interactions_df) == 0) return(invisible(NULL))
 
-  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  on.exit(DBI::dbDisconnect(con), add = TRUE)
+  # Accept either a path (string) or a connection object
+  if (inherits(db_path, "SQLiteConnection")) {
+    con <- db_path
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
 
   # Handle occurrence IDs - mix of existing (valid) and new (null/invalid) records
   # Valid IDs: Match pattern "Author2023-o1" format (from refinement preserving existing records)

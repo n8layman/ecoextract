@@ -68,7 +68,8 @@ MISTRAL_API_KEY=your_mistral_api_key_here
 
 ```r
 # Load environment variables
-dotenv::load_dot_env()
+library(ecoextract)
+load_env()
 
 # Run all tests including integration tests
 devtools::test()

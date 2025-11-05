@@ -27,21 +27,15 @@ extract_records <- function(document_id = NA,
                                  ...) {
 
   # Document content must be available either through the db or provided
+  existing_records <- tibble::tibble()
   if(!is.na(document_id) && !inherits(interaction_db, "logical")) {
     document_content <- get_document_content(document_id, interaction_db)
     ocr_audit = get_ocr_audit(document_id, interaction_db)
 
-    # Check if records already exist and skip if requested
-    if (!force_reprocess) {
-      existing_records <- get_records(document_id, interaction_db)
-      if (!is.null(existing_records) && nrow(existing_records) > 0) {
-        message("Records already exist for document ", document_id, ", skipping extraction (force_reprocess=FALSE)")
-        return(list(
-          status = "skipped",
-          records_extracted = nrow(existing_records),
-          document_id = document_id
-        ))
-      }
+    # Always get existing records to provide as context (extraction looks for NEW records)
+    existing_records <- get_records(document_id, interaction_db)
+    if (is.null(existing_records)) {
+      existing_records <- tibble::tibble()
     }
   }
   if(is.na(document_content)) {
@@ -62,15 +56,16 @@ extract_records <- function(document_id = NA,
     extraction_prompt <- get_extraction_prompt(extraction_prompt_file)
     extraction_prompt_hash <- digest::digest(extraction_prompt, algo = "md5")
 
-    # Load extraction context template (custom or default)
+    # Build existing records context (so extraction can avoid duplicates)
+    existing_records_context <- build_existing_records_context(existing_records, document_id)
+
+    # Load extraction context template and inject variables with glue
     extraction_context_template <- get_extraction_context_template(extraction_context_file)
     extraction_context <- glue::glue(extraction_context_template, .na = "", .null = "")
 
-    # Calculate the nchar size of every variable in extraction_content_values
-    # Calculate the nchar size of prompt
-    # Log those values to console as in:
+    # Log input sizes
     cat(glue::glue(
-      "Inputs loaded: Document content ({estimate_tokens(document_content)} tokens), OCR audit ({estimate_tokens(ocr_audit)} chars), extraction prompt (hash:{substring(extraction_prompt_hash, 1, 8)}, {estimate_tokens(extraction_prompt)} tokens)",
+      "Inputs loaded: Document content ({estimate_tokens(document_content)} tokens), OCR audit ({estimate_tokens(ocr_audit)} chars), {nrow(existing_records)} existing records, extraction prompt (hash:{substring(extraction_prompt_hash, 1, 8)}, {estimate_tokens(extraction_prompt)} tokens)",
       .na = "0",
       .null = "0"
     ), "\n")
@@ -90,11 +85,18 @@ extract_records <- function(document_id = NA,
 
     cat("Extraction completed\n")
 
-    # Extract records from result (should be a dataframe with native ellmer types)
+    # Extract records from result
     if (is.list(extract_result) && "records" %in% names(extract_result)) {
       records_data <- extract_result$records
+
+      # Handle different formats returned by ellmer
       if (is.data.frame(records_data) && nrow(records_data) > 0) {
+        # Already a dataframe
         extraction_df <- tibble::as_tibble(records_data)
+      } else if (is.list(records_data) && length(records_data) > 0) {
+        # List of lists - convert to dataframe
+        # Use bind_rows which handles list-of-lists nicely
+        extraction_df <- dplyr::bind_rows(records_data)
       } else {
         extraction_df <- tibble::tibble()
       }
@@ -114,7 +116,7 @@ extract_records <- function(document_id = NA,
       # Save to database (atomic step)
       if (!is.na(document_id) && !inherits(interaction_db, "logical")) {
         save_records_to_db(
-          db_path = interaction_db@dbname,
+          db_path = interaction_db,  # Pass connection object, not path
           document_id = document_id,
           interactions_df = extraction_df,
           metadata = list(
