@@ -10,16 +10,18 @@ library(devtools)
 # Global test configuration
 options(ecoextract.verbose = FALSE)
 
-# Load environment variables from .env using {dotenv} + {here}
-if (requireNamespace("dotenv", quietly = TRUE) && requireNamespace("here", quietly = TRUE)) {
-  env_path <- here::here(".env")
+# Load environment variables from .env files using base R
+# Load from package root (one level up from tests/testthat)
+root_dir <- file.path("..", "..")
+env_files <- list.files(root_dir, pattern = "^\\.env.*", all.files = TRUE, full.names = TRUE)
 
-  if (file.exists(env_path)) {
-    message("Loading environment from: ", env_path)
-    dotenv::load_dot_env(file = env_path)
-  } else {
-    message("No .env file found at: ", env_path)
+if (length(env_files) > 0) {
+  for (env_file in env_files) {
+    if (file.exists(env_file)) {
+      message("Loading environment from: ", env_file)
+      try(readRenviron(env_file), silent = TRUE)
+    }
   }
 } else {
-  message("Packages 'dotenv' or 'here' not available; skipping .env load")
+  message("No .env files found in package root")
 }

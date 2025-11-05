@@ -1,5 +1,20 @@
 #' Internal utility functions
 
+#' Load environment variables from .env files
+#'
+#' Loads environment variables from any file starting with `.env`. This allows
+#' user-specific options to be set in `.env_user` (which is .gitignored), and
+#' to have both encrypted and non-encrypted .env files.
+#'
+#' @return NULL (invisibly). Called for side effects.
+#' @export
+load_env <- function() {
+  for (env_file in list.files(all.files = TRUE, pattern = "^\\.env.*")) {
+    try(readRenviron(env_file), silent = TRUE)
+  }
+  invisible(NULL)
+}
+
 #' Create occurrence IDs for a batch of records (internal)
 #' @param interactions Dataframe of records
 #' @param author_lastname Author lastname for ID generation

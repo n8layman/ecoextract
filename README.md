@@ -75,10 +75,11 @@ OPENAI_API_KEY=your_openai_api_key_here
 Alternatively, load manually:
 
 ```r
-# Option 1: Use dotenv package
-dotenv::load_dot_env()
+# Option 1: Use ecoextract's load_env() function (loads all .env* files)
+library(ecoextract)
+load_env()
 
-# Option 2: Use readRenviron
+# Option 2: Use readRenviron for a specific file
 readRenviron(".env")
 
 # Option 3: Set directly in R
@@ -228,10 +229,11 @@ devtools::check()
 
 ### Integration Tests
 
-Integration tests verify API interactions with LLM providers. To run these locally, set up API keys in a `.env` file (see API Key Setup above) and load them before testing:
+Integration tests verify API interactions with LLM providers. To run these locally, set up API keys in a `.env` file (see API Key Setup above). The tests will automatically load `.env` files, or you can load them manually:
 
 ```r
-dotenv::load_dot_env()
+library(ecoextract)
+load_env()
 devtools::test()
 ```
 
