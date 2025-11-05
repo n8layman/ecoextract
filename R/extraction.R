@@ -59,7 +59,7 @@ extract_records <- function(document_id = NA,
     # Build existing records context (so extraction can avoid duplicates)
     existing_records_context <- build_existing_records_context(existing_records, document_id)
 
-    # Load extraction context template (custom or default)
+    # Load extraction context template and inject variables with glue
     extraction_context_template <- get_extraction_context_template(extraction_context_file)
     extraction_context <- glue::glue(extraction_context_template, .na = "", .null = "")
 
@@ -85,11 +85,18 @@ extract_records <- function(document_id = NA,
 
     cat("Extraction completed\n")
 
-    # Extract records from result (should be a dataframe with native ellmer types)
+    # Extract records from result
     if (is.list(extract_result) && "records" %in% names(extract_result)) {
       records_data <- extract_result$records
+
+      # Handle different formats returned by ellmer
       if (is.data.frame(records_data) && nrow(records_data) > 0) {
+        # Already a dataframe
         extraction_df <- tibble::as_tibble(records_data)
+      } else if (is.list(records_data) && length(records_data) > 0) {
+        # List of lists - convert to dataframe
+        # Use bind_rows which handles list-of-lists nicely
+        extraction_df <- dplyr::bind_rows(records_data)
       } else {
         extraction_df <- tibble::tibble()
       }

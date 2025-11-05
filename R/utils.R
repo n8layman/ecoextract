@@ -63,7 +63,7 @@ estimate_tokens <- function(text) {
 #' @keywords internal
 build_existing_records_context <- function(existing_records, document_id = NULL) {
   if (is.null(existing_records) || !is.data.frame(existing_records) || nrow(existing_records) == 0) {
-    return("No records have been extracted from this document yet.")
+    return("")  # Return empty string, context header handles the messaging
   }
 
   # Filter out deleted records - they should not be shown to extraction/refinement
@@ -73,7 +73,7 @@ build_existing_records_context <- function(existing_records, document_id = NULL)
 
   # Recheck if any records remain after filtering
   if (nrow(existing_records) == 0) {
-    return("No records have been extracted from this document yet.")
+    return("")  # Return empty string
   }
 
   # Exclude metadata columns AND occurrence_id from display

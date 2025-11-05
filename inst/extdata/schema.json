@@ -11,10 +11,6 @@
         "type": "object",
         "description": "Ecological interaction between identifiable organisms",
         "properties": {
-          "occurrence_id": {
-            "type": "string",
-            "description": "Unique interaction identifier"
-          },
           "organisms_identifiable": {
             "type": "string",
             "description": "Whether both bat and interacting organism can be identified by scientific name, genus, or specific common name (set to 'true' only when both are identifiable)"
