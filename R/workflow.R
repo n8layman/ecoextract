@@ -1,3 +1,6 @@
+#' @importFrom rlang .data
+NULL
+
 #' Complete Document Processing Workflow
 #'
 #' Process PDFs through the complete pipeline: OCR → Audit → Extract → Refine

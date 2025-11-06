@@ -20,7 +20,7 @@ test_that("pollination schema works end-to-end", {
   # Test the full process_documents workflow with custom schema
   result <- process_documents(
     test_pdf,
-    db_path = db_path,
+    db_conn = db_path,
     schema_file = schema_file,
     extraction_prompt_file = prompt_file
   )
