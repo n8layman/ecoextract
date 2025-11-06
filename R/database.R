@@ -3,22 +3,30 @@
 #' Standalone database operations for ecological interaction storage
 
 #' Initialize EcoExtract database
-#' @param db_path Path to SQLite database file
+#' @param db_conn Database connection (any DBI backend) or path to SQLite database file
 #' @param schema_file Optional path to JSON schema file (determines record columns)
 #' @return NULL (creates database with required tables)
 #' @export
-init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite", schema_file = NULL) {
-  if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("RSQLite", quietly = TRUE)) {
-    stop("DBI and RSQLite packages required for database operations")
-  }
+init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", schema_file = NULL) {
+  # Accept either a connection object or a path string
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    # Path string - create SQLite connection
+    if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("RSQLite", quietly = TRUE)) {
+      stop("DBI and RSQLite packages required for SQLite database operations")
+    }
 
-  # Create database directory if needed
-  db_dir <- dirname(db_path)
-  if (!dir.exists(db_dir) && db_dir != ".") {
-    dir.create(db_dir, recursive = TRUE)
-  }
+    # Create database directory if needed
+    db_dir <- dirname(db_conn)
+    if (!dir.exists(db_dir) && db_dir != ".") {
+      dir.create(db_dir, recursive = TRUE)
+    }
 
-  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
+  }
 
   tryCatch({
     # Create documents table
@@ -77,26 +85,11 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite", sche
       )
     ")
     DBI::dbExecute(con, record_table_sql)
-    
-    # Create processing_log table for audit trail
-    DBI::dbExecute(con, "
-      CREATE TABLE IF NOT EXISTS processing_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        document_id INTEGER NOT NULL,
-        process_type TEXT NOT NULL,  -- 'ocr', 'extraction', 'refinement'
-        status TEXT NOT NULL,        -- 'started', 'completed', 'failed'
-        details TEXT,                -- JSON details or error message
-        timestamp TEXT NOT NULL,
-        FOREIGN KEY (document_id) REFERENCES documents (id)
-      )
-    ")
-    
+
     # Create indexes for performance
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_documents_hash ON documents (file_hash)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_document ON records (document_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_occurrence ON records (occurrence_id)")
-    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_processing_log_document ON processing_log (document_id)")
-    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_processing_log_type ON processing_log (process_type)")
 
     # Migration: Add deleted_by_user column if it doesn't exist
     tryCatch({
@@ -108,13 +101,19 @@ init_ecoextract_database <- function(db_path = "ecoextract_results.sqlite", sche
       DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN deleted_by_user BOOLEAN DEFAULT FALSE")
     })
 
-    cat("EcoExtract database initialized:", db_path, "\n")
-    
+    if (is.character(db_conn)) {
+      cat("EcoExtract database initialized:", db_conn, "\n")
+    } else {
+      cat("EcoExtract database initialized\n")
+    }
+
   }, error = function(e) {
     cat("Error initializing EcoExtract database:", e$message, "\n")
     stop(e)
   }, finally = {
-    DBI::dbDisconnect(con)
+    if (close_on_exit) {
+      DBI::dbDisconnect(con)
+    }
   })
 }
 
@@ -144,15 +143,25 @@ get_record_columns_sql <- function(schema_json_list = NULL) {
 }
 
 #' Save document to EcoExtract database (internal)
-#' @param db_path Path to database file
+#' @param db_conn Database connection or path to database file
 #' @param file_path Path to processed file
 #' @param file_hash Optional file hash (computed automatically if not provided)
 #' @param metadata List with document metadata
 #' @return Document ID or NULL if failed
 #' @keywords internal
-save_document_to_db <- function(db_path, file_path, file_hash = NULL, metadata = list()) {
-  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  on.exit(DBI::dbDisconnect(con), add = TRUE)
+save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list()) {
+  # Accept either a connection object or a path string
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
 
   # Compute file hash if not provided
   if (is.null(file_hash)) {
@@ -493,15 +502,22 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 }
 
 #' Get database statistics
-#' @param db_path Path to database file
+#' @param db_conn Database connection or path to database file
 #' @return List with database statistics
 #' @export
-get_db_stats <- function(db_path) {
-  if (!file.exists(db_path)) {
-    return(list(documents = 0, records = 0, message = "Database not found"))
+get_db_stats <- function(db_conn) {
+  # Accept either a connection object or a path string
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    # Path string - check existence
+    if (!file.exists(db_conn)) {
+      return(list(documents = 0, records = 0, message = "Database not found"))
+    }
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
   }
-
-  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
 
   tryCatch({
     doc_count <- DBI::dbGetQuery(con, "SELECT COUNT(*) as n FROM documents")$n
@@ -516,30 +532,12 @@ get_db_stats <- function(db_path) {
   }, error = function(e) {
     return(list(documents = 0, records = 0, message = paste("Database error:", e$message)))
   }, finally = {
-    DBI::dbDisconnect(con)
+    if (close_on_exit) {
+      DBI::dbDisconnect(con)
+    }
   })
 }
 
-#' Log processing step
-#' @param db_path Path to database file  
-#' @param document_id Document ID
-#' @param process_type Type of process ('ocr', 'extraction', 'refinement')
-#' @param status Status ('started', 'completed', 'failed')
-#' @param details Additional details or error message
-log_processing_step <- function(db_path, document_id, process_type, status, details = NULL) {
-  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  
-  tryCatch({
-    DBI::dbExecute(con, "
-      INSERT INTO processing_log (document_id, process_type, status, details, timestamp)
-      VALUES (?, ?, ?, ?, ?)
-    ", params = list(document_id, process_type, status, details %||% "", Sys.time()))
-  }, error = function(e) {
-    cat("Error logging processing step:", e$message, "\n")
-  }, finally = {
-    DBI::dbDisconnect(con)
-  })
-}
 
 #' Extract field definitions from JSON schema
 #' @param schema_json_list Parsed JSON schema as list

@@ -225,6 +225,46 @@ embed_images_in_markdown <- function(markdown_text, images_data, page_num = 1) {
   return(processed_text)
 }
 
+#' Get Documents
+#'
+#' Retrieve documents from the database
+#'
+#' @param document_id Document ID to filter by (NULL for all documents)
+#' @param db_conn Database connection
+#' @return Tibble with document metadata
+#' @export
+#' @examples
+#' \dontrun{
+#' db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
+#'
+#' # Get all documents
+#' all_docs <- get_documents(db_conn = db)
+#'
+#' # Get specific document
+#' doc <- get_documents(document_id = 1, db_conn = db)
+#'
+#' DBI::dbDisconnect(db)
+#' }
+get_documents <- function(document_id = NULL, db_conn) {
+  tryCatch({
+    if (is.null(document_id)) {
+      # Get all documents
+      result <- DBI::dbGetQuery(db_conn, "SELECT * FROM documents") |>
+        tibble::as_tibble()
+    } else {
+      # Get specific document
+      result <- DBI::dbGetQuery(db_conn, "
+        SELECT * FROM documents WHERE id = ?
+      ", params = list(document_id)) |>
+        tibble::as_tibble()
+    }
+    return(result)
+  }, error = function(e) {
+    message("Error retrieving documents: ", e$message)
+    return(tibble::tibble())
+  })
+}
+
 #' Get Records
 #'
 #' Retrieve extracted records from the database
@@ -264,3 +304,4 @@ get_records <- function(document_id = NULL, db_conn) {
     return(tibble::tibble())
   })
 }
+

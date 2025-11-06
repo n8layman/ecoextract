@@ -5,12 +5,12 @@
 \title{Database Functions for EcoExtract Package}
 \usage{
 init_ecoextract_database(
-  db_path = "ecoextract_results.sqlite",
+  db_conn = "ecoextract_results.sqlite",
   schema_file = NULL
 )
 }
 \arguments{
-\item{db_path}{Path to SQLite database file}
+\item{db_conn}{Database connection (any DBI backend) or path to SQLite database file}
 
 \item{schema_file}{Optional path to JSON schema file (determines record columns)}
 }

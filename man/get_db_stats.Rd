@@ -4,10 +4,10 @@
 \alias{get_db_stats}
 \title{Get database statistics}
 \usage{
-get_db_stats(db_path)
+get_db_stats(db_conn)
 }
 \arguments{
-\item{db_path}{Path to database file}
+\item{db_conn}{Database connection or path to database file}
 }
 \value{
 List with database statistics
