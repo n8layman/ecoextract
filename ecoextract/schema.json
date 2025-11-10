@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Host-Pathogen Relationship Data Schema",
+  "description": "Schema for extracted host-pathogen relationships from scientific literature for One Health PROTECT",
+  "type": "object",
+  "properties": {
+    "records": {
+      "type": "array",
+      "description": "Array of host-pathogen relationship records",
+      "items": {
+        "type": "object",
+        "required": [
+          "Pathogen_Name",
+          "Host_Name",
+          "Detection_Method",
+          "Relevant_Sentence"
+        ],
+        "properties": {
+          "OHP_Pathogen_Name": {
+            "type": "string",
+            "description": "Currently the name of each PDF folder - the pathogen of interest that was queried in PubMed"
+          },
+          "PDF_Name": {
+            "type": "string",
+            "description": "PDF file name"
+          },
+          "DOI": {
+            "type": "string",
+            "description": "DOI from PDF (optional)"
+          },
+          "Pathogen_Name": {
+            "type": "string",
+            "description": "Pathogen name extracted from PDF"
+          },
+          "Host_Name": {
+            "type": "string",
+            "description": "Host name extracted from PDF"
+          },
+          "Detection_Method": {
+            "type": "string",
+            "description": "Detection method used (e.g., PCR, Serology, etc.)"
+          },
+          "Sample_type": {
+            "type": "string",
+            "description": "Identity of the samples that were tested. Found in ticks but not in tick hosts (optional)"
+          },
+          "Relevant_Sentence": {
+            "type": "string",
+            "description": "Text that describes the relationship between host and pathogen in PDF (should generally be in the Results section)"
+          },
+          "Confidence_Score": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Model confidence score (5-point Likert scale)"
+          },
+          "Opt_Vector_Name": {
+            "type": "string",
+            "description": "Optional: Name of vector from PDF"
+          },
+          "Opt_GenBank_Accession": {
+            "type": "string",
+            "description": "Optional: GenBank Accession numbers reported in PDF"
+          },
+          "Opt_Sentence_Reference": {
+            "type": "string",
+            "description": "If relationship is from a table with a reference, put associated reference text here (optional)"
+          },
+          "Extraction_quality_score": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Source data quality score (5-point Likert scale)"
+          },
+          "English": {
+            "type": "boolean",
+            "description": "Flag if language is not English - could affect extraction quality and should be reviewed by a human"
+          },
+          "Supplemental_Material": {
+            "type": "boolean",
+            "description": "Does it seem like more information might be present in the supplemental data?"
+          }
+        }
+      }
+    }
+  },
+  "required": ["records"]
+}
