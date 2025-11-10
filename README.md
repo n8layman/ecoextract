@@ -154,13 +154,12 @@ results <- process_documents(
   db_conn = "ecological_records.sqlite"
 )
 
-# Use custom schema and prompts
+# Use custom schema and extraction prompt
 results <- process_documents(
   pdf_path = "path/to/pdfs/",
   db_conn = "ecological_records.sqlite",
   schema_file = "custom_schema.json",
-  extraction_prompt_file = "custom_extraction_prompt.md",
-  refinement_prompt_file = "custom_refinement_prompt.md"
+  extraction_prompt_file = "custom_extraction_prompt.md"
 )
 
 # Force reprocess existing documents
@@ -258,7 +257,7 @@ See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete exampl
 ### Custom Configuration
 
 - Schema files in `inst/extdata/`: `schema.json`, `document_audit_schema.json`
-- Prompt files in `inst/prompts/`: extraction, refinement, document audit prompts
+- Prompt files in `inst/prompts/`: extraction and document audit prompts
 
 ## Testing
 
@@ -305,8 +304,6 @@ ecoextract/
 │   └── prompts/            # System prompts
 │       ├── extraction_prompt.md
 │       ├── extraction_context.md
-│       ├── refinement_prompt.md
-│       ├── refinement_context.md
 │       ├── document_audit_prompt.md
 │       └── document_audit_context.md
 ├── tests/testthat/         # Tests
