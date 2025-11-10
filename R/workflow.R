@@ -94,6 +94,24 @@ process_documents <- function(pdf_path,
     on.exit(DBI::dbDisconnect(con), add = TRUE)
   }
 
+  # Report configuration sources
+  schema_src <- detect_config_source(schema_file, "schema.json", "extdata")
+  extraction_src <- detect_config_source(extraction_prompt_file, "extraction_prompt.md", "prompts")
+
+  if (schema_src$source == "package" && extraction_src$source == "package") {
+    cat("Using package default schema and extraction prompt\n")
+    cat("  Run init_ecoextract() to customize for your domain\n\n")
+  } else {
+    cat("Configuration:\n")
+    if (schema_src$source != "package") {
+      cat("  Schema:", schema_src$source, "-", schema_src$path, "\n")
+    }
+    if (extraction_src$source != "package") {
+      cat("  Extraction prompt:", extraction_src$source, "-", extraction_src$path, "\n")
+    }
+    cat("\n")
+  }
+
   # Track timing
   start_time <- Sys.time()
 
