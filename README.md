@@ -2,6 +2,10 @@
 
 Structured ecological data extraction and refinement from scientific literature.
 
+**Package Links:**
+- [ecoextract on GitHub](https://github.com/n8layman/ecoextract)
+- [ohseer on GitHub](https://github.com/n8layman/ohseer) (OCR dependency)
+
 ## Installation
 
 ### Prerequisites
@@ -43,18 +47,31 @@ library(ecoextract)
 
 ## API Key Setup
 
-EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions, which supports any LLM provider that ellmer supports (Anthropic, OpenAI, Mistral, etc.). By default, examples use Anthropic's Claude and Mistral for OCR processing.
+EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions. OCR processing via [ohseer](https://github.com/n8layman/ohseer) currently requires Mistral AI.
 
 ### Getting API Keys
 
-Examples in this README use:
+Required:
 
-- Anthropic Claude: https://console.anthropic.com/
-- Mistral (for OCR): https://console.mistral.ai/
+- Mistral AI (for OCR): <https://console.mistral.ai/>
 
-You can use any provider supported by ellmer - see [ellmer documentation](https://ellmer.tidyverse.org/) for full provider list.
+Recommended for data extraction:
+
+- Anthropic Claude: <https://console.anthropic.com/>
+
+Note: While ecoextract is designed to work with any ellmer-supported LLM provider (OpenAI, etc.), this has not been fully tested. Mistral AI is currently hardcoded for OCR processing.
 
 ### Setting Up API Keys
+
+**IMPORTANT: Before creating your `.env` file, verify it's gitignored:**
+
+```bash
+# Check that .env is in .gitignore
+grep "^\.env$" .gitignore
+
+# If not found, add it NOW before creating the file:
+echo ".env" >> .gitignore
+```
 
 Create a `.env` file in the project root directory:
 
@@ -68,7 +85,14 @@ OPENAI_API_KEY=your_openai_api_key_here
 # ... etc
 ```
 
-**Important:** The `.env` file is gitignored by default. Never commit API keys to version control.
+**Verify before committing:**
+
+```bash
+# This should show no output if .env is properly ignored:
+git status | grep ".env"
+
+# If .env appears, do NOT commit! Add it to .gitignore first.
+```
 
 **The `.env` file is automatically loaded** when you start R in this project directory (via `.Rprofile`). Just restart your R session after creating the file.
 
@@ -88,25 +112,26 @@ Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
 
 ### Using Different LLM Providers
 
-Specify the model using the `model` parameter in `extract_records()` and `refine_records()`:
+By default, ecoextract uses `anthropic/claude-sonnet-4-20250514` for data extraction and refinement. If you have an Anthropic API key set up, no additional configuration is needed.
+
+To use a different LLM provider, pass the `model` parameter:
 
 ```r
-# Use OpenAI
-extraction_result <- extract_records(
-  document_content = ocr_text,
-  model = "openai/gpt-4"
+# Default (Anthropic Claude) - no model parameter needed
+results <- process_documents(
+  pdf_path = "path/to/pdfs/",
+  db_conn = "ecological_records.sqlite"
 )
 
-# Use Anthropic Claude (default)
-extraction_result <- extract_records(
-  document_content = ocr_text,
-  model = "anthropic/claude-sonnet-4-20250514"
+# Use a different model (experimental - not fully tested)
+results <- process_documents(
+  pdf_path = "path/to/pdfs/",
+  db_conn = "ecological_records.sqlite",
+  model = "openai/gpt-4"
 )
 ```
 
 ## Quick Start
-
-### Process a Folder of PDFs
 
 ```r
 library(ecoextract)
@@ -118,39 +143,35 @@ library(ecoextract)
 # 4. Refinement (refine and validate records)
 results <- process_documents(
   pdf_path = "path/to/pdfs/",
-  db_path = "ecological_records.sqlite"
+  db_conn = "ecological_records.sqlite"
 )
 
 print(results)
-```
 
-### Individual Step Processing
-
-```r
-# Initialize database
-db_conn <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
-init_ecoextract_database("ecoextract.sqlite")
-
-# Step 1: OCR
-ocr_result <- ocr_document("paper.pdf", db_conn)
-
-# Step 2: Document Audit (extract metadata + review OCR quality)
-audit_result <- audit_document(ocr_result$document_id, db_conn)
-
-# Step 3: Extract domain-specific records
-extraction_result <- extract_records(
-  document_id = ocr_result$document_id,
-  db_conn = db_conn
+# Process a single PDF
+results <- process_documents(
+  pdf_path = "paper.pdf",
+  db_conn = "ecological_records.sqlite"
 )
 
-# Step 4: Refine records
-refinement_result <- refine_records(
-  db_conn = db_conn,
-  document_id = ocr_result$document_id
+# Use custom schema and prompts
+results <- process_documents(
+  pdf_path = "path/to/pdfs/",
+  db_conn = "ecological_records.sqlite",
+  schema_file = "custom_schema.json",
+  extraction_prompt_file = "custom_extraction_prompt.md",
+  refinement_prompt_file = "custom_refinement_prompt.md"
 )
 
-DBI::dbDisconnect(db_conn)
+# Force reprocess existing documents
+results <- process_documents(
+  pdf_path = "path/to/pdfs/",
+  db_conn = "ecological_records.sqlite",
+  force_reprocess = TRUE
+)
 ```
+
+For advanced use cases requiring individual step processing, see the package documentation.
 
 ## Custom Schemas
 
@@ -272,17 +293,23 @@ ecoextract/
 └── README.md
 ```
 
-## Dependencies
+## Tech Stack
 
+### R Packages
+
+- [`ellmer`](https://ellmer.tidyverse.org/) - Structured LLM outputs
+- [`ohseer`](https://github.com/n8layman/ohseer) - OCR processing
 - `dplyr` - Data manipulation
-- `readr` - File reading
-- `stringr` - String manipulation
-- `glue` - String interpolation
-- `jsonlite` - JSON handling
-- `digest` - Hashing
 - `DBI` & `RSQLite` - Database operations
-- `ellmer` - Structured LLM outputs
-- `ohseer` - OCR processing
+- `jsonlite` - JSON handling
+- `glue` - String interpolation
+- `stringr` - String manipulation
+- `digest` - Hashing
+
+### External APIs
+
+- Mistral AI - OCR processing (via ohseer)
+- Anthropic Claude / OpenAI / other LLM providers - Data extraction and refinement (via ellmer)
 
 ## License
 
