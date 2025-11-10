@@ -53,13 +53,10 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
       )
     ")
 
-    # Load schema if provided
-    schema_json_list <- NULL
-    if (!is.null(schema_file)) {
-      schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
-      schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-      schema_json_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
-    }
+    # Load schema using priority order (explicit > project ecoextract/ > wd > package)
+    schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
+    schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
+    schema_json_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
 
     # Create records table with dynamic schema
     schema_columns <- get_record_columns_sql(schema_json_list)
