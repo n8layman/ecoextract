@@ -1,3 +1,52 @@
+#' Detect Configuration File Source
+#'
+#' Determines where a config file would be loaded from without loading it.
+#' Returns a list with source type and path.
+#'
+#' @param file_path Explicit path to file (highest priority)
+#' @param file_name Base filename to search for
+#' @param package_subdir Subdirectory in package inst/
+#' @return List with source ("explicit", "project", "wd", "package") and path
+#' @keywords internal
+detect_config_source <- function(file_path = NULL,
+                                  file_name = NULL,
+                                  package_subdir = "extdata") {
+
+  # Priority 1: Explicit file path
+  if (!is.null(file_path)) {
+    if (file.exists(file_path)) {
+      return(list(source = "explicit", path = file_path))
+    } else {
+      stop("Specified file not found: ", file_path)
+    }
+  }
+
+  if (is.null(file_name)) {
+    stop("Either file_path or file_name must be provided")
+  }
+
+  # Priority 2: Project ecoextract/ directory
+  project_path <- file.path("ecoextract", file_name)
+  if (file.exists(project_path)) {
+    return(list(source = "project", path = project_path))
+  }
+
+  # Priority 3: Working directory with ecoextract_ prefix
+  wd_path <- file.path(getwd(), paste0("ecoextract_", file_name))
+  if (file.exists(wd_path)) {
+    return(list(source = "wd", path = wd_path))
+  }
+
+  # Priority 4: Package default
+  package_path <- system.file(package_subdir, file_name, package = "ecoextract")
+  if (file.exists(package_path)) {
+    return(list(source = "package", path = package_path))
+  }
+
+  # Not found
+  return(list(source = "not_found", path = NA))
+}
+
 #' Load Configuration File with Priority Order
 #'
 #' Searches for configuration files in the following priority order:
