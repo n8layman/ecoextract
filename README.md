@@ -189,7 +189,6 @@ init_ecoextract()
 # This creates:
 # - ecoextract/schema.json
 # - ecoextract/extraction_prompt.md
-# - ecoextract/refinement_prompt.md
 ```
 
 Now edit the files in `ecoextract/` to customize for your domain. The package will automatically detect and use these files when you run `process_documents()`.

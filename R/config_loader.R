@@ -92,7 +92,6 @@ load_config_file <- function(file_path = NULL,
 #' # Now customize files in ecoextract/ directory:
 #' # - ecoextract/schema.json
 #' # - ecoextract/extraction_prompt.md
-#' # - ecoextract/refinement_prompt.md
 #' }
 init_ecoextract <- function(project_dir = getwd(), overwrite = FALSE) {
 
@@ -103,12 +102,11 @@ init_ecoextract <- function(project_dir = getwd(), overwrite = FALSE) {
     cat("Created directory:", config_dir, "\n")
   }
 
-  # Files to copy (only the 3 customizable ones)
-  # Note: extraction_context.md is not copied as it's general-purpose and rarely needs customization
+  # Files to copy (only domain-specific ones that users need to customize)
+  # Note: context templates and refinement_prompt.md are not copied as they're generic/algorithmic
   files_to_copy <- list(
     list(source = "schema.json", dest = "schema.json", subdir = "extdata", desc = "Schema definition"),
-    list(source = "extraction_prompt.md", dest = "extraction_prompt.md", subdir = "prompts", desc = "Extraction system prompt"),
-    list(source = "refinement_prompt.md", dest = "refinement_prompt.md", subdir = "prompts", desc = "Refinement system prompt")
+    list(source = "extraction_prompt.md", dest = "extraction_prompt.md", subdir = "prompts", desc = "Extraction system prompt")
   )
 
   copied <- 0
@@ -137,9 +135,10 @@ init_ecoextract <- function(project_dir = getwd(), overwrite = FALSE) {
   cat("Files copied:", copied, "| Skipped:", skipped, "\n\n")
 
   cat("Next steps:\n")
-  cat("1. Edit files in", config_dir, "to customize for your project\n")
-  cat("2. Run extract_records() - it will automatically use your custom configs\n")
-  cat("3. Add ecoextract/ to version control to share with team\n\n")
+  cat("1. Edit schema.json to define your domain-specific data structure\n")
+  cat("2. Edit extraction_prompt.md to describe what to extract (e.g., 'bat interactions')\n")
+  cat("3. Run process_documents() - it will automatically use your custom configs\n")
+  cat("4. Add ecoextract/ to version control to share with team\n\n")
 
   cat("Note: The package will automatically detect and use files in ecoextract/\n")
   cat("You can also place configs in working directory with 'ecoextract_' prefix\n")
