@@ -177,6 +177,29 @@ For advanced use cases requiring individual step processing, see the package doc
 
 EcoExtract is domain-agnostic and works with any JSON schema. The package includes a bat-plant interaction schema as an example, but you can define custom schemas for any ecological domain (disease outbreaks, species observations, etc.).
 
+### Initialize Custom Configuration
+
+To customize the schema and prompts for your project:
+
+```r
+# Create ecoextract/ directory with template files
+library(ecoextract)
+init_ecoextract()
+
+# This creates:
+# - ecoextract/schema.json
+# - ecoextract/extraction_prompt.md
+# - ecoextract/refinement_prompt.md
+```
+
+Now edit the files in `ecoextract/` to customize for your domain. The package will automatically detect and use these files when you run `process_documents()`.
+
+**Priority order for loading configs:**
+1. Explicit file path passed to function (e.g., `schema_file = "path/to/schema.json"`)
+2. Project `ecoextract/` directory (e.g., `ecoextract/schema.json`)
+3. Working directory with `ecoextract_` prefix (e.g., `ecoextract_schema.json`)
+4. Package defaults from `inst/extdata/` and `inst/prompts/`
+
 ### Schema Requirements
 
 Your schema MUST follow this structure:
