@@ -105,6 +105,15 @@ test_that("extraction rediscovers physically deleted records", {
     info = sprintf(paste("Extraction should rediscover physically deleted records.",
                          "Initial: %d, After delete: %d, Final: %d"),
                    initial_count, after_delete_count, final_count))
+
+  # Check that rows which were NOT deleted are NOT duplicated
+  # Final count should not grossly exceed initial count (allowing for LLM variation)
+  # Note: Duplicates would get new occurrence_ids, so count is the key test
+  expect_true(final_count <= initial_count * 1.5,
+    info = sprintf(paste("Non-deleted records should not be duplicated.",
+                         "Initial: %d, After delete: %d, Final: %d",
+                         "(allowing 50%% margin for LLM variation/new discoveries)"),
+                   initial_count, after_delete_count, final_count))
 })
 
 test_that("API failures are captured in status columns, not thrown", {
