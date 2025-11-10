@@ -4,12 +4,13 @@
 \alias{get_documents}
 \title{Get Documents}
 \usage{
-get_documents(document_id = NULL, db_conn)
+get_documents(document_id = NULL, db_conn = "ecoextract_records.db")
 }
 \arguments{
 \item{document_id}{Document ID to filter by (NULL for all documents)}
 
-\item{db_conn}{Database connection}
+\item{db_conn}{Database connection (any DBI backend) or path to SQLite
+database file. Defaults to "ecoextract_records.db"}
 }
 \value{
 Tibble with document metadata
@@ -19,14 +20,14 @@ Retrieve documents from the database
 }
 \examples{
 \dontrun{
+# Using default SQLite database
+all_docs <- get_documents()
+doc <- get_documents(document_id = 1)
+
+# Using explicit connection
 db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
-
-# Get all documents
 all_docs <- get_documents(db_conn = db)
-
-# Get specific document
 doc <- get_documents(document_id = 1, db_conn = db)
-
 DBI::dbDisconnect(db)
 }
 }
