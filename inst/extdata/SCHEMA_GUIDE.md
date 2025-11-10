@@ -4,6 +4,19 @@
 
 The schema defines what data fields will be extracted from documents and stored in the database. It must follow a specific JSON Schema format that ecoextract expects.
 
+## Reserved System Fields
+
+**⚠️ IMPORTANT**: The following field name is reserved and automatically managed by ecoextract:
+
+### record_id
+
+- **Format**: `AuthorYear-oN` (e.g., `Smith2020-o1`, `Jones2023-o15`)
+- **Purpose**: Unique identifier for each record within a document
+- **Generated**: Automatically by the system when records are saved
+- **Do NOT include in your schema** - this is a system field
+
+During extraction, `record_id` is hidden from the LLM (generated after extraction). During refinement, `record_id` is shown to the LLM with strict instructions to preserve it exactly.
+
 ## Required Structure
 
 Your schema **must** wrap fields in a `records` array:

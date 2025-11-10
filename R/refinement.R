@@ -87,7 +87,8 @@ refine_records <- function(db_conn = NULL, document_id,
     prompt_hash <- digest::digest(paste(extraction_prompt, refinement_prompt, refinement_context_template, sep = "\n"), algo = "md5")
 
     # Build context for refinement
-    existing_context <- build_existing_records_context(existing_records, document_id)
+    # Include record_id so LLM can preserve it
+    existing_context <- build_existing_records_context(existing_records, document_id, include_record_id = TRUE)
 
     # CLAUDE: We shouldn't need to test this. OCR audit must be available to reach this stage.
     audit_context <- if (is.null(ocr_audit)) {
@@ -172,10 +173,10 @@ refine_records <- function(db_conn = NULL, document_id,
       print(refined_df)
       cat("Rows refined:", nrow(refined_df), "rows\n")
 
-      # Match refined records to existing records by content and restore occurrence_ids
-      # This allows us to preserve IDs without relying on LLM to copy them correctly
+      # Verify record_ids - LLM should have preserved them from existing records
+      # No complex matching needed since LLM does the work
       if (nrow(existing_records) > 0) {
-        refined_df <- match_and_restore_occurrence_ids(refined_df, existing_records)
+        refined_df <- match_and_restore_record_ids(refined_df, existing_records)
       }
 
       # Save refined records back to database
@@ -248,74 +249,35 @@ merge_refinements <- function(original_records, refined_records) {
   return(updated_records)
 }
 
-#' Match refined records to existing records and restore occurrence_ids
+#' Verify and restore record_ids from LLM refinement
 #' @param refined_records Dataframe of records from LLM refinement
 #' @param existing_records Dataframe of existing records from database
-#' @return Dataframe with occurrence_ids restored for matches, NULL for new records
+#' @return Dataframe with record_ids verified (LLM should have preserved them)
 #' @keywords internal
-match_and_restore_occurrence_ids <- function(refined_records, existing_records) {
-  # Identify key fields to match on based on schema
-  # Look for common patterns: species names, organism names, location
-  all_columns <- names(refined_records)
+match_and_restore_record_ids <- function(refined_records, existing_records) {
+  # LLM should have preserved record_id from the input
+  # Just verify the field exists - no complex matching needed
 
-  potential_match_fields <- c(
-    # Bat interaction schema
-    "bat_species_scientific_name", "interacting_organism_scientific_name",
-    # Pollination schema
-    "plant_species_scientific_name", "pollinator_species_scientific_name",
-    # Generic fields
-    "location", "observation_start_date", "interaction_start_date"
-  )
-
-  # Use fields that exist in both dataframes
-  match_fields <- intersect(potential_match_fields, intersect(names(refined_records), names(existing_records)))
-
-  if (length(match_fields) == 0) {
-    warning("No suitable fields to match records - all will be treated as new. ",
-            "Consider adding organism names or location to your schema for better matching.")
-    return(refined_records)
+  if (!"record_id" %in% names(refined_records)) {
+    # If somehow record_id is missing, this is a problem
+    warning("Refined records missing record_id field - refinement may have failed to preserve IDs")
+    refined_records$record_id <- NA_character_
   }
 
-  cat("Matching refined records to existing records using fields:", paste(match_fields, collapse = ", "), "\n")
+  # Count how many records have valid record_ids (preserved from existing)
+  valid_pattern <- "^[A-Za-z]+[0-9]+-o[0-9]+$"
+  has_valid_id <- !is.na(refined_records$record_id) & grepl(valid_pattern, refined_records$record_id)
 
-  # Initialize occurrence_id column if it doesn't exist
-  if (!"occurrence_id" %in% names(refined_records)) {
-    refined_records$occurrence_id <- NA_character_
+  preserved_count <- sum(has_valid_id)
+  new_count <- sum(!has_valid_id)
+
+  if (preserved_count > 0 && new_count > 0) {
+    cat("Record IDs: ", preserved_count, " preserved, ", new_count, " new\n", sep = "")
+  } else if (preserved_count > 0) {
+    cat("Record IDs: All ", preserved_count, " preserved from existing records\n", sep = "")
+  } else if (new_count > 0) {
+    cat("Record IDs: All ", new_count, " are new records (will be generated)\n", sep = "")
   }
-
-  matched_count <- 0
-  new_count <- 0
-
-  # For each refined record, try to find a match in existing records
-  for (i in 1:nrow(refined_records)) {
-    # Build match conditions
-    matches_existing <- rep(TRUE, nrow(existing_records))
-
-    for (field in match_fields) {
-      refined_val <- refined_records[[field]][i]
-      existing_vals <- existing_records[[field]]
-
-      # Handle NA values
-      if (is.na(refined_val)) {
-        matches_existing <- matches_existing & is.na(existing_vals)
-      } else {
-        matches_existing <- matches_existing & (existing_vals == refined_val)
-      }
-    }
-
-    # If we found a match, restore the occurrence_id
-    match_idx <- which(matches_existing)
-    if (length(match_idx) > 0) {
-      refined_records$occurrence_id[i] <- existing_records$occurrence_id[match_idx[1]]
-      matched_count <- matched_count + 1
-    } else {
-      # No match - this is a new record, leave occurrence_id as NA
-      refined_records$occurrence_id[i] <- NA_character_
-      new_count <- new_count + 1
-    }
-  }
-
-  cat("Matched", matched_count, "existing records,", new_count, "new records\n")
 
   return(refined_records)
 }

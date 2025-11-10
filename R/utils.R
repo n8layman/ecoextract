@@ -15,20 +15,20 @@ load_env <- function() {
   invisible(NULL)
 }
 
-#' Create occurrence IDs for a batch of records (internal)
+#' Create record IDs for a batch of records (internal)
 #' @param interactions Dataframe of records
 #' @param author_lastname Author lastname for ID generation
 #' @param publication_year Publication year for ID generation
-#' @return Dataframe with occurrence_id column added
+#' @return Dataframe with record_id column added
 #' @keywords internal
-add_occurrence_ids <- function(interactions, author_lastname, publication_year) {
+add_record_ids <- function(interactions, author_lastname, publication_year) {
   if (nrow(interactions) == 0) {
     return(interactions)
   }
 
-  # Generate sequential occurrence IDs
-  interactions$occurrence_id <- sapply(1:nrow(interactions), function(i) {
-    generate_occurrence_id(author_lastname, publication_year, i)
+  # Generate sequential record IDs
+  interactions$record_id <- sapply(1:nrow(interactions), function(i) {
+    generate_record_id(author_lastname, publication_year, i)
   })
 
   return(interactions)
@@ -74,9 +74,10 @@ estimate_tokens <- function(text) {
 #' Build existing records context for LLM prompts
 #' @param existing_records Dataframe of existing records
 #' @param document_id Optional document ID for context
+#' @param include_record_id Whether to include record_id (TRUE for refinement, FALSE for extraction)
 #' @return Character string with existing records formatted for LLM context
 #' @keywords internal
-build_existing_records_context <- function(existing_records, document_id = NULL) {
+build_existing_records_context <- function(existing_records, document_id = NULL, include_record_id = FALSE) {
   if (is.null(existing_records) || !is.data.frame(existing_records) || nrow(existing_records) == 0) {
     return("")  # Return empty string, context header handles the messaging
   }
@@ -91,11 +92,17 @@ build_existing_records_context <- function(existing_records, document_id = NULL)
     return("")  # Return empty string
   }
 
-  # Exclude metadata columns AND occurrence_id from display
-  # We don't show occurrence_id to LLM - we'll match records by content instead
-  metadata_cols <- c("id", "occurrence_id", "document_id", "extraction_timestamp",
+  # Exclude metadata columns from display
+  # record_id: show during refinement (so LLM preserves it), hide during extraction (LLM doesn't generate it)
+  metadata_cols <- c("id", "document_id", "extraction_timestamp",
                      "llm_model_version", "prompt_hash", "flagged_for_review",
                      "review_reason", "human_edited", "rejected", "deleted_by_user")
+
+  # Add record_id to metadata_cols if we don't want to show it (extraction)
+  if (!include_record_id) {
+    metadata_cols <- c(metadata_cols, "record_id")
+  }
+
   data_cols <- setdiff(names(existing_records), metadata_cols)
 
   # Build context as simple JSON representation

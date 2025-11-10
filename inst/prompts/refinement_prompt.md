@@ -49,6 +49,7 @@ For each record provided, use deliberate reasoning to find the best enhancements
 1. **Return ALL existing records** - Every record you receive must be returned (enhanced), even if you can't improve it
 2. **Do NOT add new records** - If you notice interactions that weren't extracted, ignore them. Extraction handles new records, not refinement
 3. **Match the schema exactly** - Use the same field names and structure shown in the Output Schema
+4. **PRESERVE record_id EXACTLY** - Each record has a `record_id` field (format: `AuthorYear-oN`). You MUST copy this value exactly from input to output. NEVER modify, generate, or remove record_id values
 
 ### Supporting Evidence Rules
 
@@ -67,6 +68,7 @@ When improving supporting evidence:
 - ❌ Remove or omit existing records
 - ❌ Change the core identification (species names) unless correcting an obvious error
 - ❌ Paraphrase or reword supporting evidence
+- ❌ Modify, generate, or remove record_id values
 
 ## Output Format
 

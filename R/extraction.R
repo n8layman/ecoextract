@@ -57,7 +57,8 @@ extract_records <- function(document_id = NA,
     extraction_prompt_hash <- digest::digest(extraction_prompt, algo = "md5")
 
     # Build existing records context (so extraction can avoid duplicates)
-    existing_records_context <- build_existing_records_context(existing_records, document_id)
+    # Don't include record_id - extraction doesn't generate IDs, system does
+    existing_records_context <- build_existing_records_context(existing_records, document_id, include_record_id = FALSE)
 
     # Load extraction context template and inject variables with glue
     extraction_context_template <- get_extraction_context_template(extraction_context_file)
@@ -156,18 +157,18 @@ extract_records <- function(document_id = NA,
   })
 }
 
-# CLAUDE: THis is generic enough. All papers will have author and pub year. And the point of this package is to extract data from pubs. Schemas might be differnt but this will be the same
-#' Generate occurrence ID for interaction (internal)
+# CLAUDE: This is generic enough. All papers will have author and pub year. And the point of this package is to extract data from pubs. Schemas might be different but this will be the same
+#' Generate record ID for a record (internal)
 #' @param author_lastname Author surname
 #' @param publication_year Publication year
-#' @param sequence_number Sequence number for this interaction
-#' @return Character occurrence ID
+#' @param sequence_number Sequence number for this record
+#' @return Character record ID
 #' @keywords internal
-generate_occurrence_id <- function(author_lastname, publication_year, sequence_number = 1) {
+generate_record_id <- function(author_lastname, publication_year, sequence_number = 1) {
   # Clean author name
   clean_author <- stringr::str_replace_all(author_lastname, "[^A-Za-z]", "")
   if (nchar(clean_author) == 0) clean_author <- "Author"
-  
-  # Create occurrence ID
+
+  # Create record ID
   paste0(clean_author, publication_year, "-o", sequence_number)
 }
