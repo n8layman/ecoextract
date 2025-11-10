@@ -54,3 +54,5 @@ rsconnect/
 plan.md
 *.sqlite
 *.db
+
+**/.DS_Store
