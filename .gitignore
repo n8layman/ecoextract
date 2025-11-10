@@ -56,3 +56,4 @@ plan.md
 *.db
 
 **/.DS_Store
+scripts/**
