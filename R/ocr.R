@@ -59,7 +59,7 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
 
     # Save document to database
     document_id <- save_document_to_db(
-      db_path = db_conn@dbname,
+      db_conn = db_conn,
       file_path = pdf_file,
       metadata = list(
         document_content = ocr_result$markdown,

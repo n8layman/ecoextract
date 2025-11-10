@@ -6,7 +6,7 @@
 \usage{
 process_documents(
   pdf_path,
-  db_path = "ecoextract_records.db",
+  db_conn = "ecoextract_records.db",
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
@@ -16,7 +16,9 @@ process_documents(
 \arguments{
 \item{pdf_path}{Path to a single PDF file or directory of PDFs}
 
-\item{db_path}{Path to SQLite database (default: "ecoextract_records.db" in current directory, will be created if doesn't exist)}
+\item{db_conn}{Database connection (any DBI backend) or path to SQLite database file.
+If a path is provided, creates SQLite database if it doesn't exist.
+If a connection is provided, tables must already exist (use \code{init_ecoextract_database()} first).}
 
 \item{schema_file}{Optional custom schema file}
 
@@ -27,18 +29,30 @@ process_documents(
 \item{force_reprocess}{If TRUE, re-run all steps even if outputs exist (default: FALSE)}
 }
 \value{
-List with processing results
+Tibble with processing results
 }
 \description{
 Process PDFs through the complete pipeline: OCR → Audit → Extract → Refine
 }
 \examples{
 \dontrun{
-# Process all PDFs in a folder (uses default database)
+# SQLite (path string - automatic initialization)
 process_documents("pdfs/")
-
-# Process a single PDF with custom database
 process_documents("paper.pdf", "my_interactions.db")
+
+# Remote database (Supabase, PostgreSQL, etc.)
+library(RPostgres)
+con <- dbConnect(Postgres(),
+  dbname = "your_db",
+  host = "db.xxx.supabase.co",
+  user = "postgres",
+  password = Sys.getenv("SUPABASE_PASSWORD")
+)
+# Initialize schema first
+init_ecoextract_database(con)
+# Then process documents
+process_documents("pdfs/", db_conn = con)
+dbDisconnect(con)
 
 # Force reprocess existing documents
 process_documents("pdfs/", force_reprocess = TRUE)

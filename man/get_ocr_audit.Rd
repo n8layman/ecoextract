@@ -4,14 +4,15 @@
 \alias{get_ocr_audit}
 \title{Get OCR audit data from database (internal)}
 \usage{
-get_ocr_audit(document_id, db_conn)
+get_ocr_audit(document_id, db_conn = "ecoextract_records.db")
 
-get_ocr_audit(document_id, db_conn)
+get_ocr_audit(document_id, db_conn = "ecoextract_records.db")
 }
 \arguments{
 \item{document_id}{Document ID}
 
-\item{db_conn}{Database connection}
+\item{db_conn}{Database connection (any DBI backend) or path to SQLite
+database file. Defaults to "ecoextract_records.db"}
 }
 \value{
 OCR audit data (JSON string), or NA if not found
@@ -23,6 +24,10 @@ Retrieve OCR quality audit results for a document
 }
 \examples{
 \dontrun{
+# Using default SQLite database
+audit <- get_ocr_audit(1)
+
+# Using explicit connection
 db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
 audit <- get_ocr_audit(1, db)
 DBI::dbDisconnect(db)

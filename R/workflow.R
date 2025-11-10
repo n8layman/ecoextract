@@ -1,23 +1,40 @@
+#' @importFrom rlang .data
+NULL
+
 #' Complete Document Processing Workflow
 #'
 #' Process PDFs through the complete pipeline: OCR → Audit → Extract → Refine
 #'
 #' @param pdf_path Path to a single PDF file or directory of PDFs
-#' @param db_path Path to SQLite database (default: "ecoextract_records.db" in current directory, will be created if doesn't exist)
+#' @param db_conn Database connection (any DBI backend) or path to SQLite database file.
+#'   If a path is provided, creates SQLite database if it doesn't exist.
+#'   If a connection is provided, tables must already exist (use \code{init_ecoextract_database()} first).
 #' @param schema_file Optional custom schema file
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
 #' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
-#' @return List with processing results
+#' @return Tibble with processing results
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' # Process all PDFs in a folder (uses default database)
+#' # SQLite (path string - automatic initialization)
 #' process_documents("pdfs/")
-#'
-#' # Process a single PDF with custom database
 #' process_documents("paper.pdf", "my_interactions.db")
+#'
+#' # Remote database (Supabase, PostgreSQL, etc.)
+#' library(RPostgres)
+#' con <- dbConnect(Postgres(),
+#'   dbname = "your_db",
+#'   host = "db.xxx.supabase.co",
+#'   user = "postgres",
+#'   password = Sys.getenv("SUPABASE_PASSWORD")
+#' )
+#' # Initialize schema first
+#' init_ecoextract_database(con)
+#' # Then process documents
+#' process_documents("pdfs/", db_conn = con)
+#' dbDisconnect(con)
 #'
 #' # Force reprocess existing documents
 #' process_documents("pdfs/", force_reprocess = TRUE)
@@ -28,7 +45,7 @@
 #'                   extraction_prompt_file = "ecoextract/extraction_prompt.md")
 #' }
 process_documents <- function(pdf_path,
-                             db_path = "ecoextract_records.db",
+                             db_conn = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
@@ -61,13 +78,24 @@ process_documents <- function(pdf_path,
     stop("Path does not exist: ", pdf_path)
   }
 
-  # Initialize database
-  if (!file.exists(db_path)) {
-    cat("Initializing new database:", db_path, "\n")
-    init_ecoextract_database(db_path, schema_file = schema_file)
+  # Handle database connection - accept either connection object or path
+  if (inherits(db_conn, "DBIConnection")) {
+    # User provided connection - use it directly, don't close on exit
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    # Path string - initialize if needed, then connect
+    if (!file.exists(db_conn)) {
+      cat("Initializing new database:", db_conn, "\n")
+      init_ecoextract_database(db_conn, schema_file = schema_file)
+    }
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
   }
-  db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
 
   # Track timing
   start_time <- Sys.time()
@@ -78,7 +106,7 @@ process_documents <- function(pdf_path,
   for (pdf_file in pdf_files) {
     result <- process_single_document(
       pdf_file = pdf_file,
-      db_conn = db_conn,
+      db_conn = con,
       schema_file = schema_file,
       extraction_prompt_file = extraction_prompt_file,
       refinement_prompt_file = refinement_prompt_file,
@@ -105,7 +133,7 @@ process_documents <- function(pdf_path,
 
   # Check for errors across all status columns
   status_matrix <- results_tibble |>
-    dplyr::select(ocr_status, audit_status, extraction_status, refinement_status) |>
+    dplyr::select(.data$ocr_status, .data$audit_status, .data$extraction_status, .data$refinement_status) |>
     as.matrix()
 
   # A file has an error if ANY of its status columns is not "completed" or "skipped"
@@ -123,7 +151,15 @@ process_documents <- function(pdf_path,
   attr(results_tibble, "end_time") <- end_time
   attr(results_tibble, "duration") <- as.numeric(difftime(end_time, start_time, units = "secs"))
   attr(results_tibble, "total_rows") <- total_rows
-  attr(results_tibble, "database") <- db_path
+
+  # Store database info - show path if available, otherwise connection class
+  if (is.character(db_conn)) {
+    attr(results_tibble, "database") <- db_conn
+    db_label <- db_conn
+  } else {
+    attr(results_tibble, "database") <- class(db_conn)[1]
+    db_label <- paste0(class(db_conn)[1], " connection")
+  }
 
   # Summary
   # Total files = all files attempted
@@ -137,7 +173,7 @@ process_documents <- function(pdf_path,
   cat("Errors:", errors, "\n")
   cat("Records in database:", total_rows, "\n")
   cat("Duration:", round(attr(results_tibble, "duration"), 2), "seconds\n")
-  cat("Database:", db_path, "\n")
+  cat("Database:", db_label, "\n")
   cat(strrep("=", 70), "\n\n")
 
   results_tibble

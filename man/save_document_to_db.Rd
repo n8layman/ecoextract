@@ -4,10 +4,10 @@
 \alias{save_document_to_db}
 \title{Save document to EcoExtract database (internal)}
 \usage{
-save_document_to_db(db_path, file_path, file_hash = NULL, metadata = list())
+save_document_to_db(db_conn, file_path, file_hash = NULL, metadata = list())
 }
 \arguments{
-\item{db_path}{Path to database file}
+\item{db_conn}{Database connection or path to database file}
 
 \item{file_path}{Path to processed file}
 

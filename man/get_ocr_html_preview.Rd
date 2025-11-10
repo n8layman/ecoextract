@@ -4,12 +4,17 @@
 \alias{get_ocr_html_preview}
 \title{Get OCR HTML Preview}
 \usage{
-get_ocr_html_preview(document_id, db_conn, page_num = 1)
+get_ocr_html_preview(
+  document_id,
+  db_conn = "ecoextract_records.db",
+  page_num = 1
+)
 }
 \arguments{
 \item{document_id}{Document ID}
 
-\item{db_conn}{Database connection}
+\item{db_conn}{Database connection (any DBI backend) or path to SQLite
+database file. Defaults to "ecoextract_records.db"}
 
 \item{page_num}{Page number to render (default: 1, use "all" for all pages)}
 }
@@ -21,6 +26,11 @@ Render OCR results as HTML with embedded images
 }
 \examples{
 \dontrun{
+# Using default SQLite database
+html <- get_ocr_html_preview(1)
+print(html)  # Opens in RStudio viewer
+
+# Using explicit connection
 db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
 html <- get_ocr_html_preview(1, db)
 print(html)  # Opens in RStudio viewer

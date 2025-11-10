@@ -7,17 +7,35 @@
 #' Retrieve OCR markdown text for a document
 #'
 #' @param document_id Document ID
-#' @param db_conn Database connection
+#' @param db_conn Database connection (any DBI backend) or path to SQLite
+#'   database file. Defaults to "ecoextract_records.db"
 #' @return Character string with markdown content, or NA if not found
 #' @export
 #' @examples
 #' \dontrun{
+#' # Using default SQLite database
+#' markdown <- get_ocr_markdown(1)
+#'
+#' # Using explicit connection
 #' db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
 #' markdown <- get_ocr_markdown(1, db)
 #' DBI::dbDisconnect(db)
 #' }
-get_ocr_markdown <- function(document_id, db_conn) {
-  get_document_content(document_id, db_conn)
+get_ocr_markdown <- function(document_id, db_conn = "ecoextract_records.db") {
+  # Handle database connection - accept either connection object or path
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
+  get_document_content(document_id, con)
 }
 
 #' Get OCR Audit
@@ -25,29 +43,47 @@ get_ocr_markdown <- function(document_id, db_conn) {
 #' Retrieve OCR quality audit results for a document
 #'
 #' @param document_id Document ID
-#' @param db_conn Database connection
+#' @param db_conn Database connection (any DBI backend) or path to SQLite
+#'   database file. Defaults to "ecoextract_records.db"
 #' @return OCR audit data (JSON string), or NA if not found
 #' @export
 #' @examples
 #' \dontrun{
+#' # Using default SQLite database
+#' audit <- get_ocr_audit(1)
+#'
+#' # Using explicit connection
 #' db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
 #' audit <- get_ocr_audit(1, db)
 #' DBI::dbDisconnect(db)
 #' }
-get_ocr_audit <- function(document_id, db_conn) {
+get_ocr_audit <- function(document_id, db_conn = "ecoextract_records.db") {
+  # Handle database connection - accept either connection object or path
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
   tryCatch({
-    result <- DBI::dbGetQuery(db_conn, "
+    result <- DBI::dbGetQuery(con, "
       SELECT ocr_audit FROM documents WHERE id = ?
     ", params = list(document_id))
 
     if (nrow(result) == 0 || is.null(result$ocr_audit) || result$ocr_audit == "") {
-      return(NA)
+      NA
+    } else {
+      result$ocr_audit[1]
     }
-
-    return(result$ocr_audit[1])
   }, error = function(e) {
     message("Error retrieving OCR audit: ", e$message)
-    return(NA)
+    NA
   })
 }
 
@@ -56,27 +92,46 @@ get_ocr_audit <- function(document_id, db_conn) {
 #' Render OCR results as HTML with embedded images
 #'
 #' @param document_id Document ID
-#' @param db_conn Database connection
+#' @param db_conn Database connection (any DBI backend) or path to SQLite
+#'   database file. Defaults to "ecoextract_records.db"
 #' @param page_num Page number to render (default: 1, use "all" for all pages)
 #' @return Browsable HTML object for display in RStudio viewer
 #' @export
 #' @examples
 #' \dontrun{
+#' # Using default SQLite database
+#' html <- get_ocr_html_preview(1)
+#' print(html)  # Opens in RStudio viewer
+#'
+#' # Using explicit connection
 #' db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
 #' html <- get_ocr_html_preview(1, db)
 #' print(html)  # Opens in RStudio viewer
 #' DBI::dbDisconnect(db)
 #' }
-get_ocr_html_preview <- function(document_id, db_conn, page_num = 1) {
+get_ocr_html_preview <- function(document_id, db_conn = "ecoextract_records.db", page_num = 1) {
+  # Handle database connection - accept either connection object or path
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
   # Get markdown content
-  markdown_content <- get_document_content(document_id, db_conn)
+  markdown_content <- get_document_content(document_id, con)
 
   if (is.na(markdown_content)) {
     stop("No OCR markdown found for document ID: ", document_id)
   }
 
   # Get images
-  result <- DBI::dbGetQuery(db_conn, "
+  result <- DBI::dbGetQuery(con, "
     SELECT ocr_images FROM documents WHERE id = ?
   ", params = list(document_id))
 
@@ -225,42 +280,111 @@ embed_images_in_markdown <- function(markdown_text, images_data, page_num = 1) {
   return(processed_text)
 }
 
+#' Get Documents
+#'
+#' Retrieve documents from the database
+#'
+#' @param document_id Document ID to filter by (NULL for all documents)
+#' @param db_conn Database connection (any DBI backend) or path to SQLite
+#'   database file. Defaults to "ecoextract_records.db"
+#' @return Tibble with document metadata
+#' @export
+#' @examples
+#' \dontrun{
+#' # Using default SQLite database
+#' all_docs <- get_documents()
+#' doc <- get_documents(document_id = 1)
+#'
+#' # Using explicit connection
+#' db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
+#' all_docs <- get_documents(db_conn = db)
+#' doc <- get_documents(document_id = 1, db_conn = db)
+#' DBI::dbDisconnect(db)
+#' }
+get_documents <- function(document_id = NULL, db_conn = "ecoextract_records.db") {
+  # Handle database connection - accept either connection object or path
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
+  tryCatch({
+    if (is.null(document_id)) {
+      # Get all documents
+      result <- DBI::dbGetQuery(con, "SELECT * FROM documents") |>
+        tibble::as_tibble()
+    } else {
+      # Get specific document
+      result <- DBI::dbGetQuery(con, "
+        SELECT * FROM documents WHERE id = ?
+      ", params = list(document_id)) |>
+        tibble::as_tibble()
+    }
+    result
+  }, error = function(e) {
+    message("Error retrieving documents: ", e$message)
+    tibble::tibble()
+  })
+}
+
 #' Get Records
 #'
 #' Retrieve extracted records from the database
 #'
 #' @param document_id Document ID to filter by (NULL for all records)
-#' @param db_conn Database connection
+#' @param db_conn Database connection (any DBI backend) or path to SQLite
+#'   database file. Defaults to "ecoextract_records.db"
 #' @return Tibble with records
 #' @export
 #' @examples
 #' \dontrun{
+#' # Using default SQLite database
+#' all_records <- get_records()
+#' doc_records <- get_records(document_id = 1)
+#'
+#' # Using explicit connection
 #' db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
-#'
-#' # Get all records
 #' all_records <- get_records(db_conn = db)
-#'
-#' # Get records for specific document
 #' doc_records <- get_records(document_id = 1, db_conn = db)
-#'
 #' DBI::dbDisconnect(db)
 #' }
-get_records <- function(document_id = NULL, db_conn) {
+get_records <- function(document_id = NULL, db_conn = "ecoextract_records.db") {
+  # Handle database connection - accept either connection object or path
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
   tryCatch({
     if (is.null(document_id)) {
       # Get all records
-      result <- DBI::dbGetQuery(db_conn, "SELECT * FROM records") |>
+      result <- DBI::dbGetQuery(con, "SELECT * FROM records") |>
         tibble::as_tibble()
     } else {
       # Get records for specific document
-      result <- DBI::dbGetQuery(db_conn, "
+      result <- DBI::dbGetQuery(con, "
         SELECT * FROM records WHERE document_id = ?
       ", params = list(document_id)) |>
         tibble::as_tibble()
     }
-    return(result)
+    result
   }, error = function(e) {
     message("Error retrieving records: ", e$message)
-    return(tibble::tibble())
+    tibble::tibble()
   })
 }
+

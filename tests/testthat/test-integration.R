@@ -13,7 +13,7 @@ test_that("full pipeline from PDF to database", {
   db_path <- withr::local_tempfile(fileext = ".sqlite")
 
   # Test the full process_documents workflow
-  result <- process_documents(test_pdf, db_path = db_path)
+  result <- process_documents(test_pdf, db_conn = db_path)
 
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 1)
@@ -55,7 +55,7 @@ test_that("extraction rediscovers physically deleted records", {
   db_path <- withr::local_tempfile(fileext = ".sqlite")
 
   # Run full pipeline first time
-  result1 <- process_documents(test_pdf, db_path = db_path)
+  result1 <- process_documents(test_pdf, db_conn = db_path)
 
   # Verify all steps completed
   status_matrix1 <- result1 |>
@@ -90,7 +90,7 @@ test_that("extraction rediscovers physically deleted records", {
                    initial_count, after_delete_count))
 
   # Re-run pipeline (will skip OCR/audit, run extraction+refinement)
-  result2 <- process_documents(test_pdf, db_path = db_path)
+  result2 <- process_documents(test_pdf, db_conn = db_path)
 
   # Check that early steps were skipped, but extraction+refinement run
   expect_equal(result2$ocr_status[1], "skipped")
@@ -104,6 +104,15 @@ test_that("extraction rediscovers physically deleted records", {
   expect_true(final_count > after_delete_count,
     info = sprintf(paste("Extraction should rediscover physically deleted records.",
                          "Initial: %d, After delete: %d, Final: %d"),
+                   initial_count, after_delete_count, final_count))
+
+  # Check that rows which were NOT deleted are NOT duplicated
+  # Final count should not grossly exceed initial count (allowing for LLM variation)
+  # Note: Duplicates would get new occurrence_ids, so count is the key test
+  expect_true(final_count <= initial_count * 1.5,
+    info = sprintf(paste("Non-deleted records should not be duplicated.",
+                         "Initial: %d, After delete: %d, Final: %d",
+                         "(allowing 50%% margin for LLM variation/new discoveries)"),
                    initial_count, after_delete_count, final_count))
 })
 
@@ -126,7 +135,7 @@ test_that("API failures are captured in status columns, not thrown", {
   withr::defer(Sys.setenv(ANTHROPIC_API_KEY = original_key))
 
   # Run process_documents - should NOT throw, should return tibble
-  result <- process_documents(test_pdf, db_path = db_path)
+  result <- process_documents(test_pdf, db_conn = db_path)
 
   # Verify we got a tibble back (not an error throw)
   expect_s3_class(result, "tbl_df")
