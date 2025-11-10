@@ -1,6 +1,3 @@
-#' @importFrom rlang .data
-NULL
-
 #' Complete Document Processing Workflow
 #'
 #' Process PDFs through the complete pipeline: OCR → Audit → Extract → Refine
@@ -133,7 +130,7 @@ process_documents <- function(pdf_path,
 
   # Check for errors across all status columns
   status_matrix <- results_tibble |>
-    dplyr::select(.data$ocr_status, .data$audit_status, .data$extraction_status, .data$refinement_status) |>
+    dplyr::select("ocr_status", "audit_status", "extraction_status", "refinement_status") |>
     as.matrix()
 
   # A file has an error if ANY of its status columns is not "completed" or "skipped"
