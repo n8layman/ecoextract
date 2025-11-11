@@ -72,7 +72,17 @@ audit_document <- function(document_id, db_conn, force_reprocess = FALSE, model 
 
     # Extract results (should have publication_metadata and ocr_audit)
     if (!is.list(audit_result)) {
-      stop("Unexpected audit result format")
+      stop("Unexpected audit result format: not a list")
+    }
+
+    # Validate required fields exist
+    if (!"publication_metadata" %in% names(audit_result)) {
+      stop("Missing 'publication_metadata' in audit result. Available fields: ",
+           paste(names(audit_result), collapse = ", "))
+    }
+    if (!"ocr_audit" %in% names(audit_result)) {
+      stop("Missing 'ocr_audit' in audit result. Available fields: ",
+           paste(names(audit_result), collapse = ", "))
     }
 
     pub_metadata <- audit_result$publication_metadata
