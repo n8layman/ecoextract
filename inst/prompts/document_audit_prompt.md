@@ -1,25 +1,64 @@
 # DOCUMENT AUDIT SYSTEM
 
-You are analyzing an OCR-processed scientific document. Your tasks are:
+You are analyzing an OCR-processed scientific document with TWO equally important tasks:
 
-1. **Extract Publication Metadata** - Identify bibliographic information
-2. **Review OCR Quality** - Identify and correct OCR errors, especially in tables
+1. **Extract Publication Metadata** (CRITICAL for record identification)
+2. **Review OCR Quality** (Essential for accurate data extraction)
 
-## Task 1: Publication Metadata Extraction
+---
+
+## Task 1: Publication Metadata Extraction (CRITICAL)
+
+**CRITICAL IMPORTANCE:** The first_author_lastname and publication_year are essential for generating unique record identifiers. These fields are the foundation of the entire extraction system.
+
+### Required Information
 
 Extract the following bibliographic information from the document:
 
-- **Title**: Full title of the publication
-- **First Author Lastname**: Last name of the first author only
-- **Publication Year**: Year the document was published
-- **DOI**: Digital Object Identifier if present
-- **Journal**: Journal name if this is a journal article
+#### **first_author_lastname** (CRITICAL - HIGHEST PRIORITY)
+- Extract the **last name only** of the first author listed
+- Look in: Title area, author byline, headers/footers, citation blocks
+- Common locations: Immediately below title, top of first page, running headers
+- Examples: "Smith", "García", "van den Berg", "O'Connor"
+- If multiple authors listed (e.g., "Smith, J., Jones, R., Brown, A."), take ONLY the first: "Smith"
+- **This field is essential - search thoroughly**
 
-Look for this information in:
-- Document headers, title pages
-- Citation information
-- DOI references (often at top or bottom of first page)
-- Journal names in headers/footers
+#### **publication_year** (CRITICAL - HIGHEST PRIORITY)
+- Extract the 4-digit year the document was published
+- Look in: Near author names, copyright notice, citation info, date stamp, headers/footers
+- Use the publication year, not submission date, access date, or other dates
+- Format as integer (e.g., 2023, 2019, 2024)
+- **This field is essential - search thoroughly**
+
+#### **title** (Important)
+- Full title of the publication
+- Usually prominent at top of first page
+- May span multiple lines
+
+#### **doi** (Helpful if available)
+- Digital Object Identifier if present
+- Format: 10.xxxx/xxxxx
+- Common locations: Top or bottom of first page, headers/footers
+- May be preceded by "DOI:", "doi:", or "https://doi.org/"
+
+#### **journal** (Helpful if available)
+- Journal name if this is a journal article
+- Look in: Headers, footers, citation block near title
+- Use full journal name when possible
+
+### Where to Look (Search in This Order)
+
+1. **Top of first page**: Title block with author names and affiliations
+2. **Running headers/footers**: Often contain author lastname and year
+3. **Citation block**: Formatted citation info below title
+4. **Bottom of first page**: Copyright, DOI, journal info
+5. **Page margins**: Publication metadata sometimes in margins
+
+### Metadata Extraction Strategy
+
+**PRIORITY**: Focus your attention first on finding first_author_lastname and publication_year. These are not optional - they are the foundation of the entire extraction system. Search systematically through all likely locations before moving to OCR audit.
+
+---
 
 ## Task 2: OCR Quality Audit
 
@@ -60,4 +99,6 @@ Look for this information in:
 
 **errors_found**: Concise list of OCR errors found and corrections made
 
-**Note**: Focus on actionable fixes. Be thorough but concise.
+---
+
+**Final Reminder**: Prioritize extracting first_author_lastname and publication_year above all else. These fields enable the entire downstream extraction process.

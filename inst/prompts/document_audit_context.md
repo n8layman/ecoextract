@@ -1,9 +1,9 @@
-**Output Schema (you MUST follow this exact structure):**
+**Output Schema:**
 
 ```json
 {schema_json}
 ```
 
-**OCR-Processed Document Content:**
+**Document Content:**
 
 {document_content}

@@ -14,19 +14,19 @@
         },
         "first_author_lastname": {
           "type": "string",
-          "description": "Last name of first author"
+          "description": "CRITICAL: Last name of first author only - essential for generating unique record identifiers (e.g., Smith2023-o1). Search thoroughly in title area, headers, footers, and citation blocks."
         },
         "publication_year": {
           "type": "integer",
-          "description": "Year of publication"
+          "description": "CRITICAL: Year of publication - essential for generating unique record identifiers (e.g., Smith2023-o1). Search thoroughly near author names, copyright notices, and date stamps."
         },
         "doi": {
           "type": "string",
-          "description": "DOI if available"
+          "description": "Digital Object Identifier if available (format: 10.xxxx/xxxxx)"
         },
         "journal": {
           "type": "string",
-          "description": "Journal name if applicable"
+          "description": "Journal name if this is a journal article"
         }
       }
     },
