@@ -560,8 +560,17 @@ extract_fields_from_json_schema <- function(schema_json_list) {
   for (field_name in names(record_props)) {
     field_spec <- record_props[[field_name]]
 
+    # Handle type - may be string or array (e.g., ["string", "null"])
+    field_type <- field_spec$type
+    if (is.null(field_type)) {
+      field_type <- "string"
+    } else if (length(field_type) > 1) {
+      # For nullable types like ["string", "null"], take first non-null type
+      field_type <- setdiff(field_type, "null")[1]
+    }
+
     # Map JSON schema types to SQL types
-    sql_type <- switch(field_spec$type,
+    sql_type <- switch(field_type,
       "string" = "TEXT",
       "integer" = "INTEGER",
       "number" = "REAL",
