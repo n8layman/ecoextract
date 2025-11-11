@@ -2,7 +2,7 @@
 % Please edit documentation in R/extraction.R
 \name{generate_record_id}
 \alias{generate_record_id}
-\title{Generate record ID for interaction (internal)}
+\title{Generate record ID for a record (internal)}
 \usage{
 generate_record_id(author_lastname, publication_year, sequence_number = 1)
 }
@@ -11,12 +11,12 @@ generate_record_id(author_lastname, publication_year, sequence_number = 1)
 
 \item{publication_year}{Publication year}
 
-\item{sequence_number}{Sequence number for this interaction}
+\item{sequence_number}{Sequence number for this record}
 }
 \value{
 Character record ID
 }
 \description{
-Generate record ID for interaction (internal)
+Generate record ID for a record (internal)
 }
 \keyword{internal}

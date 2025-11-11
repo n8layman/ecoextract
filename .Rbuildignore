@@ -9,3 +9,5 @@
 ^\.git-crypt$
 ^CONTRIBUTING\.md$
 ^ecoextract_records\.db$
+^ecoextract$
+^REFACTORING_STATUS\.md$

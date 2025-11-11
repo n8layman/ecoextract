@@ -2,7 +2,7 @@
 % Please edit documentation in R/refinement.R
 \name{match_and_restore_record_ids}
 \alias{match_and_restore_record_ids}
-\title{Match refined records to existing records and restore record_ids}
+\title{Verify and restore record_ids from LLM refinement}
 \usage{
 match_and_restore_record_ids(refined_records, existing_records)
 }
@@ -12,9 +12,9 @@ match_and_restore_record_ids(refined_records, existing_records)
 \item{existing_records}{Dataframe of existing records from database}
 }
 \value{
-Dataframe with record_ids restored for matches, NULL for new records
+Dataframe with record_ids verified (LLM should have preserved them)
 }
 \description{
-Match refined records to existing records and restore record_ids
+Verify and restore record_ids from LLM refinement
 }
 \keyword{internal}
