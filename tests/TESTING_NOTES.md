@@ -248,14 +248,14 @@ Current test coverage: **123 tests, 100% passing**
 
 #### test-utils.R (43 tests)
 
-**generate_occurrence_id() - 4 tests**
+**generate_record_id() - 4 tests**
 
 - creates proper format
 - handles special characters in author name
 - handles empty author name
 - creates unique sequential IDs
 
-**add_occurrence_ids() - 3 tests**
+**add_record_ids() - 3 tests**
 
 - adds IDs to all rows
 - creates sequential IDs
@@ -283,13 +283,13 @@ Current test coverage: **123 tests, 100% passing**
 
 - handles errors gracefully
 
-**build_existing_interactions_context() - 5 tests**
+**build_existing_records_context() - 5 tests**
 
-- handles empty interactions
+- handles empty records
 - handles zero-row dataframe
-- formats interactions properly
-- handles missing organism names
-- generates fallback IDs
+- formats records properly
+- handles missing field names
+- controls record_id visibility
 
 ### Areas Needing More Tests
 

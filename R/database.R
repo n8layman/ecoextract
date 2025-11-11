@@ -53,13 +53,10 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
       )
     ")
 
-    # Load schema if provided
-    schema_json_list <- NULL
-    if (!is.null(schema_file)) {
-      schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
-      schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-      schema_json_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
-    }
+    # Load schema using priority order (explicit > project ecoextract/ > wd > package)
+    schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
+    schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
+    schema_json_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
 
     # Create records table with dynamic schema
     schema_columns <- get_record_columns_sql(schema_json_list)
@@ -67,7 +64,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
       CREATE TABLE IF NOT EXISTS records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         document_id INTEGER NOT NULL,
-        occurrence_id TEXT NOT NULL,
+        record_id TEXT NOT NULL,
         ", schema_columns, "
 
         -- Processing metadata
@@ -80,7 +77,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         rejected BOOLEAN DEFAULT FALSE,
         deleted_by_user BOOLEAN DEFAULT FALSE,
 
-        UNIQUE(document_id, occurrence_id),
+        UNIQUE(document_id, record_id),
         FOREIGN KEY (document_id) REFERENCES documents (id)
       )
     ")
@@ -89,7 +86,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     # Create indexes for performance
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_documents_hash ON documents (file_hash)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_document ON records (document_id)")
-    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_occurrence ON records (occurrence_id)")
+    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_record ON records (record_id)")
 
     # Migration: Add deleted_by_user column if it doesn't exist
     tryCatch({
@@ -298,15 +295,15 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     on.exit(DBI::dbDisconnect(con), add = TRUE)
   }
 
-  # Handle occurrence IDs - mix of existing (valid) and new (null/invalid) records
+  # Handle record IDs - mix of existing (valid) and new (null/invalid) records
   # Valid IDs: Match pattern "Author2023-o1" format (from refinement preserving existing records)
   # Invalid IDs: Don't match pattern, are NA, or are null (from extraction or refinement's new records)
 
-  if ("occurrence_id" %in% names(interactions_df) && nrow(interactions_df) > 0) {
+  if ("record_id" %in% names(interactions_df) && nrow(interactions_df) > 0) {
     # Check each ID for validity
     valid_pattern <- "^[A-Za-z]+[0-9]+-o[0-9]+$"
-    is_valid <- !is.na(interactions_df$occurrence_id) &
-                grepl(valid_pattern, interactions_df$occurrence_id)
+    is_valid <- !is.na(interactions_df$record_id) &
+                grepl(valid_pattern, interactions_df$record_id)
 
     valid_count <- sum(is_valid)
     invalid_count <- sum(!is_valid)
@@ -314,9 +311,9 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     if (valid_count > 0 && invalid_count > 0) {
       message(glue::glue("Mixed IDs: {valid_count} existing (preserved), {invalid_count} new (generating)"))
     } else if (valid_count > 0) {
-      message(glue::glue("Preserving existing occurrence IDs for {valid_count} records"))
+      message(glue::glue("Preserving existing record IDs for {valid_count} records"))
     } else {
-      message(glue::glue("Generating occurrence IDs for {invalid_count} new records"))
+      message(glue::glue("Generating record IDs for {invalid_count} new records"))
     }
 
     # Only generate IDs for records with invalid/missing IDs
@@ -345,8 +342,8 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       # Generate IDs only for records that need them
       # Get existing max sequence number to avoid conflicts
       existing_ids <- DBI::dbGetQuery(con,
-        "SELECT occurrence_id FROM records WHERE document_id = ?",
-        params = list(document_id))$occurrence_id
+        "SELECT record_id FROM records WHERE document_id = ?",
+        params = list(document_id))$record_id
 
       max_seq <- 0
       if (length(existing_ids) > 0) {
@@ -359,11 +356,11 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       new_id_count <- 0
       for (i in which(!is_valid)) {
         new_id_count <- new_id_count + 1
-        interactions_df$occurrence_id[i] <- paste0(author_lastname, publication_year, "-o", max_seq + new_id_count)
+        interactions_df$record_id[i] <- paste0(author_lastname, publication_year, "-o", max_seq + new_id_count)
       }
     }
   } else {
-    # No occurrence_id column or empty dataframe - generate all IDs
+    # No record_id column or empty dataframe - generate all IDs
     doc_meta <- DBI::dbGetQuery(con,
       "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
       params = list(document_id))
@@ -380,8 +377,8 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       as.integer(format(Sys.Date(), "%Y"))
     }
 
-    interactions_df <- add_occurrence_ids(interactions_df, author_lastname, publication_year)
-    message(glue::glue("Generated occurrence IDs for {nrow(interactions_df)} records"))
+    interactions_df <- add_record_ids(interactions_df, author_lastname, publication_year)
+    message(glue::glue("Generated record IDs for {nrow(interactions_df)} records"))
   }
 
   # Add required metadata columns
@@ -473,10 +470,10 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   for (i in 1:nrow(interactions_clean)) {
     row <- interactions_clean[i, ]
 
-    # Check if this occurrence_id already exists for this document
+    # Check if this record_id already exists for this document
     existing <- DBI::dbGetQuery(con,
-      "SELECT id FROM records WHERE document_id = ? AND occurrence_id = ?",
-      params = list(row$document_id, row$occurrence_id))
+      "SELECT id FROM records WHERE document_id = ? AND record_id = ?",
+      params = list(row$document_id, row$record_id))
 
     if (nrow(existing) > 0) {
       # Update existing record (only if not human_edited and not rejected)

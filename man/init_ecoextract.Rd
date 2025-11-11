@@ -25,8 +25,8 @@ defaults on a per-project basis.
 init_ecoextract()
 
 # Now customize files in ecoextract/ directory:
-# - ecoextract/schema.json
-# - ecoextract/extraction_prompt.md
-# - ecoextract/refinement_prompt.md
+# - Read SCHEMA_GUIDE.md for schema format requirements
+# - Edit schema.json to define your data fields
+# - Edit extraction_prompt.md to describe what to extract
 }
 }

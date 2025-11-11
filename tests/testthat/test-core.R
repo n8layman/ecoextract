@@ -78,29 +78,29 @@ test_that("filter_to_schema_columns removes unknown columns", {
 
 # ID Generation ----------------------------------------------------------------
 
-test_that("generate_occurrence_id creates correct format", {
-  id <- generate_occurrence_id("Smith", 2020, 1)
+test_that("generate_record_id creates correct format", {
+  id <- generate_record_id("Smith", 2020, 1)
 
   expect_type(id, "character")
   expect_match(id, "Smith2020-o1")
 })
 
-test_that("generate_occurrence_id handles special characters", {
-  id <- generate_occurrence_id("O'Brien", 2020, 1)
+test_that("generate_record_id handles special characters", {
+  id <- generate_record_id("O'Brien", 2020, 1)
 
   expect_match(id, "OBrien2020-o1")
   expect_false(grepl("'", id))
 })
 
-test_that("add_occurrence_ids adds IDs to all rows", {
+test_that("add_record_ids adds IDs to all rows", {
   records <- sample_records()
-  records$occurrence_id <- NULL
+  records$record_id <- NULL
 
-  result <- add_occurrence_ids(records, "Test", 2020)
+  result <- add_record_ids(records, "Test", 2020)
 
-  expect_true("occurrence_id" %in% names(result))
+  expect_true("record_id" %in% names(result))
   expect_equal(nrow(result), nrow(records))
-  expect_true(all(!is.na(result$occurrence_id)))
+  expect_true(all(!is.na(result$record_id)))
 })
 
 # Utilities --------------------------------------------------------------------

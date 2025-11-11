@@ -139,8 +139,9 @@ load_config_file <- function(file_path = NULL,
 #' init_ecoextract()
 #'
 #' # Now customize files in ecoextract/ directory:
-#' # - ecoextract/schema.json
-#' # - ecoextract/extraction_prompt.md
+#' # - Read SCHEMA_GUIDE.md for schema format requirements
+#' # - Edit schema.json to define your data fields
+#' # - Edit extraction_prompt.md to describe what to extract
 #' }
 init_ecoextract <- function(project_dir = getwd(), overwrite = FALSE) {
 
@@ -154,8 +155,9 @@ init_ecoextract <- function(project_dir = getwd(), overwrite = FALSE) {
   # Files to copy (only domain-specific ones that users need to customize)
   # Note: context templates and refinement_prompt.md are not copied as they're generic/algorithmic
   files_to_copy <- list(
-    list(source = "schema.json", dest = "schema.json", subdir = "extdata", desc = "Schema definition"),
-    list(source = "extraction_prompt.md", dest = "extraction_prompt.md", subdir = "prompts", desc = "Extraction system prompt")
+    list(source = "SCHEMA_GUIDE.md", dest = "SCHEMA_GUIDE.md", subdir = "extdata", desc = "Schema format documentation"),
+    list(source = "schema.json", dest = "schema.json", subdir = "extdata", desc = "Schema definition (example)"),
+    list(source = "extraction_prompt.md", dest = "extraction_prompt.md", subdir = "prompts", desc = "Extraction system prompt (example)")
   )
 
   copied <- 0
@@ -184,10 +186,11 @@ init_ecoextract <- function(project_dir = getwd(), overwrite = FALSE) {
   cat("Files copied:", copied, "| Skipped:", skipped, "\n\n")
 
   cat("Next steps:\n")
-  cat("1. Edit schema.json to define your domain-specific data structure\n")
-  cat("2. Edit extraction_prompt.md to describe what to extract (e.g., 'bat interactions')\n")
-  cat("3. Run process_documents() - it will automatically use your custom configs\n")
-  cat("4. Add ecoextract/ to version control to share with team\n\n")
+  cat("1. Read SCHEMA_GUIDE.md to understand the required schema format\n")
+  cat("2. Edit schema.json to define your domain-specific data structure\n")
+  cat("3. Edit extraction_prompt.md to describe what to extract (e.g., 'host-pathogen relationships')\n")
+  cat("4. Run process_documents() - it will automatically use your custom configs\n")
+  cat("5. Add ecoextract/ to version control to share with team\n\n")
 
   cat("Note: The package will automatically detect and use files in ecoextract/\n")
   cat("You can also place configs in working directory with 'ecoextract_' prefix\n")

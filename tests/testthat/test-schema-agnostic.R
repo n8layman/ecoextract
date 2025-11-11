@@ -2,18 +2,18 @@
 # Tests that the package works with completely different domains (not bat interactions)
 # This ensures no hard-coded assumptions about "bats" or "interactions"
 
-test_that("pollination schema works end-to-end", {
-  cat("\n========== TEST: pollination schema works end-to-end ==========\n")
+test_that("host-pathogen schema works end-to-end", {
+  cat("\n========== TEST: host-pathogen schema works end-to-end ==========\n")
   skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
 
-  test_pdf <- testthat::test_path("fixtures", "pollination_paper.pdf")
-  schema_file <- testthat::test_path("fixtures", "pollination_schema.json")
-  prompt_file <- testthat::test_path("fixtures", "pollination_extraction_prompt.md")
+  test_pdf <- testthat::test_path("fixtures", "hostpathogen_paper.pdf")
+  schema_file <- testthat::test_path("fixtures", "hostpathogen_schema.json")
+  prompt_file <- testthat::test_path("fixtures", "hostpathogen_extraction_prompt.md")
 
-  skip_if_not(file.exists(test_pdf), "Pollination test PDF not found")
-  skip_if_not(file.exists(schema_file), "Pollination schema not found")
-  skip_if_not(file.exists(prompt_file), "Pollination prompt not found")
+  skip_if_not(file.exists(test_pdf), "Host-pathogen test PDF not found")
+  skip_if_not(file.exists(schema_file), "Host-pathogen schema not found")
+  skip_if_not(file.exists(prompt_file), "Host-pathogen prompt not found")
 
   db_path <- withr::local_tempfile(fileext = ".sqlite")
 
@@ -40,16 +40,18 @@ test_that("pollination schema works end-to-end", {
 
   records <- DBI::dbReadTable(con, "records")
 
-  # Should have extracted some pollination records
-  expect_true(nrow(records) > 0, "Should extract at least one pollination record")
+  # Should have extracted some host-pathogen records
+  # This paper is known to contain at least 12 Pasteurella-host relationships
+  # Allow for LLM non-determinism by setting threshold at 8
+  expect_true(nrow(records) >= 8, "Should extract at least 8 host-pathogen records from this paper")
 
   # Check that schema-specific columns exist
-  expect_true("plant_species_scientific_name" %in% names(records),
-              "Should have plant_species_scientific_name column")
-  expect_true("pollinator_species_scientific_name" %in% names(records),
-              "Should have pollinator_species_scientific_name column")
-  expect_true("pollinator_type" %in% names(records),
-              "Should have pollinator_type column")
+  expect_true("Pathogen_Name" %in% names(records),
+              "Should have Pathogen_Name column")
+  expect_true("Host_Name" %in% names(records),
+              "Should have Host_Name column")
+  expect_true("Detection_Method" %in% names(records),
+              "Should have Detection_Method column")
 
   # Check that bat/interaction columns DON'T exist (would indicate hard-coding)
   expect_false("bat_species_scientific_name" %in% names(records),
@@ -58,12 +60,14 @@ test_that("pollination schema works end-to-end", {
                "Should NOT have interacting_organism_scientific_name column (schema-agnostic fail)")
 
   # Verify some actual data was extracted
-  expect_true(any(!is.na(records$plant_species_scientific_name)),
-              "Should have extracted plant species names")
-  expect_true(any(!is.na(records$pollinator_species_scientific_name)),
-              "Should have extracted pollinator species names")
+  expect_true(any(!is.na(records$Pathogen_Name)),
+              "Should have extracted pathogen names")
+  expect_true(any(!is.na(records$Host_Name)),
+              "Should have extracted host names")
+  expect_true(any(!is.na(records$Detection_Method)),
+              "Should have extracted detection methods")
 
-  # Verify occurrence IDs were generated correctly
-  expect_true(all(grepl("^[A-Za-z]+[0-9]+-o[0-9]+$", records$occurrence_id)),
-              "All occurrence_ids should match pattern Author2024-o1")
+  # Verify record IDs were generated correctly
+  expect_true(all(grepl("^[A-Za-z]+[0-9]+-o[0-9]+$", records$record_id)),
+              "All record_ids should match pattern Author2024-o1")
 })

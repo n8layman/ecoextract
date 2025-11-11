@@ -77,10 +77,10 @@ test_that("extraction rediscovers physically deleted records", {
 
   # Delete half the records from the database (physical delete)
   records_to_delete <- DBI::dbGetQuery(
-    con, glue::glue("SELECT occurrence_id FROM records LIMIT {floor(initial_count / 2)}"))
-  for (occ_id in records_to_delete$occurrence_id) {
-    DBI::dbExecute(con, "DELETE FROM records WHERE occurrence_id = ?",
-                   params = list(occ_id))
+    con, glue::glue("SELECT record_id FROM records LIMIT {floor(initial_count / 2)}"))
+  for (rec_id in records_to_delete$record_id) {
+    DBI::dbExecute(con, "DELETE FROM records WHERE record_id = ?",
+                   params = list(rec_id))
   }
 
   after_delete_count <- DBI::dbGetQuery(
@@ -108,7 +108,7 @@ test_that("extraction rediscovers physically deleted records", {
 
   # Check that rows which were NOT deleted are NOT duplicated
   # Final count should not grossly exceed initial count (allowing for LLM variation)
-  # Note: Duplicates would get new occurrence_ids, so count is the key test
+  # Note: Duplicates would get new record_ids, so count is the key test
   expect_true(final_count <= initial_count * 1.5,
     info = sprintf(paste("Non-deleted records should not be duplicated.",
                          "Initial: %d, After delete: %d, Final: %d",

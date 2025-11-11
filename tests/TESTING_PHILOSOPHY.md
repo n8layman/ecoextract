@@ -20,7 +20,7 @@ Tests should verify that the package's core operations work correctly, regardles
 - Do type checks work?
 
 ### 3. ID Generation
-- Are occurrence IDs generated in the correct format?
+- Are record IDs generated in the correct format?
 - Do IDs handle special characters properly?
 - Are IDs unique?
 
@@ -128,16 +128,16 @@ This separation allows:
    - Tests: Extra columns removed, schema columns retained
 
 #### ID Generation (3 tests)
-7. **"generate_occurrence_id creates correct format"**
-   - Verifies occurrence ID format: `AuthorYear-oN`
+7. **"generate_record_id creates correct format"**
+   - Verifies record ID format: `AuthorYear-oN`
    - Tests: String format matches pattern
 
-8. **"generate_occurrence_id handles special characters"**
+8. **"generate_record_id handles special characters"**
    - Tests that special chars like apostrophes are stripped
    - Tests: Clean IDs without special characters
 
-9. **"add_occurrence_ids adds IDs to all rows"**
-   - Ensures all records get unique occurrence IDs
+9. **"add_record_ids adds IDs to all rows"**
+   - Ensures all records get unique record IDs
    - Tests: All rows have non-NA IDs
 
 #### Utilities (1 test)

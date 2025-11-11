@@ -186,11 +186,17 @@ library(ecoextract)
 init_ecoextract()
 
 # This creates:
-# - ecoextract/schema.json
-# - ecoextract/extraction_prompt.md
+# - ecoextract/SCHEMA_GUIDE.md      # Read this first!
+# - ecoextract/schema.json          # Edit for your domain
+# - ecoextract/extraction_prompt.md # Edit for your domain
 ```
 
-Now edit the files in `ecoextract/` to customize for your domain. The package will automatically detect and use these files when you run `process_documents()`.
+Now edit the files in `ecoextract/` to customize for your domain:
+1. **Read `SCHEMA_GUIDE.md`** to understand the required schema format
+2. Edit `schema.json` to define your data structure
+3. Edit `extraction_prompt.md` to describe what to extract
+
+The package will automatically detect and use these files when you run `process_documents()`.
 
 **Priority order for loading configs:**
 1. Explicit file path passed to function (e.g., `schema_file = "path/to/schema.json"`)
@@ -233,7 +239,7 @@ Your schema MUST follow this structure:
 1. Top-level must have a `records` property (array of objects)
 2. Each field should have a `type` and `description` (description helps the LLM understand what to extract)
 3. Use JSON Schema draft-07 format
-4. Occurrence IDs are auto-generated from publication metadata (extracted in document_audit step)
+4. Record IDs are auto-generated from publication metadata (extracted in document_audit step)
 
 See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete example.
 

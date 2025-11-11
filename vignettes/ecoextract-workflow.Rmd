@@ -142,7 +142,7 @@ Uses LLM (Claude) to extract structured interaction data from the markdown text 
 
 Enhances extracted data by filling missing information, improving evidence quality, and cross-referencing with document tables.
 
-All results are automatically saved to the SQLite database with proper occurrence IDs.
+All results are automatically saved to the SQLite database with proper record IDs.
 
 ## Working with the Database
 
