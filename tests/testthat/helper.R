@@ -15,11 +15,26 @@ local_test_db <- function(env = parent.frame()) {
   return(db_path)
 }
 
-#' Get database schema dynamically
-#' @return List with schema columns
+#' Get database schema dynamically from JSON
+#' @return Character vector of column names from the active schema
 get_db_schema_columns <- function() {
-  schema <- get_database_schema()
-  return(schema$columns)
+  # Load schema using same priority order as init_ecoextract_database
+  schema_path <- load_config_file(NULL, "schema.json", "extdata", return_content = FALSE)
+  schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
+  schema_json_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+
+  # Extract field names from schema
+  if (!is.null(schema_json_list$properties$records$items$properties)) {
+    return(names(schema_json_list$properties$records$items$properties))
+  }
+
+  # Fallback to hard-coded if schema parsing fails
+  return(c(
+    "bat_species_scientific_name", "bat_species_common_name",
+    "interacting_organism_scientific_name", "interacting_organism_common_name",
+    "interaction_type", "location", "interaction_start_date", "interaction_end_date",
+    "all_supporting_source_sentences", "page_number", "publication_year"
+  ))
 }
 
 #' Create sample dataframe matching current schema

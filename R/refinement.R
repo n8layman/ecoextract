@@ -231,9 +231,9 @@ merge_refinements <- function(original_records, refined_records) {
   for (i in 1:nrow(refined_records)) {
     refined_row <- refined_records[i, ]
 
-    # Find matching original record by occurrence_id
-    if ("occurrence_id" %in% names(refined_row) && "occurrence_id" %in% names(updated_records)) {
-      match_idx <- which(updated_records$occurrence_id == refined_row$occurrence_id)
+    # Find matching original record by record_id
+    if ("record_id" %in% names(refined_row) && "record_id" %in% names(updated_records)) {
+      match_idx <- which(updated_records$record_id == refined_row$record_id)
 
       if (length(match_idx) > 0) {
         # Update fields from refined data

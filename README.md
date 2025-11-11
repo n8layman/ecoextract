@@ -239,7 +239,7 @@ Your schema MUST follow this structure:
 1. Top-level must have a `records` property (array of objects)
 2. Each field should have a `type` and `description` (description helps the LLM understand what to extract)
 3. Use JSON Schema draft-07 format
-4. Occurrence IDs are auto-generated from publication metadata (extracted in document_audit step)
+4. Record IDs are auto-generated from publication metadata (extracted in document_audit step)
 
 See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete example.
 

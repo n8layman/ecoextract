@@ -66,7 +66,7 @@ test_that("host-pathogen schema works end-to-end", {
   expect_true(any(!is.na(records$Detection_Method)),
               "Should have extracted detection methods")
 
-  # Verify occurrence IDs were generated correctly
-  expect_true(all(grepl("^[A-Za-z]+[0-9]+-o[0-9]+$", records$occurrence_id)),
-              "All occurrence_ids should match pattern Author2024-o1")
+  # Verify record IDs were generated correctly
+  expect_true(all(grepl("^[A-Za-z]+[0-9]+-o[0-9]+$", records$record_id)),
+              "All record_ids should match pattern Author2024-o1")
 })
