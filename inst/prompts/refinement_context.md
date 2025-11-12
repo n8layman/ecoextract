@@ -1,9 +1,6 @@
 **Document Content:**
 {document_content}
 
-**OCR Audit (reconstructed tables and corrections):**
-{ocr_audit}
-
 **Existing Records to Enhance:**
 {existing_records_context}
 

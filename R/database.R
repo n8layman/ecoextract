@@ -49,7 +49,11 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         -- Content storage
         document_content TEXT,  -- OCR markdown results
         ocr_audit TEXT,         -- OCR quality audit (JSON)
-        ocr_images TEXT         -- OCR images (JSON array of base64 images)
+        ocr_images TEXT,        -- OCR images (JSON array of base64 images)
+
+        -- Reasoning logs
+        extraction_reasoning TEXT,  -- Reasoning from extraction step
+        refinement_reasoning TEXT   -- Reasoning from refinement step
       )
     ")
 
@@ -97,6 +101,21 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
       # Column doesn't exist, add it
       cat("Migrating database: Adding deleted_by_user column\n")
       DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN deleted_by_user BOOLEAN DEFAULT FALSE")
+    })
+
+    # Migration: Add reasoning columns if they don't exist
+    tryCatch({
+      DBI::dbGetQuery(con, "SELECT extraction_reasoning FROM documents LIMIT 0")
+    }, error = function(e) {
+      cat("Migrating database: Adding extraction_reasoning column\n")
+      DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN extraction_reasoning TEXT")
+    })
+
+    tryCatch({
+      DBI::dbGetQuery(con, "SELECT refinement_reasoning FROM documents LIMIT 0")
+    }, error = function(e) {
+      cat("Migrating database: Adding refinement_reasoning column\n")
+      DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN refinement_reasoning TEXT")
     })
 
     if (is.character(db_conn)) {
@@ -249,6 +268,13 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
 #' @return Document ID
 #' @keywords internal
 save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
+  # Explicitly convert publication_year to integer
+  pub_year <- if (!is.null(metadata$publication_year)) {
+    as.integer(metadata$publication_year)
+  } else {
+    NA_integer_
+  }
+
   # Update documents table with metadata
   DBI::dbExecute(db_conn,
     "UPDATE documents
@@ -262,7 +288,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
     params = list(
       metadata$title %||% NA_character_,
       metadata$first_author_lastname %||% NA_character_,
-      metadata$publication_year %||% NA_integer_,
+      pub_year,
       metadata$doi %||% NA_character_,
       metadata$journal %||% NA_character_,
       metadata$ocr_audit %||% NA_character_,
@@ -732,6 +758,24 @@ get_existing_records <- function(document_id, db_conn) {
     message("Error retrieving existing records: ", e$message)
     return(NA)
   })
+}
+
+#' Save reasoning to database (internal)
+#' @param document_id Document ID
+#' @param db_conn Database connection
+#' @param reasoning_text Reasoning text to save
+#' @param step Either "extraction" or "refinement"
+#' @return NULL
+#' @keywords internal
+save_reasoning_to_db <- function(document_id, db_conn, reasoning_text, step = c("extraction", "refinement")) {
+  step <- match.arg(step)
+  column_name <- paste0(step, "_reasoning")
+
+  sql <- paste0("UPDATE documents SET ", column_name, " = ? WHERE id = ?")
+
+  DBI::dbExecute(db_conn, sql, params = list(reasoning_text, document_id))
+
+  invisible(NULL)
 }
 
 #' Simple null coalescing operator

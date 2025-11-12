@@ -4,31 +4,58 @@ Extract ecological interactions between bat species and other organisms from sci
 
 **Your output will be used by researchers building a database of bat ecological interactions.** The data must be accurate, well-supported, and structured for database storage and analysis.
 
+## CRITICAL: Reason First, Then Extract
+
+Before extracting any records, you MUST fill the `reasoning` field with your analysis. Think step-by-step:
+
+1. **Document structure**: What sections, tables, and figures are present? How is data organized?
+2. **Data source mapping**: Where are potential interactions described? (which tables, text sections, captions)
+3. **Organism identifiability**: For each potential interaction, can both organisms be identified to at least genus level? Note challenges.
+4. **Cross-referencing**: How do you connect organism mentions across tables, captions, and text?
+5. **Extraction decisions**: Which interactions meet requirements? Which should be excluded and why?
+
+Your reasoning should address challenges like:
+- Ambiguous organism IDs requiring context from multiple locations
+- Table structures that need interpretation
+- Whether common names map to identifiable taxonomic groups
+- If habitat features can be linked to specific organisms
+- Why certain potential interactions were excluded
+
+**Output the `reasoning` field FIRST, then the `records` array.**
+
 ## Extraction Process
 
 Complete these phases in order for systematic extraction:
 
-### Phase 1: Read and Understand
-- Read the entire document content, OCR audit, and existing records section
+### Phase 1: Document Analysis (captured in `reasoning` field)
+- Read the entire document content and existing records section
 - Identify the document structure (text, tables, figures, captions)
 - Review the output schema to understand required fields
+- **Document this analysis in your `reasoning` field**
 
-### Phase 2: Find Interactions
+### Phase 2: Find Interactions (captured in `reasoning` field)
 - Scan tables for species co-occurrence, roosting data, or interaction descriptions
 - Search text for descriptions of bat interactions with other organisms
 - Note figure/table captions that describe ecological relationships
 - Cross-reference between text and tables for complete information
+- **Document what you found and where in your `reasoning` field**
 
-### Phase 3: Extract Records
-- For each interaction found, create a record with all available fields
+### Phase 3: Validate Identifiability (captured in `reasoning` field)
+- For each potential interaction, verify both organisms can be identified to at least genus level
+- Note any organism identification challenges
+- Decide which interactions meet requirements and which should be excluded
+- **Explain your identifiability assessment in your `reasoning` field**
+
+### Phase 4: Extract Records (based on your reasoning)
+- Using the analysis from your `reasoning` field, extract structured records
+- For each interaction identified in your reasoning, create a complete record
 - Include verbatim supporting sentences from the document
 - Skip interactions already listed in the existing records section
-- Ensure both organisms are identifiable (at least genus-level)
 
-### Phase 4: Structure Output
-- Format all records according to the output schema
-- Verify each record has supporting evidence
-- Return the complete records array
+### Phase 5: Structure Output
+- Output your complete `reasoning` analysis FIRST
+- Then output the `records` array based on that reasoning
+- Verify each record matches decisions made in your reasoning
 
 ## Extraction Rules
 

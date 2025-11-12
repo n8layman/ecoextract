@@ -9,8 +9,8 @@
 #' @param schema_file Optional custom schema file
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
-#' @param do_extraction If TRUE, run extraction step (default: TRUE)
-#' @param do_refinement If TRUE, run refinement step (default: TRUE)
+#' @param run_extraction If TRUE, run extraction step (default: TRUE)
+#' @param run_refinement If TRUE, run refinement step (default: TRUE)
 #' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
 #' @return Tibble with processing results
 #' @export
@@ -44,18 +44,18 @@
 #'                   extraction_prompt_file = "ecoextract/extraction_prompt.md")
 #'
 #' # Skip refinement (extraction only)
-#' process_documents("pdfs/", do_refinement = FALSE)
+#' process_documents("pdfs/", run_refinement = FALSE)
 #'
 #' # Skip extraction (refinement only on existing records)
-#' process_documents("pdfs/", do_extraction = FALSE)
+#' process_documents("pdfs/", run_extraction = FALSE)
 #' }
 process_documents <- function(pdf_path,
                              db_conn = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
-                             do_extraction = TRUE,
-                             do_refinement = TRUE,
+                             run_extraction = TRUE,
+                             run_refinement = TRUE,
                              force_reprocess = FALSE) {
 
   # Determine if processing single file, multiple files, or directory
@@ -135,6 +135,8 @@ process_documents <- function(pdf_path,
       schema_file = schema_file,
       extraction_prompt_file = extraction_prompt_file,
       refinement_prompt_file = refinement_prompt_file,
+      run_extraction = run_extraction,
+      run_refinement = run_refinement,
       force_reprocess = force_reprocess
     )
     results_list[[length(results_list) + 1]] <- result
@@ -211,6 +213,8 @@ process_documents <- function(pdf_path,
 #' @param schema_file Optional custom schema
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
+#' @param run_extraction If TRUE, run extraction step (default: TRUE)
+#' @param run_refinement If TRUE, run refinement step (default: TRUE)
 #' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
 #' @return List with processing result
 #' @keywords internal
@@ -219,6 +223,8 @@ process_single_document <- function(pdf_file,
                                     schema_file = NULL,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
+                                    run_extraction = TRUE,
+                                    run_refinement = TRUE,
                                     force_reprocess = FALSE) {
 
   # Log header
@@ -229,7 +235,7 @@ process_single_document <- function(pdf_file,
   # Initialize status tracking with filename only (all start as 'skipped')
   status_tracking <- list(filename = basename(pdf_file),
                           ocr_status = "skipped",
-                          audit_status = "skipped",
+                          audit_status = "skipped",  # alias for metadata_status for backward compatibility
                           extraction_status = "skipped",
                           records_extracted = 0,
                           refinement_status = "skipped")
@@ -245,18 +251,18 @@ process_single_document <- function(pdf_file,
     return(status_tracking)
   }
 
-  # Step 2: Document Audit (extract metadata + review OCR quality)
-  message("\n[2/4] Document Audit...")
-  audit_result <- audit_document(status_tracking$document_id, db_conn, force_reprocess)
-  status_tracking$audit_status <- audit_result$status
+  # Step 2: Extract Metadata
+  message("\n[2/4] Extracting Metadata...")
+  metadata_result <- extract_metadata(status_tracking$document_id, db_conn, force_reprocess)
+  status_tracking$audit_status <- metadata_result$status  # Using audit_status for backward compatibility
   # Continue if completed or skipped, stop on error
   if(status_tracking$audit_status != "completed" && status_tracking$audit_status != "skipped") {
-    message(paste("Document audit error detected:", status_tracking$audit_status))
+    message(paste("Metadata extraction error detected:", status_tracking$audit_status))
     return(status_tracking)
   }
 
   # Step 3: Extract records
-  if (do_extraction) {
+  if (run_extraction) {
     message("\n[3/4] Extracting Records...")
     extraction_result <- extract_records(
       document_id = status_tracking$document_id,
@@ -273,13 +279,13 @@ process_single_document <- function(pdf_file,
       return(status_tracking)
     }
   } else {
-    message("\n[3/4] Extracting Records... SKIPPED (do_extraction = FALSE)")
+    message("\n[3/4] Extracting Records... SKIPPED (run_extraction = FALSE)")
     status_tracking$extraction_status <- "skipped"
     status_tracking$records_extracted <- 0
   }
 
   # Step 4: Refine records
-  if (do_refinement) {
+  if (run_refinement) {
     message("\n[4/4] Refining Records...")
     refinement_result <- refine_records(
       db_conn = db_conn,
@@ -295,7 +301,7 @@ process_single_document <- function(pdf_file,
       return(status_tracking)
     }
   } else {
-    message("\n[4/4] Refining Records... SKIPPED (do_refinement = FALSE)")
+    message("\n[4/4] Refining Records... SKIPPED (run_refinement = FALSE)")
     status_tracking$refinement_status <- "skipped"
   }
 

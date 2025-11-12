@@ -28,19 +28,6 @@ get_refinement_prompt <- function(prompt_file = NULL) {
   )
 }
 
-#' Get OCR audit prompt from package or custom location (internal)
-#' @param prompt_file Optional path to custom OCR audit prompt file
-#' @return Character string with OCR audit prompt
-#' @keywords internal
-get_ocr_audit_prompt <- function(prompt_file = NULL) {
-  load_config_file(
-    file_path = prompt_file,
-    file_name = "ocr_audit_prompt.md",
-    package_subdir = "prompts",
-    return_content = TRUE
-  )
-}
-
 #' Get context template from package or custom location (internal)
 #' @param context_file Optional path to custom context template file
 #' @param context_type Type of context: "extraction" or "refinement"

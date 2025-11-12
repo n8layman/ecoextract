@@ -11,8 +11,13 @@ perform_ocr <- function(pdf_file) {
   # Perform OCR using ohseer
   ocr_result <- ohseer::mistral_ocr(pdf_file)
 
-  # Extract and combine markdown from all pages
-  markdown <- paste(sapply(ocr_result$pages, function(p) p$markdown), collapse = "\n\n")
+  # Extract and combine markdown from all pages with page markers
+  # Page markers come AFTER each page to mark page boundaries
+  markdown_parts <- sapply(seq_along(ocr_result$pages), function(i) {
+    paste0(ocr_result$pages[[i]]$markdown, "\n\n--- PAGE ", i, " ---")
+  })
+
+  markdown <- paste(markdown_parts, collapse = "\n\n")
 
   # Extract images from all pages
   images <- lapply(seq_along(ocr_result$pages), function(i) {

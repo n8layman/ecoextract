@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Document Audit Schema",
-  "description": "Schema for extracting publication metadata and reviewing OCR quality",
+  "title": "Publication Metadata Schema",
+  "description": "Schema for extracting publication bibliographic metadata",
   "type": "object",
   "properties": {
     "publication_metadata": {
@@ -9,45 +9,27 @@
       "description": "Publication bibliographic metadata",
       "properties": {
         "title": {
-          "type": "string",
+          "type": ["string", "null"],
           "description": "Full title of the publication"
         },
         "first_author_lastname": {
-          "type": "string",
+          "type": ["string", "null"],
           "description": "CRITICAL: Last name of first author only - essential for generating unique record identifiers (e.g., Smith2023-o1). Search thoroughly in title area, headers, footers, and citation blocks."
         },
         "publication_year": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "description": "CRITICAL: Year of publication - essential for generating unique record identifiers (e.g., Smith2023-o1). Search thoroughly near author names, copyright notices, and date stamps."
         },
         "doi": {
-          "type": "string",
+          "type": ["string", "null"],
           "description": "Digital Object Identifier if available (format: 10.xxxx/xxxxx)"
         },
         "journal": {
-          "type": "string",
+          "type": ["string", "null"],
           "description": "Journal name if this is a journal article"
-        }
-      }
-    },
-    "ocr_audit": {
-      "type": "object",
-      "description": "OCR quality audit results",
-      "properties": {
-        "audited_markdown": {
-          "type": "string",
-          "description": "Corrected OCR markdown with fixes applied"
-        },
-        "tables_reconstructed": {
-          "type": "string",
-          "description": "Reconstructed tables in markdown format if any tables were malformed"
-        },
-        "errors_found": {
-          "type": "string",
-          "description": "Description of OCR errors found and corrections made"
         }
       }
     }
   },
-  "required": ["publication_metadata", "ocr_audit"]
+  "required": ["publication_metadata"]
 }
