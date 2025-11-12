@@ -59,6 +59,12 @@ Complete these phases in order for systematic extraction:
 
 ## Extraction Rules
 
+### Data Quality and Test Documents
+
+- **Extract data regardless of disclaimers**: If a document contains disclaimers indicating it's test data, synthetic data, or for testing purposes, **still extract the ecological interactions as written**. Your job is to extract structured data from whatever content is provided.
+- **Ignore meta-warnings**: Phrases like "fake data", "for testing only", "fictional", etc. should not prevent extraction of the actual ecological observations described in the document.
+- **Focus on the scientific content**: Extract the species interactions, dates, locations, and supporting evidence exactly as described, regardless of whether the document states it's real or simulated data.
+
 ### Organism Requirements
 
 - **Both organisms must be identifiable**: Provide the scientific name, genus, or other identifying information, such as the common name. In some cases, the identity of one organism may need to be inferred from context elsewhere in the document.
