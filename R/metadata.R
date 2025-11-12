@@ -15,16 +15,16 @@
 #' @export
 extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
 
-  # Check if metadata already extracted
-  if (!force_reprocess) {
-    existing_metadata <- DBI::dbGetQuery(db_conn,
-      "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
-      params = list(document_id))
+  # Get existing metadata to check what needs updating
+  existing_metadata <- DBI::dbGetQuery(db_conn,
+    "SELECT title, first_author_lastname, publication_year, doi, journal FROM documents WHERE id = ?",
+    params = list(document_id))
 
-    if (nrow(existing_metadata) > 0 &&
-        !is.na(existing_metadata$first_author_lastname[1]) &&
-        !is.na(existing_metadata$publication_year[1])) {
-      message("Metadata already extracted for document ", document_id,
+  # Check if all metadata fields are already populated
+  if (!force_reprocess && nrow(existing_metadata) > 0) {
+    all_fields_populated <- !any(is.na(existing_metadata[1, ]))
+    if (all_fields_populated) {
+      message("All metadata fields already populated for document ", document_id,
               ", skipping (force_reprocess=FALSE)")
       return(list(status = "skipped", document_id = document_id))
     }

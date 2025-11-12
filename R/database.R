@@ -268,6 +268,15 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
 #' @return Document ID
 #' @keywords internal
 save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
+  # Get existing metadata
+  existing <- DBI::dbGetQuery(db_conn,
+    "SELECT title, first_author_lastname, publication_year, doi, journal, ocr_audit FROM documents WHERE id = ?",
+    params = list(document_id))
+
+  if (nrow(existing) == 0) {
+    stop("Document ID ", document_id, " not found in database")
+  }
+
   # Explicitly convert publication_year to integer
   pub_year <- if (!is.null(metadata$publication_year)) {
     as.integer(metadata$publication_year)
@@ -275,15 +284,17 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
     NA_integer_
   }
 
-  # Update documents table with metadata
+  # Only update fields that are currently NULL/NA in the database
+  # Use COALESCE to keep existing values when new value is NULL
+  # Use CASE to only update when existing value is NULL
   DBI::dbExecute(db_conn,
     "UPDATE documents
-     SET title = ?,
-         first_author_lastname = ?,
-         publication_year = ?,
-         doi = ?,
-         journal = ?,
-         ocr_audit = ?
+     SET title = CASE WHEN title IS NULL THEN ? ELSE title END,
+         first_author_lastname = CASE WHEN first_author_lastname IS NULL THEN ? ELSE first_author_lastname END,
+         publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END,
+         doi = CASE WHEN doi IS NULL THEN ? ELSE doi END,
+         journal = CASE WHEN journal IS NULL THEN ? ELSE journal END,
+         ocr_audit = CASE WHEN ocr_audit IS NULL THEN ? ELSE ocr_audit END
      WHERE id = ?",
     params = list(
       metadata$title %||% NA_character_,
