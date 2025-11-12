@@ -114,6 +114,9 @@ extract_records <- function(document_id = NA,
       print(extraction_df)
       message(glue::glue("Extracted {nrow(extraction_df)} records"))
 
+      # Set fields_changed_count to 0 for new extractions
+      extraction_df$fields_changed_count <- 0L
+
       # Save to database (atomic step)
       if (!is.na(document_id) && !inherits(interaction_db, "logical")) {
         save_records_to_db(

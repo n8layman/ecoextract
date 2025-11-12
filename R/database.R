@@ -71,6 +71,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         extraction_timestamp TEXT NOT NULL,
         llm_model_version TEXT NOT NULL,
         prompt_hash TEXT NOT NULL,
+        fields_changed_count INTEGER DEFAULT 0,
         flagged_for_review BOOLEAN DEFAULT FALSE,
         review_reason TEXT,
         human_edited BOOLEAN DEFAULT FALSE,
