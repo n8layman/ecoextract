@@ -10,10 +10,10 @@
 #' @param document_id Document ID in database
 #' @param db_conn Database connection
 #' @param force_reprocess If TRUE, re-run even if metadata already exists (default: FALSE)
-#' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-20250514")
+#' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")
 #' @return List with status ("completed"/"skipped"/<error message>)
 #' @export
-extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-20250514") {
+extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
 
   # Check if metadata already extracted
   if (!force_reprocess) {
@@ -163,7 +163,7 @@ get_metadata_context <- function(context_file = NULL) {
 
 #' @rdname extract_metadata
 #' @export
-audit_document <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-20250514") {
+audit_document <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
   .Deprecated("extract_metadata", package = "ecoextract",
     msg = "audit_document() is deprecated. Use extract_metadata() instead.")
   extract_metadata(document_id, db_conn, force_reprocess, model)
@@ -171,7 +171,7 @@ audit_document <- function(document_id, db_conn, force_reprocess = FALSE, model 
 
 #' @rdname extract_metadata
 #' @export
-audit_ocr <- function(document_id, db_conn, model = "anthropic/claude-sonnet-4-20250514") {
+audit_ocr <- function(document_id, db_conn, model = "anthropic/claude-sonnet-4-5") {
   .Deprecated("extract_metadata", package = "ecoextract",
     msg = "audit_ocr() is deprecated. Use extract_metadata() instead.")
   extract_metadata(document_id, db_conn, model = model)

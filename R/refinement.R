@@ -9,14 +9,14 @@
 #' @param refinement_prompt_file Path to custom refinement prompt file (optional, uses generic if not provided)
 #' @param refinement_context_file Path to custom refinement context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @return List with refinement results
 #' @export
 refine_records <- function(db_conn = NULL, document_id,
                                 extraction_prompt_file = NULL, refinement_prompt_file = NULL,
                                 refinement_context_file = NULL,
                                 schema_file = NULL,
-                                model = "anthropic/claude-sonnet-4-20250514") {
+                                model = "anthropic/claude-sonnet-4-5") {
   tryCatch({
     # Read document content from database (atomic - starts with DB)
     markdown_text <- get_document_content(document_id, db_conn)

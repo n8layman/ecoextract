@@ -10,7 +10,7 @@
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
 #' @param extraction_context_file Path to custom extraction context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @export
@@ -21,7 +21,7 @@ extract_records <- function(document_id = NA,
                                  extraction_prompt_file = NULL,
                                  extraction_context_file = NULL,
                                  schema_file = NULL,
-                                 model = "anthropic/claude-sonnet-4-20250514",
+                                 model = "anthropic/claude-sonnet-4-5",
                                  ...) {
 
   # Document content must be available either through the db or provided
