@@ -47,21 +47,25 @@ Extract bibliographic metadata from this scientific document.
 - Look for "DOI:" labels or https://doi.org/ URLs
 - Look in: near author names, headers/footers, citation block, copyright line
 
-### journal (CRITICAL)
+### journal (CRITICAL - REQUIRED FIELD)
 
-- **Journal name**: Extract the journal name if present; it may appear as the full name or as a standard abbreviation/short name.
-- **ABBREVIATED NAMES ARE ACCEPTABLE**: "Comp. Immun. Microbiol. infect. Dis." is a valid journal name - extract it as-is
+- **Journal name**: The journal name MUST be extracted if present; it appears as either full name or standard abbreviation.
+- **ABBREVIATED JOURNAL NAMES ARE THE ACTUAL JOURNAL NAME**:
+  - "Comp. Immun. Microbiol. infect. Dis." IS the journal name - extract it exactly as written
+  - "J. Wildl. Dis." IS the journal name - do not skip abbreviated forms
+  - Text with multiple periods (e.g., "Microbiol.", "Dis.") before volume numbers IS the journal
 - **Where to look** (in priority order):
-  1. **FIRST LINE of document** - Most common location, usually format "Journal Name, Vol. X, No. Y, pp. ZZZ, YEAR"
+  1. **VERY FIRST LINE of document** - The text appearing BEFORE "Vol." or volume numbers IS the journal name
   2. **Top header/footer** - Running header on first page
   3. **Citation block** - Near author names, may say "Published in..."
   4. **Publisher line** - Near copyright or publisher information
-- **Instructions**:
-  1. Check the FIRST LINE before searching elsewhere
-  2. Look for patterns like "Vol." or "No." - the journal name usually appears immediately before these
-  3. Extract abbreviated journal names (e.g., "J. Wildl. Dis.") - do not skip them
-  4. Pay special attention to anything that looks like a citation
-  5. Ignore references to conferences, book chapters, or preprint servers unless they are clearly the journal
+- **Critical extraction rules**:
+  1. **START with the first line** - everything before "Vol." or "pp." or numbers is likely the journal
+  2. If you see: "ABC. DEF. GHI. Vol. 16" → Extract "ABC. DEF. GHI." as the journal
+  3. If you see: "Journal Name, 30(3), 1994" → Extract "Journal Name" as the journal
+  4. **Do not leave journal empty if there is ANY text before volume/issue/page numbers**
+  5. Abbreviated names with periods ARE journal names - they are standard academic notation
+  6. Ignore references to conferences or preprint servers
 
 ## Search Strategy
 

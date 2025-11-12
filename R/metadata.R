@@ -84,6 +84,14 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
 
     pub_metadata <- metadata_result$publication_metadata
 
+    # Debug: Show what was extracted
+    message("Metadata extraction raw results:")
+    message(glue::glue("  title: {pub_metadata$title %||% '<empty>'}"))
+    message(glue::glue("  first_author_lastname: {pub_metadata$first_author_lastname %||% '<empty>'}"))
+    message(glue::glue("  publication_year: {pub_metadata$publication_year %||% '<empty>'}"))
+    message(glue::glue("  doi: {pub_metadata$doi %||% '<empty>'}"))
+    message(glue::glue("  journal: {pub_metadata$journal %||% '<empty>'}"))
+
     # Save metadata to database
     save_metadata_to_db(
       document_id = document_id,
