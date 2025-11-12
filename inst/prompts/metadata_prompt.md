@@ -6,17 +6,18 @@ Extract bibliographic metadata from this scientific document.
 
 **The journal name and publication year most commonly appear in the very first line or header of the document.** Before searching elsewhere, examine:
 
-1. **First line of the document** - Often contains: "Journal Name, Vol. X, No. Y, pp. ZZZ, YEAR"
+1. **First line of the document** - Look for text before volume/issue numbers or page ranges
 2. **Top header/footer** - May contain journal abbreviation and year
 3. **Running header** - Journal name often repeated on each page
 
-**Example patterns**:
+**Common patterns** (extract journal text that appears BEFORE the numbers):
 - "Comp. Immun. Microbiol. infect. Dis. Vol. 16, No. 1, pp. 77-85, 1993"
-  → Journal: "Comp. Immun. Microbiol. infect. Dis." (abbreviated is fine!)
-  → Year: 1993
+  → Journal: "Comp. Immun. Microbiol. infect. Dis." | Year: 1993
 - "Journal of Wildlife Diseases, 30(3), 1994, pp. 439-444"
-  → Journal: "Journal of Wildlife Diseases"
-  → Year: 1994
+  → Journal: "Journal of Wildlife Diseases" | Year: 1994
+- "Nature 423: 145-150 (2003)"
+  → Journal: "Nature" | Year: 2003
+- Any text followed by volume/issue/page information likely contains the journal name
 
 ## Required Fields
 

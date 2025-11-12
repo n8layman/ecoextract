@@ -284,17 +284,16 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
     NA_integer_
   }
 
-  # Only update fields that are currently NULL/NA in the database
-  # Use COALESCE to keep existing values when new value is NULL
-  # Use CASE to only update when existing value is NULL
+  # Only update fields that are currently NULL/NA/empty in the database
+  # Use CASE to only update when existing value is NULL or empty string
   DBI::dbExecute(db_conn,
     "UPDATE documents
-     SET title = CASE WHEN title IS NULL THEN ? ELSE title END,
-         first_author_lastname = CASE WHEN first_author_lastname IS NULL THEN ? ELSE first_author_lastname END,
+     SET title = CASE WHEN (title IS NULL OR title = '') THEN ? ELSE title END,
+         first_author_lastname = CASE WHEN (first_author_lastname IS NULL OR first_author_lastname = '') THEN ? ELSE first_author_lastname END,
          publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END,
-         doi = CASE WHEN doi IS NULL THEN ? ELSE doi END,
-         journal = CASE WHEN journal IS NULL THEN ? ELSE journal END,
-         ocr_audit = CASE WHEN ocr_audit IS NULL THEN ? ELSE ocr_audit END
+         doi = CASE WHEN (doi IS NULL OR doi = '') THEN ? ELSE doi END,
+         journal = CASE WHEN (journal IS NULL OR journal = '') THEN ? ELSE journal END,
+         ocr_audit = CASE WHEN (ocr_audit IS NULL OR ocr_audit = '') THEN ? ELSE ocr_audit END
      WHERE id = ?",
     params = list(
       metadata$title %||% NA_character_,
