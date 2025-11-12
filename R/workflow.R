@@ -149,7 +149,7 @@ process_documents <- function(pdf_path,
     filename = sapply(results_list, function(x) x$filename),
     document_id = sapply(results_list, function(x) x$document_id %||% NA),
     ocr_status = sapply(results_list, function(x) x$ocr_status),
-    audit_status = sapply(results_list, function(x) x$audit_status %||% NA),
+    metadata_status = sapply(results_list, function(x) x$metadata_status),
     extraction_status = sapply(results_list, function(x) x$extraction_status),
     refinement_status = sapply(results_list, function(x) x$refinement_status),
     records_extracted = sapply(results_list, function(x) x$records_extracted %||% 0)
@@ -160,7 +160,7 @@ process_documents <- function(pdf_path,
 
   # Check for errors across all status columns
   status_matrix <- results_tibble |>
-    dplyr::select("ocr_status", "audit_status", "extraction_status", "refinement_status") |>
+    dplyr::select("ocr_status", "metadata_status", "extraction_status", "refinement_status") |>
     as.matrix()
 
   # A file has an error if ANY of its status columns is not "completed" or "skipped"
@@ -235,7 +235,7 @@ process_single_document <- function(pdf_file,
   # Initialize status tracking with filename only (all start as 'skipped')
   status_tracking <- list(filename = basename(pdf_file),
                           ocr_status = "skipped",
-                          audit_status = "skipped",  # alias for metadata_status for backward compatibility
+                          metadata_status = "skipped",
                           extraction_status = "skipped",
                           records_extracted = 0,
                           refinement_status = "skipped")
@@ -254,10 +254,10 @@ process_single_document <- function(pdf_file,
   # Step 2: Extract Metadata
   message("\n[2/4] Extracting Metadata...")
   metadata_result <- extract_metadata(status_tracking$document_id, db_conn, force_reprocess)
-  status_tracking$audit_status <- metadata_result$status  # Using audit_status for backward compatibility
+  status_tracking$metadata_status <- metadata_result$status
   # Continue if completed or skipped, stop on error
-  if(status_tracking$audit_status != "completed" && status_tracking$audit_status != "skipped") {
-    message(paste("Metadata extraction error detected:", status_tracking$audit_status))
+  if(status_tracking$metadata_status != "completed" && status_tracking$metadata_status != "skipped") {
+    message(paste("Metadata extraction error detected:", status_tracking$metadata_status))
     return(status_tracking)
   }
 

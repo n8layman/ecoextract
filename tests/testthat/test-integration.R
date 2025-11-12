@@ -20,7 +20,7 @@ test_that("full pipeline from PDF to database", {
 
   # Check that all steps completed successfully
   status_matrix <- result |>
-    dplyr::select(ocr_status, audit_status, extraction_status, refinement_status) |>
+    dplyr::select(ocr_status, metadata_status, extraction_status, refinement_status) |>
     as.matrix()
 
   has_errors <- any(!status_matrix %in% c("skipped", "completed"))
@@ -59,7 +59,7 @@ test_that("extraction rediscovers physically deleted records", {
 
   # Verify all steps completed
   status_matrix1 <- result1 |>
-    dplyr::select(ocr_status, audit_status, extraction_status,
+    dplyr::select(ocr_status, metadata_status, extraction_status,
                   refinement_status) |>
     as.matrix()
   expect_false(any(!status_matrix1 %in% c("skipped", "completed")),
@@ -94,7 +94,7 @@ test_that("extraction rediscovers physically deleted records", {
 
   # Check that early steps were skipped, but extraction+refinement run
   expect_equal(result2$ocr_status[1], "skipped")
-  expect_equal(result2$audit_status[1], "skipped")
+  expect_equal(result2$metadata_status[1], "skipped")
   expect_equal(result2$extraction_status[1], "completed")
   expect_equal(result2$refinement_status[1], "completed")
 
@@ -143,7 +143,7 @@ test_that("API failures are captured in status columns, not thrown", {
 
   # Check status matrix - should have at least one error
   status_matrix <- result |>
-    dplyr::select(ocr_status, audit_status, extraction_status, refinement_status) |>
+    dplyr::select(ocr_status, metadata_status, extraction_status, refinement_status) |>
     as.matrix()
 
   has_errors_in_status <- any(!status_matrix %in% c("skipped", "completed"))
@@ -156,7 +156,7 @@ test_that("API failures are captured in status columns, not thrown", {
 
   # Audit or extraction should fail (uses Anthropic)
   audit_or_extraction_has_error <-
-    result$audit_status[1] != "completed" || result$extraction_status[1] != "completed"
+    result$metadata_status[1] != "completed" || result$extraction_status[1] != "completed"
   expect_true(audit_or_extraction_has_error,
               info = "Document audit or extraction should fail with bad Anthropic key")
 })
