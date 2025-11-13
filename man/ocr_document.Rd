@@ -19,3 +19,7 @@ List with status ("completed"/"skipped"/<error message>) and document_id
 \description{
 Performs OCR on PDF and saves document to database
 }
+\details{
+When force_reprocess=TRUE, overwrites existing document_content.
+Note: Caller is responsible for cascade deletion of metadata/records.
+}

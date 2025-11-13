@@ -4,6 +4,10 @@
   "description": "Schema for extracted host-pathogen relationships from scientific literature for One Health PROTECT",
   "type": "object",
   "properties": {
+    "reasoning": {
+      "type": "string",
+      "description": "Your reasoning process: analyze document structure, identify data sources, assess extraction challenges, and explain decisions before extracting records"
+    },
     "records": {
       "type": "array",
       "description": "Array of host-pathogen relationship records",

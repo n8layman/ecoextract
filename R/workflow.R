@@ -9,9 +9,10 @@
 #' @param schema_file Optional custom schema file
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
+#' @param run_ocr If TRUE, run OCR step. Re-running deletes metadata and records (default: TRUE)
+#' @param run_metadata If TRUE, run metadata extraction. Re-running overwrites all fields (default: TRUE)
 #' @param run_extraction If TRUE, run extraction step (default: TRUE)
-#' @param run_refinement If TRUE, run refinement step (default: TRUE)
-#' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
+#' @param run_refinement If TRUE, run refinement step (default: FALSE)
 #' @return Tibble with processing results
 #' @export
 #'
@@ -35,28 +36,32 @@
 #' process_documents("pdfs/", db_conn = con)
 #' dbDisconnect(con)
 #'
-#' # Force reprocess existing documents
-#' process_documents("pdfs/", force_reprocess = TRUE)
+#' # Re-run OCR (deletes metadata + records, starts fresh)
+#' process_documents("pdfs/", run_ocr = TRUE)
+#'
+#' # Re-run metadata only (overwrites all metadata fields)
+#' process_documents("pdfs/", run_ocr = FALSE, run_metadata = TRUE)
 #'
 #' # With custom schema and prompts
 #' process_documents("pdfs/", "interactions.db",
 #'                   schema_file = "ecoextract/schema.json",
 #'                   extraction_prompt_file = "ecoextract/extraction_prompt.md")
 #'
-#' # Skip refinement (extraction only)
-#' process_documents("pdfs/", run_refinement = FALSE)
+#' # With refinement (opt-in)
+#' process_documents("pdfs/", run_refinement = TRUE)
 #'
 #' # Skip extraction (refinement only on existing records)
-#' process_documents("pdfs/", run_extraction = FALSE)
+#' process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
 #' }
 process_documents <- function(pdf_path,
                              db_conn = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
+                             run_ocr = TRUE,
+                             run_metadata = TRUE,
                              run_extraction = TRUE,
-                             run_refinement = TRUE,
-                             force_reprocess = FALSE) {
+                             run_refinement = FALSE) {
 
   # Determine if processing single file, multiple files, or directory
   if (length(pdf_path) > 1) {
@@ -135,9 +140,10 @@ process_documents <- function(pdf_path,
       schema_file = schema_file,
       extraction_prompt_file = extraction_prompt_file,
       refinement_prompt_file = refinement_prompt_file,
+      run_ocr = run_ocr,
+      run_metadata = run_metadata,
       run_extraction = run_extraction,
-      run_refinement = run_refinement,
-      force_reprocess = force_reprocess
+      run_refinement = run_refinement
     )
     results_list[[length(results_list) + 1]] <- result
   }
@@ -213,9 +219,10 @@ process_documents <- function(pdf_path,
 #' @param schema_file Optional custom schema
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
+#' @param run_ocr If TRUE, run OCR step (default: TRUE)
+#' @param run_metadata If TRUE, run metadata extraction (default: TRUE)
 #' @param run_extraction If TRUE, run extraction step (default: TRUE)
 #' @param run_refinement If TRUE, run refinement step (default: TRUE)
-#' @param force_reprocess If TRUE, re-run all steps even if outputs exist (default: FALSE)
 #' @return List with processing result
 #' @keywords internal
 process_single_document <- function(pdf_file,
@@ -223,9 +230,10 @@ process_single_document <- function(pdf_file,
                                     schema_file = NULL,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
+                                    run_ocr = TRUE,
+                                    run_metadata = TRUE,
                                     run_extraction = TRUE,
-                                    run_refinement = TRUE,
-                                    force_reprocess = FALSE) {
+                                    run_refinement = TRUE) {
 
   # Log header
   message(strrep("=", 70))
@@ -241,38 +249,123 @@ process_single_document <- function(pdf_file,
                           refinement_status = "skipped")
 
   # Step 1: OCR Processing
-  message("\n[1/4] OCR Processing...")
-  ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess)
-  status_tracking$document_id <- ocr_result$document_id
-  status_tracking$ocr_status <- ocr_result$status
-  # Continue if completed or skipped, stop on error
-  if(status_tracking$ocr_status != "completed" && status_tracking$ocr_status != "skipped") {
-    message(paste("OCR error detected:", status_tracking$ocr_status))
-    return(status_tracking)
+  if (run_ocr) {
+    message("\n[1/4] OCR Processing...")
+
+    # Check if document already exists - if re-running OCR, delete metadata + records (cascade)
+    existing <- DBI::dbGetQuery(db_conn,
+      "SELECT id FROM documents WHERE file_path = ?",
+      params = list(pdf_file))
+
+    if (nrow(existing) > 0) {
+      doc_id <- existing$id[1]
+      message(glue::glue("Re-running OCR: Deleting metadata and all records for document {doc_id}"))
+
+      # Hard delete all records for this document
+      DBI::dbExecute(db_conn,
+        "DELETE FROM records WHERE document_id = ?",
+        params = list(doc_id))
+
+      # Clear all metadata fields
+      DBI::dbExecute(db_conn,
+        "UPDATE documents SET
+          title = NULL,
+          first_author_lastname = NULL,
+          authors = NULL,
+          publication_year = NULL,
+          doi = NULL,
+          journal = NULL,
+          volume = NULL,
+          issue = NULL,
+          pages = NULL,
+          issn = NULL,
+          publisher = NULL
+        WHERE id = ?",
+        params = list(doc_id))
+    }
+
+    ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = TRUE)
+    status_tracking$document_id <- ocr_result$document_id
+    status_tracking$ocr_status <- ocr_result$status
+
+    # Continue if completed or skipped, stop on error
+    if(status_tracking$ocr_status != "completed" && status_tracking$ocr_status != "skipped") {
+      message(paste("OCR error detected:", status_tracking$ocr_status))
+      return(status_tracking)
+    }
+  } else {
+    message("\n[1/4] OCR Processing... SKIPPED (run_ocr = FALSE)")
+
+    # Get document_id from existing record
+    existing <- DBI::dbGetQuery(db_conn,
+      "SELECT id FROM documents WHERE file_path = ?",
+      params = list(pdf_file))
+
+    if (nrow(existing) == 0) {
+      message("ERROR: No existing document found. OCR must be run first.")
+      status_tracking$ocr_status <- "error: OCR required"
+      return(status_tracking)
+    }
+
+    status_tracking$document_id <- existing$id[1]
+    status_tracking$ocr_status <- "skipped"
   }
 
   # Step 2: Extract Metadata
-  message("\n[2/4] Extracting Metadata...")
-  metadata_result <- extract_metadata(status_tracking$document_id, db_conn, force_reprocess)
-  status_tracking$metadata_status <- metadata_result$status
-  # Continue if completed or skipped, stop on error
-  if(status_tracking$metadata_status != "completed" && status_tracking$metadata_status != "skipped") {
-    message(paste("Metadata extraction error detected:", status_tracking$metadata_status))
-    return(status_tracking)
+  if (run_metadata) {
+    message("\n[2/4] Extracting Metadata...")
+
+    # Check dependency: OCR must exist
+    doc_content <- DBI::dbGetQuery(db_conn,
+      "SELECT document_content FROM documents WHERE id = ?",
+      params = list(status_tracking$document_id))
+
+    if (nrow(doc_content) == 0 || is.na(doc_content$document_content[1])) {
+      message("ERROR: No OCR content found. OCR must be run first.")
+      status_tracking$metadata_status <- "error: OCR required"
+      return(status_tracking)
+    }
+
+    # Always force reprocess to overwrite all metadata fields
+    metadata_result <- extract_metadata(status_tracking$document_id, db_conn, force_reprocess = TRUE)
+    status_tracking$metadata_status <- metadata_result$status
+
+    # Continue if completed or skipped, stop on error
+    if(status_tracking$metadata_status != "completed" && status_tracking$metadata_status != "skipped") {
+      message(paste("Metadata extraction error detected:", status_tracking$metadata_status))
+      return(status_tracking)
+    }
+  } else {
+    message("\n[2/4] Extracting Metadata... SKIPPED (run_metadata = FALSE)")
+    status_tracking$metadata_status <- "skipped"
   }
 
   # Step 3: Extract records
   if (run_extraction) {
     message("\n[3/4] Extracting Records...")
+
+    # Check dependency: OCR must exist
+    doc_content <- DBI::dbGetQuery(db_conn,
+      "SELECT document_content FROM documents WHERE id = ?",
+      params = list(status_tracking$document_id))
+
+    if (nrow(doc_content) == 0 || is.na(doc_content$document_content[1])) {
+      message("ERROR: No OCR content found. OCR must be run first.")
+      status_tracking$extraction_status <- "error: OCR required"
+      return(status_tracking)
+    }
+
+    # Extraction always adds records (LLM checks for duplicates)
     extraction_result <- extract_records(
       document_id = status_tracking$document_id,
-      interaction_db = db_conn,
-      force_reprocess = force_reprocess,
+      db_conn = db_conn,
+      force_reprocess = FALSE,
       schema_file = schema_file,
       extraction_prompt_file = extraction_prompt_file
     )
     status_tracking$extraction_status <- extraction_result$status
     status_tracking$records_extracted <- extraction_result$records_extracted %||% 0
+
     # Continue if completed or skipped, stop on error
     if(status_tracking$extraction_status != "completed" && status_tracking$extraction_status != "skipped") {
       message(paste("Extraction error detected:", status_tracking$extraction_status))
@@ -287,6 +380,29 @@ process_single_document <- function(pdf_file,
   # Step 4: Refine records
   if (run_refinement) {
     message("\n[4/4] Refining Records...")
+
+    # Check dependency: OCR must exist
+    doc_content <- DBI::dbGetQuery(db_conn,
+      "SELECT document_content FROM documents WHERE id = ?",
+      params = list(status_tracking$document_id))
+
+    if (nrow(doc_content) == 0 || is.na(doc_content$document_content[1])) {
+      message("ERROR: No OCR content found. OCR must be run first.")
+      status_tracking$refinement_status <- "error: OCR required"
+      return(status_tracking)
+    }
+
+    # Check dependency: Records must exist
+    existing_records <- DBI::dbGetQuery(db_conn,
+      "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
+      params = list(status_tracking$document_id))
+
+    if (existing_records$count[1] == 0) {
+      message("No existing records found. Skipping refinement (extraction must be run first).")
+      status_tracking$refinement_status <- "skipped: no records"
+      return(status_tracking)
+    }
+
     refinement_result <- refine_records(
       db_conn = db_conn,
       document_id = status_tracking$document_id,
@@ -295,6 +411,7 @@ process_single_document <- function(pdf_file,
       refinement_prompt_file = refinement_prompt_file
     )
     status_tracking$refinement_status <- refinement_result$status
+
     # Continue if completed or skipped, stop on error
     if(status_tracking$refinement_status != "completed" && status_tracking$refinement_status != "skipped") {
       message(paste("Refinement error detected:", status_tracking$refinement_status))

@@ -7,24 +7,27 @@
 #' This is a schema-agnostic step that extracts universal publication metadata
 #' regardless of the domain-specific extraction schema used in later steps.
 #'
+#' When force_reprocess=TRUE, overwrites ALL metadata fields with fresh extraction.
+#'
 #' @param document_id Document ID in database
 #' @param db_conn Database connection
-#' @param force_reprocess If TRUE, re-run even if metadata already exists (default: FALSE)
+#' @param force_reprocess If TRUE, re-run and overwrite all metadata fields (default: FALSE)
 #' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")
 #' @return List with status ("completed"/"skipped"/<error message>)
 #' @export
 extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
 
-  # Get existing metadata to check what needs updating
-  existing_metadata <- DBI::dbGetQuery(db_conn,
-    "SELECT title, first_author_lastname, publication_year, doi, journal, volume, issue, pages, issn, publisher FROM documents WHERE id = ?",
-    params = list(document_id))
+  # Skip if not force reprocessing and metadata already exists
+  if (!force_reprocess) {
+    existing_metadata <- DBI::dbGetQuery(db_conn,
+      "SELECT title, first_author_lastname, publication_year FROM documents WHERE id = ?",
+      params = list(document_id))
 
-  # Check if all metadata fields are already populated
-  if (!force_reprocess && nrow(existing_metadata) > 0) {
-    all_fields_populated <- !any(is.na(existing_metadata[1, ]))
-    if (all_fields_populated) {
-      message("All metadata fields already populated for document ", document_id,
+    if (nrow(existing_metadata) > 0 &&
+        !is.na(existing_metadata$title[1]) &&
+        !is.na(existing_metadata$first_author_lastname[1]) &&
+        !is.na(existing_metadata$publication_year[1])) {
+      message("Metadata already exists for document ", document_id,
               ", skipping (force_reprocess=FALSE)")
       return(list(status = "skipped", document_id = document_id))
     }
@@ -88,10 +91,18 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
 
     pub_metadata <- metadata_result$publication_metadata
 
+    # Convert authors array to JSON string for storage
+    authors_json <- if (!is.null(pub_metadata$authors) && length(pub_metadata$authors) > 0) {
+      jsonlite::toJSON(pub_metadata$authors, auto_unbox = FALSE)
+    } else {
+      NA_character_
+    }
+
     # Debug: Show what was extracted
     message("Metadata extraction raw results:")
     message(glue::glue("  title: {pub_metadata$title %||% '<empty>'}"))
     message(glue::glue("  first_author_lastname: {pub_metadata$first_author_lastname %||% '<empty>'}"))
+    message(glue::glue("  authors: {if(!is.null(pub_metadata$authors)) paste(pub_metadata$authors, collapse=', ') else '<empty>'}"))
     message(glue::glue("  publication_year: {pub_metadata$publication_year %||% '<empty>'}"))
     message(glue::glue("  doi: {pub_metadata$doi %||% '<empty>'}"))
     message(glue::glue("  journal: {pub_metadata$journal %||% '<empty>'}"))
@@ -108,6 +119,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       metadata = list(
         title = pub_metadata$title,
         first_author_lastname = pub_metadata$first_author_lastname,
+        authors = authors_json,
         publication_year = pub_metadata$publication_year,
         doi = pub_metadata$doi,
         journal = pub_metadata$journal,
@@ -146,6 +158,11 @@ json_schema_to_ellmer_type_metadata <- function(schema_path) {
   pub_meta_fields <- list(
     title = ellmer::type_string(description = pub_meta_props$title$description, required = FALSE),
     first_author_lastname = ellmer::type_string(description = pub_meta_props$first_author_lastname$description, required = FALSE),
+    authors = ellmer::type_array(
+      items = ellmer::type_string(),
+      description = pub_meta_props$authors$description,
+      required = FALSE
+    ),
     publication_year = ellmer::type_integer(description = pub_meta_props$publication_year$description, required = FALSE),
     doi = ellmer::type_string(description = pub_meta_props$doi$description, required = FALSE),
     journal = ellmer::type_string(description = pub_meta_props$journal$description, required = FALSE),
