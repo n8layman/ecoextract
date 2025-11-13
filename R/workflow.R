@@ -266,7 +266,7 @@ process_single_document <- function(pdf_file,
     message("\n[3/4] Extracting Records...")
     extraction_result <- extract_records(
       document_id = status_tracking$document_id,
-      interaction_db = db_conn,
+      db_conn = db_conn,
       force_reprocess = force_reprocess,
       schema_file = schema_file,
       extraction_prompt_file = extraction_prompt_file

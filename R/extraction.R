@@ -4,7 +4,7 @@
 
 #' Extract records from markdown text
 #' @param document_id Optional document ID for context
-#' @param interaction_db Optional path to interaction database
+#' @param db_conn Optional path to interaction database
 #' @param document_content OCR-processed markdown content
 #' @param force_reprocess If TRUE, re-run extraction even if records already exist (default: FALSE)
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
@@ -15,7 +15,7 @@
 #' @return List with extraction results
 #' @export
 extract_records <- function(document_id = NA,
-                                 interaction_db = NA,
+                                 db_conn = NA,
                                  document_content = NA,
                                  force_reprocess = FALSE,
                                  extraction_prompt_file = NULL,
@@ -26,11 +26,11 @@ extract_records <- function(document_id = NA,
 
   # Document content must be available either through the db or provided
   existing_records <- tibble::tibble()
-  if(!is.na(document_id) && !inherits(interaction_db, "logical")) {
-    document_content <- get_document_content(document_id, interaction_db)
+  if(!is.na(document_id) && !inherits(db_conn, "logical")) {
+    document_content <- get_document_content(document_id, db_conn)
 
     # Always get existing records to provide as context (extraction looks for NEW records)
-    existing_records <- get_records(document_id, interaction_db)
+    existing_records <- get_records(document_id, db_conn)
     if (is.null(existing_records)) {
       existing_records <- tibble::tibble()
     }
@@ -86,9 +86,9 @@ extract_records <- function(document_id = NA,
     # Extract and save reasoning
     if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
       reasoning_text <- extract_result$reasoning
-      if (!is.na(document_id) && !inherits(interaction_db, "logical") && !is.null(reasoning_text)) {
+      if (!is.na(document_id) && !inherits(db_conn, "logical") && !is.null(reasoning_text)) {
         message("Saving extraction reasoning to database...")
-        save_reasoning_to_db(document_id, interaction_db, reasoning_text, step = "extraction")
+        save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "extraction")
       }
     }
 
@@ -124,9 +124,9 @@ extract_records <- function(document_id = NA,
       extraction_df$fields_changed_count <- 0L
 
       # Save to database (atomic step)
-      if (!is.na(document_id) && !inherits(interaction_db, "logical")) {
+      if (!is.na(document_id) && !inherits(db_conn, "logical")) {
         save_records_to_db(
-          db_path = interaction_db,  # Pass connection object, not path
+          db_path = db_conn,  # Pass connection object, not path
           document_id = document_id,
           interactions_df = extraction_df,
           metadata = list(
