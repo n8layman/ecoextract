@@ -45,6 +45,11 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         publication_year INTEGER,
         doi TEXT,
         journal TEXT,
+        volume TEXT,
+        issue TEXT,
+        pages TEXT,
+        issn TEXT,
+        publisher TEXT,
 
         -- Content storage
         document_content TEXT,  -- OCR markdown results
@@ -117,6 +122,17 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
       cat("Migrating database: Adding refinement_reasoning column\n")
       DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN refinement_reasoning TEXT")
     })
+
+    # Migration: Add new metadata columns if they don't exist
+    metadata_columns <- c("volume", "issue", "pages", "issn", "publisher")
+    for (col in metadata_columns) {
+      tryCatch({
+        DBI::dbGetQuery(con, paste0("SELECT ", col, " FROM documents LIMIT 0"))
+      }, error = function(e) {
+        cat("Migrating database: Adding", col, "column\n")
+        DBI::dbExecute(con, paste0("ALTER TABLE documents ADD COLUMN ", col, " TEXT"))
+      })
+    }
 
     if (is.character(db_conn)) {
       cat("EcoExtract database initialized:", db_conn, "\n")
@@ -270,7 +286,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
 save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
   # Get existing metadata
   existing <- DBI::dbGetQuery(db_conn,
-    "SELECT title, first_author_lastname, publication_year, doi, journal, ocr_audit FROM documents WHERE id = ?",
+    "SELECT title, first_author_lastname, publication_year, doi, journal, volume, issue, pages, issn, publisher, ocr_audit FROM documents WHERE id = ?",
     params = list(document_id))
 
   if (nrow(existing) == 0) {
@@ -293,6 +309,11 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
          publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END,
          doi = CASE WHEN (doi IS NULL OR doi = '') THEN ? ELSE doi END,
          journal = CASE WHEN (journal IS NULL OR journal = '') THEN ? ELSE journal END,
+         volume = CASE WHEN (volume IS NULL OR volume = '') THEN ? ELSE volume END,
+         issue = CASE WHEN (issue IS NULL OR issue = '') THEN ? ELSE issue END,
+         pages = CASE WHEN (pages IS NULL OR pages = '') THEN ? ELSE pages END,
+         issn = CASE WHEN (issn IS NULL OR issn = '') THEN ? ELSE issn END,
+         publisher = CASE WHEN (publisher IS NULL OR publisher = '') THEN ? ELSE publisher END,
          ocr_audit = CASE WHEN (ocr_audit IS NULL OR ocr_audit = '') THEN ? ELSE ocr_audit END
      WHERE id = ?",
     params = list(
@@ -301,6 +322,11 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
       pub_year,
       metadata$doi %||% NA_character_,
       metadata$journal %||% NA_character_,
+      metadata$volume %||% NA_character_,
+      metadata$issue %||% NA_character_,
+      metadata$pages %||% NA_character_,
+      metadata$issn %||% NA_character_,
+      metadata$publisher %||% NA_character_,
       metadata$ocr_audit %||% NA_character_,
       document_id
     )

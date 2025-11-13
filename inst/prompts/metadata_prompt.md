@@ -2,13 +2,24 @@
 
 Extract bibliographic metadata from this scientific document.
 
-## CRITICAL: Check the First Line/Header First
+## Document Format
 
-**The journal name and publication year most commonly appear in the very first line or header of the document.** Before searching elsewhere, examine:
+The document is provided as a JSON array of page objects. Each page contains:
 
-1. **First line of the document** - Look for text before volume/issue numbers or page ranges
-2. **Top header/footer** - May contain journal abbreviation and year
-3. **Running header** - Journal name often repeated on each page
+- **page_number**: The page number
+- **page_header**: Array of header text lines (often contains journal citation)
+- **section_header**: Array of section titles
+- **text**: Main body text
+- **tables**: Array of table objects
+- **other**: Array of figures, captions, and other elements
+
+## CRITICAL: Check page_header First
+
+**The journal name and publication year most commonly appear in the `page_header` field.** Before searching elsewhere, examine:
+
+1. **page_header on first page** - Often contains full citation with journal, volume, pages, year
+2. **page_header on subsequent pages** - May contain abbreviated journal name
+3. **First lines of text field** - Check if citation appears in body text
 
 **Common patterns** (extract journal text that appears BEFORE the numbers):
 - "Comp. Immun. Microbiol. infect. Dis. Vol. 16, No. 1, pp. 77-85, 1993"
@@ -47,33 +58,60 @@ Extract bibliographic metadata from this scientific document.
 - Look for "DOI:" labels or https://doi.org/ URLs
 - Look in: near author names, headers/footers, citation block, copyright line
 
-### journal (CRITICAL - REQUIRED FIELD)
+### journal
 
-- **Journal name**: The journal name MUST be extracted if present; it appears as either full name or standard abbreviation.
-- **ABBREVIATED JOURNAL NAMES ARE THE ACTUAL JOURNAL NAME**:
-  - "Comp. Immun. Microbiol. infect. Dis." IS the journal name - extract it exactly as written
-  - "J. Wildl. Dis." IS the journal name - do not skip abbreviated forms
-  - Text with multiple periods (e.g., "Microbiol.", "Dis.") before volume numbers IS the journal
-- **Where to look** (in priority order):
-  1. **VERY FIRST LINE of document** - The text appearing BEFORE "Vol." or volume numbers IS the journal name
-  2. **Top header/footer** - Running header on first page
-  3. **Citation block** - Near author names, may say "Published in..."
-  4. **Publisher line** - Near copyright or publisher information
-- **Critical extraction rules**:
-  1. **START with the first line** - everything before "Vol." or "pp." or numbers is likely the journal
-  2. If you see: "ABC. DEF. GHI. Vol. 16" → Extract "ABC. DEF. GHI." as the journal
-  3. If you see: "Journal Name, 30(3), 1994" → Extract "Journal Name" as the journal
-  4. **Do not leave journal empty if there is ANY text before volume/issue/page numbers**
-  5. Abbreviated names with periods ARE journal names - they are standard academic notation
-  6. Ignore references to conferences or preprint servers
+- **Journal name**: Extract the journal name if present; it appears as either full name or standard abbreviation
+- **Abbreviated names are valid**: Many journals use standard abbreviations (e.g., "J. Wildl. Dis." or "Comp. Immun. Microbiol. infect. Dis."). These are legitimate journal names - extract them as written.
+- **Where to look** (check all locations):
+  1. **First line/top of document** - Often contains bibliographic citation information
+  2. **Headers/footers** - Running header may contain journal name
+  3. **Citation block** - Near title and authors
+  4. **Publisher line** - Near copyright information
+- **What to extract**:
+  - Journal titles often appear near volume, issue, page, or year information
+  - They may be followed by patterns like "Vol. X", "(Issue)", "pp. X-Y", or years
+  - Extract the journal name portion, not the volume/issue/page numbers
+  - Include abbreviated forms (text with periods like "Microbiol." is often part of journal names)
+- **What to avoid**:
+  - Do not extract conference names, book titles, or preprint servers as journals
+  - Do not include volume, issue, or page numbers in the journal field
+
+### volume
+
+- Volume number (e.g., `16`, `30`)
+- Look for: "Vol. X", "Volume X", or number patterns in citation headers
+- Typically appears in `page_header` alongside journal name
+
+### issue
+
+- Issue or number (e.g., `1`, `3`)
+- Look for: "No. X", "(X)", or issue numbers in citation headers
+- Often appears as `30(3)` or `Vol. 16, No. 1`
+
+### pages
+
+- Page range for the article (e.g., `77-85`, `439-444`)
+- Look for: "pp. X-Y", "pages X-Y", or hyphenated numbers
+- Found in `page_header` citation strings
+
+### issn
+
+- International Standard Serial Number
+- Format: `XXXX-XXXX` (e.g., `0147-9571`)
+- Often appears in copyright line or document footer
+
+### publisher
+
+- Publisher name (e.g., `Pergamon Press Ltd`, `Wildlife Disease Association`)
+- Look in copyright line, footer, or near publication information
+- Extract organization name associated with copyright or publication
 
 ## Search Strategy
 
-1. **FIRST LINE / TOP HEADER** - Check here FIRST for journal and year
-2. **Citation block** - Most reliable for all fields
-3. **Title and author section**
-4. **Headers or footers** - Often contain journal abbreviation
-5. **Copyright or publisher line**
+1. **page_header field** - Check here FIRST for journal and year
+2. **section_header field** - May contain title
+3. **text field** - Search for citation block, author byline, copyright line
+4. **other field** - Check for any citation or metadata elements
 
 Extract all fields you can identify. Leave fields empty if not found. Clean OCR artifacts but preserve diacritics and proper capitalization.
 

@@ -27,6 +27,26 @@
         "journal": {
           "type": ["string", "null"],
           "description": "Journal name if this is a journal article"
+        },
+        "volume": {
+          "type": ["string", "null"],
+          "description": "Volume number (e.g., '16', '30')"
+        },
+        "issue": {
+          "type": ["string", "null"],
+          "description": "Issue or number (e.g., '1', '3')"
+        },
+        "pages": {
+          "type": ["string", "null"],
+          "description": "Page range (e.g., '77-85', '439-444')"
+        },
+        "issn": {
+          "type": ["string", "null"],
+          "description": "International Standard Serial Number (e.g., '0147-9571')"
+        },
+        "publisher": {
+          "type": ["string", "null"],
+          "description": "Publisher name (e.g., 'Pergamon Press Ltd', 'Wildlife Disease Association')"
         }
       }
     }

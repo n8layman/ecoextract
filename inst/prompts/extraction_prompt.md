@@ -23,22 +23,36 @@ Your reasoning should address challenges like:
 
 **Output the `reasoning` field FIRST, then the `records` array.**
 
+## Document Format
+
+The OCR content you receive is structured as a JSON array of page objects. Each page contains:
+
+- **page_number**: The page number in the document
+- **page_header**: Running header text (e.g., journal citation)
+- **section_header**: Section title(s) on that page
+- **text**: Main body text content
+- **tables**: Array of table objects with `content`, `markdown`, `html`, and `summary` fields
+- **other**: Array of figures, captions, and other elements with `type` and `content` fields
+
+**Important**: Cross-reference information across pages. For example, organism identities may be in tables on one page while interaction details are in text on another page.
+
 ## Extraction Process
 
 Complete these phases in order for systematic extraction:
 
 ### Phase 1: Document Analysis (captured in `reasoning` field)
-- Read the entire document content and existing records section
-- Identify the document structure (text, tables, figures, captions)
+- Read the entire JSON array of page objects
+- Identify the document structure across all pages (text, tables, figures, captions)
+- Note which pages contain tables, which contain methods/results text, etc.
 - Review the output schema to understand required fields
 - **Document this analysis in your `reasoning` field**
 
 ### Phase 2: Find Interactions (captured in `reasoning` field)
-- Scan tables for species co-occurrence, roosting data, or interaction descriptions
-- Search text for descriptions of bat interactions with other organisms
-- Note figure/table captions that describe ecological relationships
-- Cross-reference between text and tables for complete information
-- **Document what you found and where in your `reasoning` field**
+- Scan table objects in the JSON for species co-occurrence, roosting data, or interaction descriptions
+- Search text fields for descriptions of bat interactions with other organisms
+- Check the `other` array for figure/table captions that describe ecological relationships
+- Cross-reference between pages and between text/tables for complete information
+- **Document what you found and where (page numbers, table vs text) in your `reasoning` field**
 
 ### Phase 3: Validate Identifiability (captured in `reasoning` field)
 - For each potential interaction, verify both organisms can be identified to at least genus level

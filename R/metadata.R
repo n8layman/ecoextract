@@ -17,7 +17,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
 
   # Get existing metadata to check what needs updating
   existing_metadata <- DBI::dbGetQuery(db_conn,
-    "SELECT title, first_author_lastname, publication_year, doi, journal FROM documents WHERE id = ?",
+    "SELECT title, first_author_lastname, publication_year, doi, journal, volume, issue, pages, issn, publisher FROM documents WHERE id = ?",
     params = list(document_id))
 
   # Check if all metadata fields are already populated
@@ -42,6 +42,10 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
 
     # Limit to first 3 pages for metadata extraction (handles scanned papers with cover pages)
     document_content <- limit_to_first_n_pages(document_content, n = 3)
+
+    # Debug: Show first 500 characters of OCR text
+    message("OCR text preview (first 500 chars):")
+    message(substr(document_content, 1, 500))
 
     # Load metadata schema and convert to native ellmer types
     schema_path <- system.file("extdata", "metadata_schema.json", package = "ecoextract")
@@ -91,6 +95,11 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     message(glue::glue("  publication_year: {pub_metadata$publication_year %||% '<empty>'}"))
     message(glue::glue("  doi: {pub_metadata$doi %||% '<empty>'}"))
     message(glue::glue("  journal: {pub_metadata$journal %||% '<empty>'}"))
+    message(glue::glue("  volume: {pub_metadata$volume %||% '<empty>'}"))
+    message(glue::glue("  issue: {pub_metadata$issue %||% '<empty>'}"))
+    message(glue::glue("  pages: {pub_metadata$pages %||% '<empty>'}"))
+    message(glue::glue("  issn: {pub_metadata$issn %||% '<empty>'}"))
+    message(glue::glue("  publisher: {pub_metadata$publisher %||% '<empty>'}"))
 
     # Save metadata to database
     save_metadata_to_db(
@@ -101,7 +110,12 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
         first_author_lastname = pub_metadata$first_author_lastname,
         publication_year = pub_metadata$publication_year,
         doi = pub_metadata$doi,
-        journal = pub_metadata$journal
+        journal = pub_metadata$journal,
+        volume = pub_metadata$volume,
+        issue = pub_metadata$issue,
+        pages = pub_metadata$pages,
+        issn = pub_metadata$issn,
+        publisher = pub_metadata$publisher
       )
     )
 
@@ -134,7 +148,12 @@ json_schema_to_ellmer_type_metadata <- function(schema_path) {
     first_author_lastname = ellmer::type_string(description = pub_meta_props$first_author_lastname$description, required = FALSE),
     publication_year = ellmer::type_integer(description = pub_meta_props$publication_year$description, required = FALSE),
     doi = ellmer::type_string(description = pub_meta_props$doi$description, required = FALSE),
-    journal = ellmer::type_string(description = pub_meta_props$journal$description, required = FALSE)
+    journal = ellmer::type_string(description = pub_meta_props$journal$description, required = FALSE),
+    volume = ellmer::type_string(description = pub_meta_props$volume$description, required = FALSE),
+    issue = ellmer::type_string(description = pub_meta_props$issue$description, required = FALSE),
+    pages = ellmer::type_string(description = pub_meta_props$pages$description, required = FALSE),
+    issn = ellmer::type_string(description = pub_meta_props$issn$description, required = FALSE),
+    publisher = ellmer::type_string(description = pub_meta_props$publisher$description, required = FALSE)
   )
 
   # Build complete schema

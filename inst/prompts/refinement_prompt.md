@@ -6,10 +6,23 @@ You are enhancing existing records that were previously extracted from a documen
 
 You will receive:
 
-1. **Document Content** - The full text of the scientific paper
+1. **Document Content** - A JSON array of page objects from the scientific paper (see Document Format below)
 2. **Existing Records to Enhance** - The records that were previously extracted from this document
 3. **Original Extraction Task** - The prompt and rules used to create these records initially
 4. **Output Schema** - The exact JSON structure you must follow
+
+## Document Format
+
+The document content is structured as a JSON array of page objects. Each page contains:
+
+- **page_number**: The page number in the document
+- **page_header**: Running header text (e.g., journal citation)
+- **section_header**: Section title(s) on that page
+- **text**: Main body text content
+- **tables**: Array of table objects with `content`, `markdown`, `html`, and `summary` fields
+- **other**: Array of figures, captions, and other elements with `type` and `content` fields
+
+**Important**: Search across all pages and all fields (text, tables, other) to find the best supporting evidence and missing information.
 
 ## CRITICAL: Reason First, Then Refine
 

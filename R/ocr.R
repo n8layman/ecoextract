@@ -8,26 +8,20 @@
 #' @return List with markdown content, images, and raw result
 #' @keywords internal
 perform_ocr <- function(pdf_file) {
-  # Perform OCR using ohseer
-  ocr_result <- ohseer::mistral_ocr(pdf_file)
+  # Perform OCR using Tensorlake via ohseer
+  ocr_result <- ohseer::tensorlake_ocr(pdf_file)
 
-  # Extract and combine markdown from all pages with page markers
-  # Page markers come AFTER each page to mark page boundaries
-  markdown_parts <- sapply(seq_along(ocr_result$pages), function(i) {
-    paste0(ocr_result$pages[[i]]$markdown, "\n\n--- PAGE ", i, " ---")
-  })
+  # Extract pages as structured JSON
+  pages <- ohseer::tensorlake_extract_pages(ocr_result)
 
-  markdown <- paste(markdown_parts, collapse = "\n\n")
+  # Convert pages to JSON string for storage
+  json_content <- jsonlite::toJSON(pages, auto_unbox = TRUE, pretty = TRUE)
 
-  # Extract images from all pages
-  images <- lapply(seq_along(ocr_result$pages), function(i) {
-    list(
-      page_num = i,
-      images = ocr_result$pages[[i]]$images
-    )
-  })
-
-  return(list(markdown = markdown, images = images, raw = ocr_result))
+  list(
+    json_content = json_content,
+    pages = pages,
+    raw = ocr_result
+  )
 }
 
 #' OCR Document and Save to Database (Atomic)
@@ -62,25 +56,26 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
     message(glue::glue("Performing OCR on {basename(pdf_file)}..."))
     ocr_result <- perform_ocr(pdf_file)
 
-    # Save document to database
+    # Save document to database with JSON content
     document_id <- save_document_to_db(
       db_conn = db_conn,
       file_path = pdf_file,
       metadata = list(
-        document_content = ocr_result$markdown,
-        ocr_images = jsonlite::toJSON(list(pages = ocr_result$images), auto_unbox = TRUE)
+        document_content = ocr_result$json_content
       )
     )
 
-    message(glue::glue("OCR completed: {nchar(ocr_result$markdown)} characters extracted"))
-    return(list(
+    message(glue::glue(
+      "OCR completed: {length(ocr_result$pages)} pages extracted"
+    ))
+    list(
       status = "completed",
       document_id = document_id
-    ))
+    )
   }, error = function(e) {
-    return(list(
+    list(
       status = paste("OCR failed:", e$message),
       document_id = NA
-    ))
+    )
   })
 }
