@@ -10,7 +10,10 @@ process_documents(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  force_reprocess = FALSE
+  run_ocr = TRUE,
+  run_metadata = TRUE,
+  run_extraction = TRUE,
+  run_refinement = FALSE
 )
 }
 \arguments{
@@ -26,7 +29,13 @@ If a connection is provided, tables must already exist (use \code{init_ecoextrac
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
-\item{force_reprocess}{If TRUE, re-run all steps even if outputs exist (default: FALSE)}
+\item{run_ocr}{If TRUE, run OCR step. Re-running deletes metadata and records (default: TRUE)}
+
+\item{run_metadata}{If TRUE, run metadata extraction. Re-running overwrites all fields (default: TRUE)}
+
+\item{run_extraction}{If TRUE, run extraction step (default: TRUE)}
+
+\item{run_refinement}{If TRUE, run refinement step (default: FALSE)}
 }
 \value{
 Tibble with processing results
@@ -54,12 +63,21 @@ init_ecoextract_database(con)
 process_documents("pdfs/", db_conn = con)
 dbDisconnect(con)
 
-# Force reprocess existing documents
-process_documents("pdfs/", force_reprocess = TRUE)
+# Re-run OCR (deletes metadata + records, starts fresh)
+process_documents("pdfs/", run_ocr = TRUE)
+
+# Re-run metadata only (overwrites all metadata fields)
+process_documents("pdfs/", run_ocr = FALSE, run_metadata = TRUE)
 
 # With custom schema and prompts
 process_documents("pdfs/", "interactions.db",
                   schema_file = "ecoextract/schema.json",
                   extraction_prompt_file = "ecoextract/extraction_prompt.md")
+
+# With refinement (opt-in)
+process_documents("pdfs/", run_refinement = TRUE)
+
+# Skip extraction (refinement only on existing records)
+process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
 }
 }

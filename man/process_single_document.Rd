@@ -10,7 +10,10 @@ process_single_document(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  force_reprocess = FALSE
+  run_ocr = TRUE,
+  run_metadata = TRUE,
+  run_extraction = TRUE,
+  run_refinement = TRUE
 )
 }
 \arguments{
@@ -24,7 +27,13 @@ process_single_document(
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
-\item{force_reprocess}{If TRUE, re-run all steps even if outputs exist (default: FALSE)}
+\item{run_ocr}{If TRUE, run OCR step (default: TRUE)}
+
+\item{run_metadata}{If TRUE, run metadata extraction (default: TRUE)}
+
+\item{run_extraction}{If TRUE, run extraction step (default: TRUE)}
+
+\item{run_refinement}{If TRUE, run refinement step (default: TRUE)}
 }
 \value{
 List with processing result

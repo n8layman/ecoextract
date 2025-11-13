@@ -28,6 +28,9 @@ perform_ocr <- function(pdf_file) {
 #'
 #' Performs OCR on PDF and saves document to database
 #'
+#' When force_reprocess=TRUE, overwrites existing document_content.
+#' Note: Caller is responsible for cascade deletion of metadata/records.
+#'
 #' @param pdf_file Path to PDF file
 #' @param db_conn Database connection
 #' @param force_reprocess If TRUE, re-run OCR even if document_content already exists (default: FALSE)

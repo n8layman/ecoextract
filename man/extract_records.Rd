@@ -6,25 +6,22 @@
 \usage{
 extract_records(
   document_id = NA,
-  interaction_db = NA,
+  db_conn = NA,
   document_content = NA,
-  ocr_audit = NA,
   force_reprocess = FALSE,
   extraction_prompt_file = NULL,
   extraction_context_file = NULL,
   schema_file = NULL,
-  model = "anthropic/claude-sonnet-4-20250514",
+  model = "anthropic/claude-sonnet-4-5",
   ...
 )
 }
 \arguments{
 \item{document_id}{Optional document ID for context}
 
-\item{interaction_db}{Optional path to interaction database}
+\item{db_conn}{Optional path to interaction database}
 
 \item{document_content}{OCR-processed markdown content}
-
-\item{ocr_audit}{Optional OCR quality analysis}
 
 \item{force_reprocess}{If TRUE, re-run extraction even if records already exist (default: FALSE)}
 
@@ -34,7 +31,7 @@ extract_records(
 
 \item{schema_file}{Path to custom schema JSON file (optional)}
 
-\item{model}{Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")}
+\item{model}{Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")}
 
 \item{...}{Additional arguments passed to extraction}
 }

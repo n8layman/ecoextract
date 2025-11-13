@@ -7,24 +7,27 @@
 #' This is a schema-agnostic step that extracts universal publication metadata
 #' regardless of the domain-specific extraction schema used in later steps.
 #'
+#' When force_reprocess=TRUE, overwrites ALL metadata fields with fresh extraction.
+#'
 #' @param document_id Document ID in database
 #' @param db_conn Database connection
-#' @param force_reprocess If TRUE, re-run even if metadata already exists (default: FALSE)
+#' @param force_reprocess If TRUE, re-run and overwrite all metadata fields (default: FALSE)
 #' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")
 #' @return List with status ("completed"/"skipped"/<error message>)
 #' @export
 extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
 
-  # Get existing metadata to check what needs updating
-  existing_metadata <- DBI::dbGetQuery(db_conn,
-    "SELECT title, first_author_lastname, publication_year, doi, journal, volume, issue, pages, issn, publisher FROM documents WHERE id = ?",
-    params = list(document_id))
+  # Skip if not force reprocessing and metadata already exists
+  if (!force_reprocess) {
+    existing_metadata <- DBI::dbGetQuery(db_conn,
+      "SELECT title, first_author_lastname, publication_year FROM documents WHERE id = ?",
+      params = list(document_id))
 
-  # Check if all metadata fields are already populated
-  if (!force_reprocess && nrow(existing_metadata) > 0) {
-    all_fields_populated <- !any(is.na(existing_metadata[1, ]))
-    if (all_fields_populated) {
-      message("All metadata fields already populated for document ", document_id,
+    if (nrow(existing_metadata) > 0 &&
+        !is.na(existing_metadata$title[1]) &&
+        !is.na(existing_metadata$first_author_lastname[1]) &&
+        !is.na(existing_metadata$publication_year[1])) {
+      message("Metadata already exists for document ", document_id,
               ", skipping (force_reprocess=FALSE)")
       return(list(status = "skipped", document_id = document_id))
     }
