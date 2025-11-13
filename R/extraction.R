@@ -6,31 +6,28 @@
 #' @param document_id Optional document ID for context
 #' @param interaction_db Optional path to interaction database
 #' @param document_content OCR-processed markdown content
-#' @param ocr_audit Optional OCR quality analysis
 #' @param force_reprocess If TRUE, re-run extraction even if records already exist (default: FALSE)
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
 #' @param extraction_context_file Path to custom extraction context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @export
 extract_records <- function(document_id = NA,
                                  interaction_db = NA,
                                  document_content = NA,
-                                 ocr_audit = NA,
                                  force_reprocess = FALSE,
                                  extraction_prompt_file = NULL,
                                  extraction_context_file = NULL,
                                  schema_file = NULL,
-                                 model = "anthropic/claude-sonnet-4-20250514",
+                                 model = "anthropic/claude-sonnet-4-5",
                                  ...) {
 
   # Document content must be available either through the db or provided
   existing_records <- tibble::tibble()
   if(!is.na(document_id) && !inherits(interaction_db, "logical")) {
     document_content <- get_document_content(document_id, interaction_db)
-    ocr_audit = get_ocr_audit(document_id, interaction_db)
 
     # Always get existing records to provide as context (extraction looks for NEW records)
     existing_records <- get_records(document_id, interaction_db)
@@ -66,7 +63,7 @@ extract_records <- function(document_id = NA,
 
     # Log input sizes
     cat(glue::glue(
-      "Inputs loaded: Document content ({estimate_tokens(document_content)} tokens), OCR audit ({estimate_tokens(ocr_audit)} chars), {nrow(existing_records)} existing records, extraction prompt (hash:{substring(extraction_prompt_hash, 1, 8)}, {estimate_tokens(extraction_prompt)} tokens)",
+      "Inputs loaded: Document content ({estimate_tokens(document_content)} tokens), {nrow(existing_records)} existing records, extraction prompt (hash:{substring(extraction_prompt_hash, 1, 8)}, {estimate_tokens(extraction_prompt)} tokens)",
       .na = "0",
       .null = "0"
     ), "\n")
@@ -85,6 +82,15 @@ extract_records <- function(document_id = NA,
     extract_result <- extract_chat$chat_structured(extraction_context, type = schema)
 
     cat("Extraction completed\n")
+
+    # Extract and save reasoning
+    if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
+      reasoning_text <- extract_result$reasoning
+      if (!is.na(document_id) && !inherits(interaction_db, "logical") && !is.null(reasoning_text)) {
+        message("Saving extraction reasoning to database...")
+        save_reasoning_to_db(document_id, interaction_db, reasoning_text, step = "extraction")
+      }
+    }
 
     # Extract records from result
     if (is.list(extract_result) && "records" %in% names(extract_result)) {
@@ -113,6 +119,9 @@ extract_records <- function(document_id = NA,
       message("\nExtraction output:")
       print(extraction_df)
       message(glue::glue("Extracted {nrow(extraction_df)} records"))
+
+      # Set fields_changed_count to 0 for new extractions
+      extraction_df$fields_changed_count <- 0L
 
       # Save to database (atomic step)
       if (!is.na(document_id) && !inherits(interaction_db, "logical")) {

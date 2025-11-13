@@ -16,18 +16,6 @@
           "Relevant_Sentence"
         ],
         "properties": {
-          "OHP_Pathogen_Name": {
-            "type": "string",
-            "description": "Currently the name of each PDF folder - the pathogen of interest that was queried in PubMed"
-          },
-          "PDF_Name": {
-            "type": "string",
-            "description": "PDF file name"
-          },
-          "DOI": {
-            "type": "string",
-            "description": "DOI from PDF (optional)"
-          },
           "Pathogen_Name": {
             "type": "string",
             "description": "Pathogen name extracted from PDF"

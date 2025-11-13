@@ -9,18 +9,17 @@
 #' @param refinement_prompt_file Path to custom refinement prompt file (optional, uses generic if not provided)
 #' @param refinement_context_file Path to custom refinement context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-20250514")
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @return List with refinement results
 #' @export
 refine_records <- function(db_conn = NULL, document_id,
                                 extraction_prompt_file = NULL, refinement_prompt_file = NULL,
                                 refinement_context_file = NULL,
                                 schema_file = NULL,
-                                model = "anthropic/claude-sonnet-4-20250514") {
+                                model = "anthropic/claude-sonnet-4-5") {
   tryCatch({
     # Read document content from database (atomic - starts with DB)
     markdown_text <- get_document_content(document_id, db_conn)
-    ocr_audit <- get_ocr_audit(document_id, db_conn)
 
     # Read existing records from database
     existing_records <- get_existing_records(document_id, db_conn)
@@ -90,17 +89,10 @@ refine_records <- function(db_conn = NULL, document_id,
     # Include record_id so LLM can preserve it
     existing_context <- build_existing_records_context(existing_records, document_id, include_record_id = TRUE)
 
-    # CLAUDE: We shouldn't need to test this. OCR audit must be available to reach this stage.
-    audit_context <- if (is.null(ocr_audit)) {
-      "No OCR audit available. No specific human edit audit context available."
-    } else {
-      paste("OCR Quality Analysis:", ocr_audit, "Human Edit Audit: No specific human edit audit context available.")
-    }
-
     # Report inputs
     markdown_chars <- nchar(markdown_text)
     record_count <- nrow(existing_records)
-    cat(glue::glue("Inputs loaded: OCR data ({markdown_chars} chars), OCR audit ({nchar(ocr_audit %||% '')} chars), {record_count} records, refinement prompt ({nchar(refinement_prompt)} chars, hash: {substring(prompt_hash, 1, 8)})"), "\n")
+    cat(glue::glue("Inputs loaded: OCR data ({markdown_chars} chars), {record_count} records, refinement prompt ({nchar(refinement_prompt)} chars, hash: {substring(prompt_hash, 1, 8)})"), "\n")
 
     # Initialize refinement chat
     cat("Calling", model, "for refinement\n")
@@ -117,8 +109,7 @@ refine_records <- function(db_conn = NULL, document_id,
       extraction_prompt = extraction_prompt,
       schema_json = schema_json,
       document_content = document_content,
-      existing_records_context = existing_context,
-      ocr_audit = audit_context
+      existing_records_context = existing_context
     )
 
     # Execute refinement with structured output
@@ -132,6 +123,15 @@ refine_records <- function(db_conn = NULL, document_id,
       refine_result <- jsonlite::fromJSON(refine_result, simplifyVector = FALSE)
     }
 
+    # Extract and save reasoning
+    if (is.list(refine_result) && "reasoning" %in% names(refine_result)) {
+      reasoning_text <- refine_result$reasoning
+      if (!is.null(reasoning_text)) {
+        message("Saving refinement reasoning to database...")
+        save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "refinement")
+      }
+    }
+
     # Now extract the records
     # ellmer automatically converts array of objects to data.frame
     if (is.list(refine_result) && "records" %in% names(refine_result)) {
@@ -143,20 +143,43 @@ refine_records <- function(db_conn = NULL, document_id,
         refined_df <- tibble::as_tibble(jsonlite::fromJSON(jsonlite::toJSON(records_data, auto_unbox = TRUE)))
 
         # Fix any columns that came through as dataframes or weird structures
+        # Integer columns that need special handling
+        integer_cols <- c("page_number", "publication_year")
+
         for (col in names(refined_df)) {
           if (is.data.frame(refined_df[[col]]) || (is.list(refined_df[[col]]) && !is.null(names(refined_df[[col]])))) {
             # Extract actual values from nested structure
-            refined_df[[col]] <- vapply(records_data, function(x) {
-              val <- x[[col]]
-              if (is.null(val) || (length(val) == 0)) {
-                NA_character_
-              } else if (is.list(val)) {
-                # Keep lists as-is for arrays like all_supporting_source_sentences
-                list(val)
-              } else {
-                as.character(val)
-              }
-            }, FUN.VALUE = if (col == "all_supporting_source_sentences") list(NULL) else character(1), USE.NAMES = FALSE)
+            if (col %in% integer_cols) {
+              # Handle integer columns
+              refined_df[[col]] <- vapply(records_data, function(x) {
+                val <- x[[col]]
+                if (is.null(val) || (length(val) == 0) || is.na(val)) {
+                  NA_integer_
+                } else {
+                  as.integer(val)
+                }
+              }, FUN.VALUE = integer(1), USE.NAMES = FALSE)
+            } else if (col == "all_supporting_source_sentences") {
+              # Handle list columns
+              refined_df[[col]] <- vapply(records_data, function(x) {
+                val <- x[[col]]
+                if (is.null(val) || (length(val) == 0)) {
+                  list(NULL)
+                } else {
+                  list(val)
+                }
+              }, FUN.VALUE = list(NULL), USE.NAMES = FALSE)
+            } else {
+              # Handle character columns
+              refined_df[[col]] <- vapply(records_data, function(x) {
+                val <- x[[col]]
+                if (is.null(val) || (length(val) == 0)) {
+                  NA_character_
+                } else {
+                  as.character(val)
+                }
+              }, FUN.VALUE = character(1), USE.NAMES = FALSE)
+            }
           }
         }
       } else {
@@ -177,6 +200,34 @@ refine_records <- function(db_conn = NULL, document_id,
       # No complex matching needed since LLM does the work
       if (nrow(existing_records) > 0) {
         refined_df <- match_and_restore_record_ids(refined_df, existing_records)
+
+        # Calculate fields_changed_count for each refined record
+        refined_df$fields_changed_count <- vapply(seq_len(nrow(refined_df)), function(i) {
+          refined_record <- refined_df[i, ]
+          # Find matching original record by record_id
+          orig_idx <- which(existing_records$record_id == refined_record$record_id)
+          if (length(orig_idx) > 0) {
+            original_record <- existing_records[orig_idx[1], ]
+            result <- calculate_fields_changed(original_record, refined_record)
+            # Debug logging
+            if (!is.integer(result)) {
+              message(sprintf("WARNING: calculate_fields_changed() returned type '%s' (value: %s) for record %s",
+                             typeof(result), result, refined_record$record_id))
+              result <- as.integer(result)
+            }
+            result
+          } else {
+            # New record, no changes tracked
+            0L
+          }
+        }, FUN.VALUE = integer(1))
+
+        total_changes <- sum(refined_df$fields_changed_count)
+        records_modified <- sum(refined_df$fields_changed_count > 0)
+        message(glue::glue("Fields changed: {total_changes} total across {records_modified} records"))
+      } else {
+        # No existing records to compare against, all are new
+        refined_df$fields_changed_count <- 0L
       }
 
       # Save refined records back to database
@@ -280,6 +331,70 @@ match_and_restore_record_ids <- function(refined_records, existing_records) {
   }
 
   return(refined_records)
+}
+
+#' Calculate number of fields changed between original and refined records
+#'
+#' Compares schema fields (excluding metadata) to count how many changed during refinement.
+#'
+#' @param original_record Single row dataframe or named list of original record
+#' @param refined_record Single row dataframe or named list of refined record
+#' @return Integer count of fields that changed
+#' @keywords internal
+calculate_fields_changed <- function(original_record, refined_record) {
+  # Convert to lists for easier comparison
+  if (is.data.frame(original_record)) original_record <- as.list(original_record[1,])
+  if (is.data.frame(refined_record)) refined_record <- as.list(refined_record[1,])
+
+  # Exclude metadata fields from comparison
+  metadata_fields <- c("id", "document_id", "record_id", "extraction_timestamp",
+                       "llm_model_version", "prompt_hash", "fields_changed_count",
+                       "flagged_for_review", "review_reason", "human_edited",
+                       "rejected", "deleted_by_user")
+
+  # Get schema fields (all fields except metadata)
+  all_fields <- unique(c(names(original_record), names(refined_record)))
+  schema_fields <- setdiff(all_fields, metadata_fields)
+
+  # Count differences (use 0L to ensure integer type)
+  changed_count <- 0L
+
+  for (field in schema_fields) {
+    orig_val <- original_record[[field]]
+    refined_val <- refined_record[[field]]
+
+    # Handle NULL/NA comparisons
+    orig_is_null <- is.null(orig_val) || (length(orig_val) == 1 && is.na(orig_val))
+    refined_is_null <- is.null(refined_val) || (length(refined_val) == 1 && is.na(refined_val))
+
+    # Both NULL/NA - no change
+    if (orig_is_null && refined_is_null) {
+      next
+    }
+
+    # One NULL/NA, other has value - changed
+    if (orig_is_null != refined_is_null) {
+      changed_count <- changed_count + 1L
+      next
+    }
+
+    # Both have values - compare them
+    # For lists/arrays (like JSON), convert to JSON strings for comparison
+    if (is.list(orig_val) || is.list(refined_val)) {
+      orig_json <- jsonlite::toJSON(orig_val, auto_unbox = TRUE)
+      refined_json <- jsonlite::toJSON(refined_val, auto_unbox = TRUE)
+      if (orig_json != refined_json) {
+        changed_count <- changed_count + 1L
+      }
+    } else {
+      # Simple value comparison
+      if (!identical(orig_val, refined_val)) {
+        changed_count <- changed_count + 1L
+      }
+    }
+  }
+
+  return(changed_count)
 }
 
 #' Build context string for existing records

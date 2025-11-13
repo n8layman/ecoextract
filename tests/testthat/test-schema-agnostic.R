@@ -30,7 +30,7 @@ test_that("host-pathogen schema works end-to-end", {
 
   # Check that all steps completed
   expect_equal(result$ocr_status[1], "completed")
-  expect_equal(result$audit_status[1], "completed")
+  expect_equal(result$metadata_status[1], "completed")
   expect_equal(result$extraction_status[1], "completed")
   expect_equal(result$refinement_status[1], "completed")
 

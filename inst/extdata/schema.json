@@ -4,6 +4,10 @@
   "description": "Schema for extracting ecological interaction data from scientific literature",
   "type": "object",
   "properties": {
+    "reasoning": {
+      "type": "string",
+      "description": "Your reasoning process: analyze document structure, identify data sources, assess organism identifiability, note extraction challenges, and explain decisions before extracting records"
+    },
     "records": {
       "type": "array",
       "description": "Array of ecological records",
@@ -63,5 +67,5 @@
       }
     }
   },
-  "required": ["records"]
+  "required": ["reasoning", "records"]
 }

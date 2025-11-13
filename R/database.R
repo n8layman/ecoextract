@@ -45,11 +45,20 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         publication_year INTEGER,
         doi TEXT,
         journal TEXT,
+        volume TEXT,
+        issue TEXT,
+        pages TEXT,
+        issn TEXT,
+        publisher TEXT,
 
         -- Content storage
         document_content TEXT,  -- OCR markdown results
         ocr_audit TEXT,         -- OCR quality audit (JSON)
-        ocr_images TEXT         -- OCR images (JSON array of base64 images)
+        ocr_images TEXT,        -- OCR images (JSON array of base64 images)
+
+        -- Reasoning logs
+        extraction_reasoning TEXT,  -- Reasoning from extraction step
+        refinement_reasoning TEXT   -- Reasoning from refinement step
       )
     ")
 
@@ -71,6 +80,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         extraction_timestamp TEXT NOT NULL,
         llm_model_version TEXT NOT NULL,
         prompt_hash TEXT NOT NULL,
+        fields_changed_count INTEGER DEFAULT 0,
         flagged_for_review BOOLEAN DEFAULT FALSE,
         review_reason TEXT,
         human_edited BOOLEAN DEFAULT FALSE,
@@ -97,6 +107,32 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
       cat("Migrating database: Adding deleted_by_user column\n")
       DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN deleted_by_user BOOLEAN DEFAULT FALSE")
     })
+
+    # Migration: Add reasoning columns if they don't exist
+    tryCatch({
+      DBI::dbGetQuery(con, "SELECT extraction_reasoning FROM documents LIMIT 0")
+    }, error = function(e) {
+      cat("Migrating database: Adding extraction_reasoning column\n")
+      DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN extraction_reasoning TEXT")
+    })
+
+    tryCatch({
+      DBI::dbGetQuery(con, "SELECT refinement_reasoning FROM documents LIMIT 0")
+    }, error = function(e) {
+      cat("Migrating database: Adding refinement_reasoning column\n")
+      DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN refinement_reasoning TEXT")
+    })
+
+    # Migration: Add new metadata columns if they don't exist
+    metadata_columns <- c("volume", "issue", "pages", "issn", "publisher")
+    for (col in metadata_columns) {
+      tryCatch({
+        DBI::dbGetQuery(con, paste0("SELECT ", col, " FROM documents LIMIT 0"))
+      }, error = function(e) {
+        cat("Migrating database: Adding", col, "column\n")
+        DBI::dbExecute(con, paste0("ALTER TABLE documents ADD COLUMN ", col, " TEXT"))
+      })
+    }
 
     if (is.character(db_conn)) {
       cat("EcoExtract database initialized:", db_conn, "\n")
@@ -248,22 +284,49 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
 #' @return Document ID
 #' @keywords internal
 save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
-  # Update documents table with metadata
+  # Get existing metadata
+  existing <- DBI::dbGetQuery(db_conn,
+    "SELECT title, first_author_lastname, publication_year, doi, journal, volume, issue, pages, issn, publisher, ocr_audit FROM documents WHERE id = ?",
+    params = list(document_id))
+
+  if (nrow(existing) == 0) {
+    stop("Document ID ", document_id, " not found in database")
+  }
+
+  # Explicitly convert publication_year to integer
+  pub_year <- if (!is.null(metadata$publication_year)) {
+    as.integer(metadata$publication_year)
+  } else {
+    NA_integer_
+  }
+
+  # Only update fields that are currently NULL/NA/empty in the database
+  # Use CASE to only update when existing value is NULL or empty string
   DBI::dbExecute(db_conn,
     "UPDATE documents
-     SET title = ?,
-         first_author_lastname = ?,
-         publication_year = ?,
-         doi = ?,
-         journal = ?,
-         ocr_audit = ?
+     SET title = CASE WHEN (title IS NULL OR title = '') THEN ? ELSE title END,
+         first_author_lastname = CASE WHEN (first_author_lastname IS NULL OR first_author_lastname = '') THEN ? ELSE first_author_lastname END,
+         publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END,
+         doi = CASE WHEN (doi IS NULL OR doi = '') THEN ? ELSE doi END,
+         journal = CASE WHEN (journal IS NULL OR journal = '') THEN ? ELSE journal END,
+         volume = CASE WHEN (volume IS NULL OR volume = '') THEN ? ELSE volume END,
+         issue = CASE WHEN (issue IS NULL OR issue = '') THEN ? ELSE issue END,
+         pages = CASE WHEN (pages IS NULL OR pages = '') THEN ? ELSE pages END,
+         issn = CASE WHEN (issn IS NULL OR issn = '') THEN ? ELSE issn END,
+         publisher = CASE WHEN (publisher IS NULL OR publisher = '') THEN ? ELSE publisher END,
+         ocr_audit = CASE WHEN (ocr_audit IS NULL OR ocr_audit = '') THEN ? ELSE ocr_audit END
      WHERE id = ?",
     params = list(
       metadata$title %||% NA_character_,
       metadata$first_author_lastname %||% NA_character_,
-      metadata$publication_year %||% NA_integer_,
+      pub_year,
       metadata$doi %||% NA_character_,
       metadata$journal %||% NA_character_,
+      metadata$volume %||% NA_character_,
+      metadata$issue %||% NA_character_,
+      metadata$pages %||% NA_character_,
+      metadata$issn %||% NA_character_,
+      metadata$publisher %||% NA_character_,
       metadata$ocr_audit %||% NA_character_,
       document_id
     )
@@ -731,6 +794,24 @@ get_existing_records <- function(document_id, db_conn) {
     message("Error retrieving existing records: ", e$message)
     return(NA)
   })
+}
+
+#' Save reasoning to database (internal)
+#' @param document_id Document ID
+#' @param db_conn Database connection
+#' @param reasoning_text Reasoning text to save
+#' @param step Either "extraction" or "refinement"
+#' @return NULL
+#' @keywords internal
+save_reasoning_to_db <- function(document_id, db_conn, reasoning_text, step = c("extraction", "refinement")) {
+  step <- match.arg(step)
+  column_name <- paste0(step, "_reasoning")
+
+  sql <- paste0("UPDATE documents SET ", column_name, " = ? WHERE id = ?")
+
+  DBI::dbExecute(db_conn, sql, params = list(reasoning_text, document_id))
+
+  invisible(NULL)
 }
 
 #' Simple null coalescing operator

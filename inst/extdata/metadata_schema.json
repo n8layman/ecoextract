@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Publication Metadata Schema",
+  "description": "Schema for extracting publication bibliographic metadata",
+  "type": "object",
+  "properties": {
+    "publication_metadata": {
+      "type": "object",
+      "description": "Publication bibliographic metadata",
+      "properties": {
+        "title": {
+          "type": ["string", "null"],
+          "description": "Full title of the publication"
+        },
+        "first_author_lastname": {
+          "type": ["string", "null"],
+          "description": "CRITICAL: Last name of first author only - essential for generating unique record identifiers (e.g., Smith2023-o1). Search thoroughly in title area, headers, footers, and citation blocks."
+        },
+        "publication_year": {
+          "type": ["integer", "null"],
+          "description": "CRITICAL: Year of publication - essential for generating unique record identifiers (e.g., Smith2023-o1). Search thoroughly near author names, copyright notices, and date stamps."
+        },
+        "doi": {
+          "type": ["string", "null"],
+          "description": "Digital Object Identifier if available (format: 10.xxxx/xxxxx)"
+        },
+        "journal": {
+          "type": ["string", "null"],
+          "description": "Journal name if this is a journal article"
+        },
+        "volume": {
+          "type": ["string", "null"],
+          "description": "Volume number (e.g., '16', '30')"
+        },
+        "issue": {
+          "type": ["string", "null"],
+          "description": "Issue or number (e.g., '1', '3')"
+        },
+        "pages": {
+          "type": ["string", "null"],
+          "description": "Page range (e.g., '77-85', '439-444')"
+        },
+        "issn": {
+          "type": ["string", "null"],
+          "description": "International Standard Serial Number (e.g., '0147-9571')"
+        },
+        "publisher": {
+          "type": ["string", "null"],
+          "description": "Publisher name (e.g., 'Pergamon Press Ltd', 'Wildlife Disease Association')"
+        }
+      }
+    }
+  },
+  "required": ["publication_metadata"]
+}

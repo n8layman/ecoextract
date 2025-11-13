@@ -6,41 +6,72 @@ You are enhancing existing records that were previously extracted from a documen
 
 You will receive:
 
-1. **Document Content** - The full text of the scientific paper
-2. **OCR Audit** - Reconstructed tables and OCR quality notes
-3. **Existing Records to Enhance** - The records that were previously extracted from this document
-4. **Original Extraction Task** - The prompt and rules used to create these records initially
-5. **Output Schema** - The exact JSON structure you must follow
+1. **Document Content** - A JSON array of page objects from the scientific paper (see Document Format below)
+2. **Existing Records to Enhance** - The records that were previously extracted from this document
+3. **Original Extraction Task** - The prompt and rules used to create these records initially
+4. **Output Schema** - The exact JSON structure you must follow
+
+## Document Format
+
+The document content is structured as a JSON array of page objects. Each page contains:
+
+- **page_number**: The page number in the document
+- **page_header**: Running header text (e.g., journal citation)
+- **section_header**: Section title(s) on that page
+- **text**: Main body text content
+- **tables**: Array of table objects with `content`, `markdown`, `html`, and `summary` fields
+- **other**: Array of figures, captions, and other elements with `type` and `content` fields
+
+**Important**: Search across all pages and all fields (text, tables, other) to find the best supporting evidence and missing information.
+
+## CRITICAL: Reason First, Then Refine
+
+Before refining any records, you MUST fill the `reasoning` field with your analysis. Think step-by-step:
+
+1. **Review each record systematically**: What fields are missing or incomplete? Which are already complete?
+2. **Search document comprehensively**: Where in the document (tables, text, captions, methods) might you find improvements?
+3. **Compare multiple options**: For each potential enhancement, what are 2-3 possible values and which has strongest evidence?
+4. **Validate changes**: Will each enhancement improve accuracy or introduce uncertainty?
+5. **Track your decisions**: For each record, note which fields you enhanced and why, or why you kept them unchanged
+
+Your reasoning should address challenges like:
+- Conflicting information in different parts of the document
+- Whether to fill empty fields or leave them empty
+- Choosing between multiple potential values for the same field
+- Whether incomplete records should be kept or excluded
+
+**Output the `reasoning` field FIRST, documenting your analysis of ALL records, then output the refined `records` array.**
 
 ## Your Task: Enhance Existing Records Only
 
-For each record provided, use deliberate reasoning to find the best enhancements:
+For each record provided, use the analysis from your `reasoning` field to make enhancements:
 
-### Enhancement Process
+### Enhancement Process (documented in `reasoning` field, then applied to `records`)
 
-1. **Identify opportunities** - What fields are missing or incomplete in this record?
+1. **Identify opportunities** (in `reasoning`):
+   - What fields are missing or incomplete in each record?
+   - Document your assessment of each record's completeness
 
-2. **Find multiple options** - For each missing or incomplete field:
-   - Search different parts of the document (text, tables, captions, methods)
-   - Identify 2-3 possible values or improvements from different sources
-   - Consider keeping the field unchanged as one option
+2. **Find multiple options** (in `reasoning`):
+   - For each missing field, search different document sections
+   - Identify 2-3 possible values from different sources
+   - Note pros/cons of each option in your reasoning
 
-3. **Evaluate each option** - For each potential enhancement:
-   - Which source provides the strongest evidence?
-   - Is the information clearly stated or inferred?
-   - Would this change improve accuracy or introduce uncertainty?
+3. **Evaluate and decide** (in `reasoning`):
+   - Which source provides strongest evidence for each field?
+   - Is information clearly stated or inferred?
+   - Document your decision for each field enhancement
 
-4. **Choose the best enhancement** - Select the option that:
-   - Has the clearest supporting evidence
-   - Improves completeness without sacrificing accuracy
-   - Preserves original data if no strong improvement exists
+4. **Apply enhancements** (to `records` array):
+   - Using decisions documented in your `reasoning`, enhance each record
+   - Ensure enhancements match the logic explained in your reasoning
 
-### Focus Areas for Deliberation
+### Focus Areas for Your Reasoning
 
-- **Organism identification** - If common name is missing, check multiple locations (abstract, methods, tables) for the most reliable identification
-- **Supporting evidence** - When multiple quotes are available, choose the one that most directly describes the interaction
-- **Dates and locations** - Cross-reference text with tables/figures to find the most specific information
-- **Missing fields** - Only fill if you find clear evidence; empty is better than guessed
+- **Organism identification**: Note where you found common/scientific names and why you chose specific sources
+- **Supporting evidence**: Explain which quotes best support each interaction and why
+- **Dates and locations**: Document how you cross-referenced sources to find specific information
+- **Missing fields**: Explain why you filled or left empty each field
 
 ## Critical Rules
 
@@ -76,11 +107,14 @@ Return a JSON object with:
 
 ```json
 {
+  "reasoning": "Your complete analysis of all records...",
   "records": [
-    // ALL existing records, enhanced with additional details
+    // ALL existing records, enhanced based on your reasoning
   ]
 }
 ```
+
+Output `reasoning` FIRST with your complete analysis, then `records` array based on that reasoning.
 
 Each record must follow the exact schema structure provided in the context.
 
