@@ -42,6 +42,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         -- Publication metadata
         title TEXT,
         first_author_lastname TEXT,
+        authors TEXT,  -- JSON array of author names
         publication_year INTEGER,
         doi TEXT,
         journal TEXT,
@@ -97,42 +98,6 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_documents_hash ON documents (file_hash)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_document ON records (document_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_record ON records (record_id)")
-
-    # Migration: Add deleted_by_user column if it doesn't exist
-    tryCatch({
-      # Check if column exists by trying to query it
-      DBI::dbGetQuery(con, "SELECT deleted_by_user FROM records LIMIT 0")
-    }, error = function(e) {
-      # Column doesn't exist, add it
-      cat("Migrating database: Adding deleted_by_user column\n")
-      DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN deleted_by_user BOOLEAN DEFAULT FALSE")
-    })
-
-    # Migration: Add reasoning columns if they don't exist
-    tryCatch({
-      DBI::dbGetQuery(con, "SELECT extraction_reasoning FROM documents LIMIT 0")
-    }, error = function(e) {
-      cat("Migrating database: Adding extraction_reasoning column\n")
-      DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN extraction_reasoning TEXT")
-    })
-
-    tryCatch({
-      DBI::dbGetQuery(con, "SELECT refinement_reasoning FROM documents LIMIT 0")
-    }, error = function(e) {
-      cat("Migrating database: Adding refinement_reasoning column\n")
-      DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN refinement_reasoning TEXT")
-    })
-
-    # Migration: Add new metadata columns if they don't exist
-    metadata_columns <- c("volume", "issue", "pages", "issn", "publisher")
-    for (col in metadata_columns) {
-      tryCatch({
-        DBI::dbGetQuery(con, paste0("SELECT ", col, " FROM documents LIMIT 0"))
-      }, error = function(e) {
-        cat("Migrating database: Adding", col, "column\n")
-        DBI::dbExecute(con, paste0("ALTER TABLE documents ADD COLUMN ", col, " TEXT"))
-      })
-    }
 
     if (is.character(db_conn)) {
       cat("EcoExtract database initialized:", db_conn, "\n")
