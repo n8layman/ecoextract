@@ -251,7 +251,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
 save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
   # Get existing metadata
   existing <- DBI::dbGetQuery(db_conn,
-    "SELECT title, first_author_lastname, publication_year, doi, journal, volume, issue, pages, issn, publisher, ocr_audit FROM documents WHERE id = ?",
+    "SELECT title, first_author_lastname, authors, publication_year, doi, journal, volume, issue, pages, issn, publisher, ocr_audit FROM documents WHERE id = ?",
     params = list(document_id))
 
   if (nrow(existing) == 0) {
@@ -271,6 +271,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
     "UPDATE documents
      SET title = CASE WHEN (title IS NULL OR title = '') THEN ? ELSE title END,
          first_author_lastname = CASE WHEN (first_author_lastname IS NULL OR first_author_lastname = '') THEN ? ELSE first_author_lastname END,
+         authors = CASE WHEN (authors IS NULL OR authors = '') THEN ? ELSE authors END,
          publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END,
          doi = CASE WHEN (doi IS NULL OR doi = '') THEN ? ELSE doi END,
          journal = CASE WHEN (journal IS NULL OR journal = '') THEN ? ELSE journal END,
@@ -284,6 +285,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
     params = list(
       metadata$title %||% NA_character_,
       metadata$first_author_lastname %||% NA_character_,
+      metadata$authors %||% NA_character_,
       pub_year,
       metadata$doi %||% NA_character_,
       metadata$journal %||% NA_character_,
