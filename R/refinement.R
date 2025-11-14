@@ -11,7 +11,7 @@
 #' @param schema_file Path to custom schema JSON file (optional)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @return List with refinement results
-#' @export
+#' @keywords internal
 refine_records <- function(db_conn = NULL, document_id,
                                 extraction_prompt_file = NULL, refinement_prompt_file = NULL,
                                 refinement_context_file = NULL,

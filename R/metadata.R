@@ -14,7 +14,7 @@
 #' @param force_reprocess If TRUE, re-run and overwrite all metadata fields (default: FALSE)
 #' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")
 #' @return List with status ("completed"/"skipped"/<error message>)
-#' @export
+#' @keywords internal
 extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
 
   status <- "skipped"

@@ -13,7 +13,7 @@
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
-#' @export
+#' @keywords internal
 extract_records <- function(document_id = NA,
                                  db_conn = NA,
                                  document_content = NA,

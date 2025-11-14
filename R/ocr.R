@@ -35,7 +35,7 @@ perform_ocr <- function(pdf_file) {
 #' @param db_conn Database connection
 #' @param force_reprocess If TRUE, re-run OCR even if document_content already exists (default: FALSE)
 #' @return List with status ("completed"/"skipped"/<error message>) and document_id
-#' @export
+#' @keywords internal
 ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
 
   status <- "skipped"
