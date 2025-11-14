@@ -99,14 +99,10 @@ git status | grep ".env"
 Alternatively, load manually:
 
 ```r
-# Option 1: Use ecoextract's load_env() function (loads all .env* files)
-library(ecoextract)
-load_env()
-
-# Option 2: Use readRenviron for a specific file
+# Option 1: Use readRenviron for a specific file
 readRenviron(".env")
 
-# Option 3: Set directly in R
+# Option 2: Set directly in R
 Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
 ```
 
@@ -281,7 +277,6 @@ Integration tests verify API interactions with LLM providers. To run these local
 
 ```r
 library(ecoextract)
-load_env()
 devtools::test()
 ```
 
