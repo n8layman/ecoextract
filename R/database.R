@@ -51,7 +51,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         pages TEXT,
         issn TEXT,
         publisher TEXT,
-        references TEXT,  -- JSON array of bibliography citations
+        bibliography TEXT,  -- JSON array of bibliography citations
 
         -- Content storage
         document_content TEXT,  -- OCR markdown results
@@ -287,7 +287,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
          pages = CASE WHEN (pages IS NULL OR pages = '') THEN ? ELSE pages END,
          issn = CASE WHEN (issn IS NULL OR issn = '') THEN ? ELSE issn END,
          publisher = CASE WHEN (publisher IS NULL OR publisher = '') THEN ? ELSE publisher END,
-         references = CASE WHEN (references IS NULL OR references = '') THEN ? ELSE references END
+         bibliography = CASE WHEN (bibliography IS NULL OR bibliography = '') THEN ? ELSE bibliography END
      WHERE document_id = ?",
     params = list(
       metadata$title %||% NA_character_,
@@ -301,7 +301,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
       metadata$pages %||% NA_character_,
       metadata$issn %||% NA_character_,
       metadata$publisher %||% NA_character_,
-      metadata$references %||% NA_character_,
+      metadata$bibliography %||% NA_character_,
       document_id
     )
   )

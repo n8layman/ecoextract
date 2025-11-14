@@ -48,7 +48,7 @@
           "type": ["string", "null"],
           "description": "Publisher name (e.g., 'Pergamon Press Ltd', 'Wildlife Disease Association')"
         },
-        "references": {
+        "bibliography": {
           "type": ["array", "null"],
           "description": "Array of citations from the References/Bibliography section",
           "items": {

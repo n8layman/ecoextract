@@ -101,9 +101,9 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       NA_character_
     }
 
-    # Convert references array to JSON string for storage
-    references_json <- if (!is.null(pub_metadata$references) && length(pub_metadata$references) > 0) {
-      jsonlite::toJSON(pub_metadata$references, auto_unbox = FALSE)
+    # Convert bibliography array to JSON string for storage
+    references_json <- if (!is.null(pub_metadata$bibliography) && length(pub_metadata$bibliography) > 0) {
+      jsonlite::toJSON(pub_metadata$bibliography, auto_unbox = FALSE)
     } else {
       NA_character_
     }
@@ -121,7 +121,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     message(glue::glue("  pages: {pub_metadata$pages %||% '<empty>'}"))
     message(glue::glue("  issn: {pub_metadata$issn %||% '<empty>'}"))
     message(glue::glue("  publisher: {pub_metadata$publisher %||% '<empty>'}"))
-    message(glue::glue("  references: {if(!is.null(pub_metadata$references)) length(pub_metadata$references) else 0} citations"))
+    message(glue::glue("  references: {if(!is.null(pub_metadata$bibliography)) length(pub_metadata$bibliography) else 0} citations"))
 
     # Save metadata to database
     save_metadata_to_db(
@@ -139,7 +139,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
         pages = pub_metadata$pages,
         issn = pub_metadata$issn,
         publisher = pub_metadata$publisher,
-        references = references_json
+        bibliography = references_json
       )
     )
 

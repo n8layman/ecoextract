@@ -143,7 +143,7 @@ get_ocr_html_preview <- function(document_id, db_conn = "ecoextract_records.db",
 
 #' Embed Images in Markdown (Internal Helper)
 #'
-#' Replace markdown image references with HTML img tags containing base64 data
+#' Replace markdown image bibliography with HTML img tags containing base64 data
 #'
 #' @param markdown_text Markdown text
 #' @param images_data Parsed images JSON object
@@ -399,7 +399,7 @@ export_db <- function(document_id = NULL,
       "d.document_id", "d.file_name", "d.file_path",
       "d.title", "d.authors", "d.first_author_lastname", "d.publication_year",
       "d.journal", "d.volume", "d.issue", "d.pages",
-      "d.doi", "d.issn", "d.publisher", "d.references",
+      "d.doi", "d.issn", "d.publisher", "d.bibliography",
       "d.records_extracted",
       "d.ocr_status", "d.metadata_status", "d.extraction_status", "d.refinement_status"
     )
@@ -427,7 +427,7 @@ export_db <- function(document_id = NULL,
         "document_id", "file_name", "file_path",
         # Publication metadata
         "title", "authors", "first_author_lastname", "publication_year",
-        "journal", "volume", "issue", "pages", "doi", "issn", "publisher", "references",
+        "journal", "volume", "issue", "pages", "doi", "issn", "publisher", "bibliography",
         # Extraction summary and status
         "records_extracted",
         "ocr_status", "metadata_status", "extraction_status", "refinement_status"
