@@ -408,9 +408,19 @@ export_db <- function(document_id = NULL,
       select_cols <- c(select_cols, "d.document_content", "d.ocr_images")
     }
 
-    # Execute query with all columns
+    # Get column names to build explicit SELECT
+    doc_cols <- DBI::dbListFields(con, "documents")
+    rec_cols <- setdiff(DBI::dbListFields(con, "records"), c("id", "document_id"))
+
+    # Build explicit column list with aliases
+    select_list <- c(
+      paste0("d.", doc_cols),
+      paste0("r.", rec_cols)
+    )
+
+    # Execute query with explicit columns to avoid duplicates
     query <- paste0(
-      "SELECT d.*, r.* ",
+      "SELECT ", paste(select_list, collapse = ", "), " ",
       "FROM records r ",
       "JOIN documents d ON r.document_id = d.document_id ",
       where_clause
