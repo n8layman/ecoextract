@@ -4,7 +4,13 @@
 \alias{save_records_to_db}
 \title{Save records to EcoExtract database (internal)}
 \usage{
-save_records_to_db(db_path, document_id, interactions_df, metadata = list())
+save_records_to_db(
+  db_path,
+  document_id,
+  interactions_df,
+  metadata = list(),
+  schema_list = NULL
+)
 }
 \arguments{
 \item{db_path}{Path to database file}
@@ -14,6 +20,8 @@ save_records_to_db(db_path, document_id, interactions_df, metadata = list())
 \item{interactions_df}{Dataframe of records}
 
 \item{metadata}{Processing metadata}
+
+\item{schema_list}{Optional parsed JSON schema for array normalization}
 }
 \value{
 TRUE if successful

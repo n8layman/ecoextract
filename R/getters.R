@@ -28,6 +28,7 @@ get_ocr_markdown <- function(document_id, db_conn = "ecoextract_records.db") {
     close_on_exit <- FALSE
   } else {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
     close_on_exit <- TRUE
   }
 
@@ -67,6 +68,7 @@ get_ocr_html_preview <- function(document_id, db_conn = "ecoextract_records.db",
     close_on_exit <- FALSE
   } else {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
     close_on_exit <- TRUE
   }
 
@@ -259,6 +261,7 @@ get_documents <- function(document_id = NULL, db_conn = "ecoextract_records.db")
     close_on_exit <- FALSE
   } else {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
     close_on_exit <- TRUE
   }
 
@@ -313,6 +316,7 @@ get_records <- function(document_id = NULL, db_conn = "ecoextract_records.db") {
     close_on_exit <- FALSE
   } else {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
     close_on_exit <- TRUE
   }
 
@@ -379,6 +383,7 @@ export_db <- function(document_id = NULL,
     close_on_exit <- FALSE
   } else {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
     close_on_exit <- TRUE
   }
 

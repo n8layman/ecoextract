@@ -243,7 +243,8 @@ refine_records <- function(db_conn = NULL, document_id,
         metadata = list(
           model = model,
           prompt_hash = prompt_hash
-        )
+        ),
+        schema_list = schema_list  # Pass schema for array normalization
       )
 
       status <- "completed"

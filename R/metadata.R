@@ -27,6 +27,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       init_ecoextract_database(db_conn, schema_file = schema_file)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(db_conn)
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
@@ -35,19 +36,15 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     "SELECT * FROM documents WHERE document_id = ?",
     params = list(document_id))
 
-  message("DEBUG: existing_metadata nrow = ", nrow(existing_metadata))
-  message("DEBUG: existing_metadata structure: ", paste(capture.output(str(existing_metadata)), collapse = "\n"))
-  message("DEBUG: force_reprocess = ", force_reprocess)
-  message("DEBUG: nrow check = ", nrow(existing_metadata) == 0)
-  message("DEBUG: title check = ", is.na(existing_metadata$title[1]))
-  message("DEBUG: first_author check = ", is.na(existing_metadata$first_author_lastname[1]))
-  message("DEBUG: pub_year check = ", is.na(existing_metadata$publication_year[1]))
-
-  should_run <- force_reprocess ||
+  # Check if we should run metadata extraction
+  # Use isTRUE() for safer logical evaluation with potential NAs
+  should_run <- isTRUE(force_reprocess) ||
                 nrow(existing_metadata) == 0 ||
-                is.na(existing_metadata$title[1]) ||
-                is.na(existing_metadata$first_author_lastname[1]) ||
-                is.na(existing_metadata$publication_year[1])
+                (nrow(existing_metadata) > 0 && (
+                  is.na(existing_metadata$title[1]) ||
+                  is.na(existing_metadata$first_author_lastname[1]) ||
+                  is.na(existing_metadata$publication_year[1])
+                ))
 
   if (!should_run) {
     message("Metadata already exists for document ", document_id,
@@ -69,10 +66,6 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     # content_tbl <- jsonlite::fromJSON(document_content, simplifyDataFrame = TRUE) |> 
     # dplyr::filter(page_number %in% c(1:3)) |>
     # jsonlite::toJSON()
-
-    # Debug: Show first 500 characters of OCR text
-    message("OCR text preview (first 500 chars):")
-    message(substr(document_content, 1, 500))
 
     # Load metadata schema and convert to native ellmer types
     schema_path <- system.file("extdata", "metadata_schema.json", package = "ecoextract")
@@ -129,21 +122,6 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       NA_character_
     }
 
-    # Debug: Show what was extracted
-    message("Metadata extraction raw results:")
-    message(glue::glue("  title: {pub_metadata$title %||% '<empty>'}"))
-    message(glue::glue("  first_author_lastname: {pub_metadata$first_author_lastname %||% '<empty>'}"))
-    message(glue::glue("  authors: {if(!is.null(pub_metadata$authors)) paste(pub_metadata$authors, collapse=', ') else '<empty>'}"))
-    message(glue::glue("  publication_year: {pub_metadata$publication_year %||% '<empty>'}"))
-    message(glue::glue("  doi: {pub_metadata$doi %||% '<empty>'}"))
-    message(glue::glue("  journal: {pub_metadata$journal %||% '<empty>'}"))
-    message(glue::glue("  volume: {pub_metadata$volume %||% '<empty>'}"))
-    message(glue::glue("  issue: {pub_metadata$issue %||% '<empty>'}"))
-    message(glue::glue("  pages: {pub_metadata$pages %||% '<empty>'}"))
-    message(glue::glue("  issn: {pub_metadata$issn %||% '<empty>'}"))
-    message(glue::glue("  publisher: {pub_metadata$publisher %||% '<empty>'}"))
-    message(glue::glue("  references: {if(!is.null(pub_metadata$bibliography)) length(pub_metadata$bibliography) else 0} citations"))
-
     # Save metadata to database
     save_metadata_to_db(
       document_id = document_id,
@@ -164,8 +142,21 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       )
     )
 
-        message("Metadata extraction completed")
-        message(glue::glue("  {pub_metadata$first_author_lastname %||% 'Unknown'} ({pub_metadata$publication_year %||% 'Year unknown'})"))
+      # Log metadata extracted to console for user.
+      message("Metadata extraction completed:")
+      message(glue::glue("  title: {pub_metadata$title %||% '<empty>'}"))
+      message(glue::glue("  first_author_lastname: {pub_metadata$first_author_lastname %||% '<empty>'}"))
+      message(glue::glue("  authors: {if(!is.null(pub_metadata$authors)) paste(pub_metadata$authors, collapse=', ') else '<empty>'}"))
+      message(glue::glue("  publication_year: {pub_metadata$publication_year %||% '<empty>'}"))
+      message(glue::glue("  doi: {pub_metadata$doi %||% '<empty>'}"))
+      message(glue::glue("  journal: {pub_metadata$journal %||% '<empty>'}"))
+      message(glue::glue("  volume: {pub_metadata$volume %||% '<empty>'}"))
+      message(glue::glue("  issue: {pub_metadata$issue %||% '<empty>'}"))
+      message(glue::glue("  pages: {pub_metadata$pages %||% '<empty>'}"))
+      message(glue::glue("  issn: {pub_metadata$issn %||% '<empty>'}"))
+      message(glue::glue("  publisher: {pub_metadata$publisher %||% '<empty>'}"))
+      message(glue::glue("  references: {if(!is.null(pub_metadata$bibliography)) length(pub_metadata$bibliography) else 0} citations"))
+
 
         "completed"
       }
@@ -173,16 +164,6 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       paste("Metadata extraction failed:", e$message)
     })
   }
-
-  # Save status to DB
-  status <- tryCatch({
-    DBI::dbExecute(db_conn,
-      "UPDATE documents SET metadata_status = ? WHERE document_id = ?",
-      params = list(status, document_id))
-    status
-  }, error = function(e) {
-    paste("Metadata extraction failed: Could not save status -", e$message)
-  })
 
   return(list(status = status, document_id = document_id))
 }

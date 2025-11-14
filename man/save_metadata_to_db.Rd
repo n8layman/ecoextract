@@ -2,21 +2,24 @@
 % Please edit documentation in R/database.R
 \name{save_metadata_to_db}
 \alias{save_metadata_to_db}
-\title{Save publication metadata to existing document (internal)}
+\title{Save publication metadata to EcoExtract database (internal)}
 \usage{
-save_metadata_to_db(document_id, db_conn, metadata = list())
+save_metadata_to_db(document_id, db_conn, metadata = list(), overwrite = FALSE)
 }
 \arguments{
-\item{document_id}{Document ID}
+\item{document_id}{Document ID to update}
 
-\item{db_conn}{Database connection}
+\item{db_conn}{Database connection or path to SQLite database}
 
-\item{metadata}{List with metadata fields (title, first_author_lastname, publication_year, doi, journal)}
+\item{metadata}{Named list with metadata fields}
+
+\item{overwrite}{Logical, if TRUE will overwrite all existing fields}
 }
 \value{
 Document ID
 }
 \description{
-Save publication metadata to existing document (internal)
+Updates existing document metadata fields that are currently NULL/NA/empty.
+Optionally overwrites all metadata if `overwrite = TRUE`.
 }
 \keyword{internal}
