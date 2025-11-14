@@ -42,9 +42,14 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
   document_id <- NA
 
   # Check if already processed (document exists with valid OCR content)
-  existing <- DBI::dbGetQuery(db_conn,
-    "SELECT document_id, document_content FROM documents WHERE file_path = ?",
-    params = list(pdf_file))
+  pdf_hash <- digest::digest(pdf_file, file = TRUE, algo = "md5") 
+  existing <- DBI::dbGetQuery(
+    db_conn,
+    "SELECT document_id, document_content
+      FROM documents
+      WHERE file_hash = ?",
+    params = list(pdf_hash)
+  )
 
   should_run <- force_reprocess ||
                 nrow(existing) == 0 ||
@@ -54,10 +59,10 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
   if (!should_run) {
     message(glue::glue("OCR already completed for {basename(pdf_file)}, skipping (force_reprocess=FALSE)"))
     document_id <- existing$document_id[1]
-    # Keep status = "skipped"
   } else {
     # Run OCR
     ocr_response <- tryCatch({
+
       message(glue::glue("Performing OCR on {basename(pdf_file)}..."))
       ocr_result <- perform_ocr(pdf_file)
 
@@ -65,6 +70,7 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
       saved_id <- save_document_to_db(
         db_conn = db_conn,
         file_path = pdf_file,
+        overwrite = force_reprocess_ocr,
         metadata = list(
           document_content = ocr_result$json_content
         )

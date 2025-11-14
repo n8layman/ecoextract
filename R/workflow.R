@@ -54,7 +54,7 @@
 #' process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
 #' }
 process_documents <- function(pdf_path,
-                             db_conn = "ecoextract_records.db",
+                             db = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
@@ -88,25 +88,6 @@ process_documents <- function(pdf_path,
     }
   } else {
     stop("Path does not exist: ", pdf_path)
-  }
-
-  # Handle database connection - accept either connection object or path
-  if (inherits(db_conn, "DBIConnection")) {
-    # User provided connection - use it directly, don't close on exit
-    con <- db_conn
-    close_on_exit <- FALSE
-  } else {
-    # Path string - initialize if needed, then connect
-    if (!file.exists(db_conn)) {
-      cat("Initializing new database:", db_conn, "\n")
-      init_ecoextract_database(db_conn, schema_file = schema_file)
-    }
-    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
-    close_on_exit <- TRUE
-  }
-
-  if (close_on_exit) {
-    on.exit(DBI::dbDisconnect(con), add = TRUE)
   }
 
   # Report configuration sources
@@ -240,6 +221,17 @@ process_single_document <- function(pdf_file,
   message(glue::glue("Processing: {basename(pdf_file)}"))
   message(strrep("=", 70))
 
+  # Handle database connection - accept either connection object or path
+  if (!inherits(db_conn, "DBIConnection")) {
+    # Path string - initialize if needed, then connect
+    if (!file.exists(db_conn)) {
+      cat("Initializing new database:", db_conn, "\n")
+      init_ecoextract_database(db_conn, schema_file = schema_file)
+    }
+    db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
   # Initialize status tracking with filename only (all start as 'skipped')
   status_tracking <- list(filename = basename(pdf_file),
                           ocr_status = "skipped",
@@ -251,57 +243,15 @@ process_single_document <- function(pdf_file,
   # Step 1: OCR Processing
   message("\n[1/4] OCR Processing...")
 
-  # Check if document already exists
-  existing <- DBI::dbGetQuery(db_conn,
-    "SELECT document_id, document_content FROM documents WHERE file_path = ?",
-    params = list(pdf_file))
-
-  if (nrow(existing) > 0 && force_reprocess_ocr) {
-    doc_id <- existing$document_id[1]
-
-    # Warn user about data deletion
-    message(strrep("!", 70))
-    message("WARNING: force_reprocess_ocr=TRUE")
-    message(glue::glue("Deleting ALL data for document {doc_id}: {basename(pdf_file)}"))
-    message("  - OCR data (document_content, ocr_images)")
-    message("  - Metadata (title, author, year, doi, journal, etc.)")
-    message("  - All extracted records")
-    message("  - Status columns (ocr_status, metadata_status, etc.)")
-    message("  - Reasoning logs (extraction_reasoning, refinement_reasoning)")
-    message(strrep("!", 70))
-
-    # Hard delete all records for this document
-    DBI::dbExecute(db_conn,
-      "DELETE FROM records WHERE document_id = ?",
-      params = list(doc_id))
-
-    # Clear all data fields (keep only file tracking: file_name, file_path, file_hash, file_size, upload_timestamp)
-    DBI::dbExecute(db_conn,
-      "UPDATE documents SET
-        title = NULL,
-        first_author_lastname = NULL,
-        authors = NULL,
-        publication_year = NULL,
-        doi = NULL,
-        journal = NULL,
-        volume = NULL,
-        issue = NULL,
-        pages = NULL,
-        issn = NULL,
-        publisher = NULL,
-        bibliography = NULL,
-        document_content = NULL,
-        ocr_images = NULL,
-        extraction_reasoning = NULL,
-        refinement_reasoning = NULL,
-        ocr_status = NULL,
-        metadata_status = NULL,
-        extraction_status = NULL,
-        refinement_status = NULL,
-        records_extracted = 0
-      WHERE document_id = ?",
-      params = list(doc_id))
-  }
+  # Check if document already exists by matching hash
+  pdf_hash <- digest::digest(pdf_file, file = TRUE, algo = "md5") 
+  existing <- DBI::dbGetQuery(
+    db_conn,
+    "SELECT document_id, document_content
+      FROM documents
+      WHERE file_hash = ?",
+    params = list(pdf_hash)
+  )
 
   # Run OCR (will skip if document_content exists and force_reprocess=FALSE)
   ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = force_reprocess_ocr)

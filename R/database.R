@@ -156,110 +156,58 @@ get_record_columns_sql <- function(schema_json_list = NULL) {
 #' @param metadata List with document metadata
 #' @return Document ID or NULL if failed
 #' @keywords internal
-save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list()) {
-  message("DEBUG: save_document_to_db called")
-
-  # Accept either a connection object or a path string
-  if (inherits(db_conn, "DBIConnection")) {
-    con <- db_conn
-    close_on_exit <- FALSE
-  } else {
+save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list(), overwrite = FALSE) {
+  # Open connection if needed
+  if (!inherits(db_conn, "DBIConnection")) {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
-    close_on_exit <- TRUE
-  }
-
-  if (close_on_exit) {
     on.exit(DBI::dbDisconnect(con), add = TRUE)
   }
 
-  # Compute file hash if not provided
-  if (is.null(file_hash)) {
-    if (file.exists(file_path)) {
-      file_hash <- digest::digest(file_path, file = TRUE, algo = "md5")
-    } else {
-      # For test cases where file doesn't exist, use path as hash
-      file_hash <- digest::digest(file_path, algo = "md5")
+  # Compute file hash and basic file info
+  if (is.null(file_hash)) file_hash <- digest::digest(file_path, file = TRUE, algo = "md5")
+  file_size <- if (file.exists(file_path)) as.numeric(file.info(file_path)$size) else NA_integer_
+  file_name <- basename(file_path)
+  timestamp <- as.character(Sys.time())
+
+  # Handle overwrite: drop existing row by hash if requested
+  doc_id <- NULL
+  if (overwrite) {
+    existing <- DBI::dbGetQuery(con, "SELECT document_id FROM documents WHERE file_hash = ?", params = list(file_hash))
+    if (nrow(existing) > 0) {
+      doc_id <- existing$document_id[1]
+      DBI::dbExecute(con, "DELETE FROM records WHERE document_id = ?", params = list(doc_id))
+      DBI::dbExecute(con, "DELETE FROM documents WHERE document_id = ?", params = list(doc_id))
     }
   }
 
-  # Check if document already exists (to preserve document ID)
-  existing <- DBI::dbGetQuery(con, "
-    SELECT document_id FROM documents WHERE file_hash = ?
-  ", params = list(file_hash))
+  # Prepare metadata in correct order
+  meta_keys <- c("title", "first_author_lastname", "publication_year", 
+                 "doi", "journal", "document_content", "ocr_images")
+  metadata_complete <- lapply(meta_keys, function(k) metadata[[k]] %||% NA)
 
-  doc_id <- if (nrow(existing) > 0) existing$document_id[1] else NULL
+  # Combine with file info
+  params <- c(list(file_name, file_path, file_hash, file_size, timestamp), metadata_complete)
 
-  message(glue::glue("DEBUG: doc_id from existing check = {if(is.null(doc_id)) 'NULL' else doc_id}"))
+  # Insert new row (autoincrement)
+  DBI::dbExecute(con, "
+    INSERT INTO documents (
+      file_name, file_path, file_hash, file_size, upload_timestamp,
+      title, first_author_lastname, publication_year, doi, journal,
+      document_content, ocr_images
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ", params = params)
 
-  # INSERT OR REPLACE - overwrites entire row if exists, inserts if new
-  file_size <- if (file.exists(file_path)) {
-    as.numeric(file.info(file_path)$size)
+  # Get the rowid of the inserted row
+  last_id <- DBI::dbGetQuery(con, "SELECT last_insert_rowid() AS rowid")$rowid
+
+  # If old_id existed, overwrite document_id with old_id
+  if (!is.null(doc_id)) {
+    DBI::dbExecute(con, "UPDATE documents SET document_id = ? WHERE rowid = ?", params = list(doc_id, last_id))
   } else {
-    NA_integer_
+    doc_id <- last_id
   }
 
-  if (is.null(doc_id)) {
-    message("DEBUG: Inserting new document")
-    # New document - INSERT without specifying id (auto-generated)
-    tryCatch({
-      DBI::dbExecute(con, "
-        INSERT INTO documents (
-          file_name, file_path, file_hash, file_size, upload_timestamp,
-          title, first_author_lastname, publication_year, doi, journal,
-          document_content, ocr_images
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ", params = list(
-        basename(file_path),
-        file_path,
-        file_hash,
-        file_size,
-        as.character(Sys.time()),
-        metadata$title %||% NA_character_,
-        metadata$first_author_lastname %||% NA_character_,
-        metadata$publication_year %||% NA_integer_,
-        metadata$doi %||% NA_character_,
-        metadata$journal %||% NA_character_,
-        metadata$document_content %||% NA_character_,
-        metadata$ocr_images %||% NA_character_
-      ))
-
-      message("DEBUG: INSERT executed successfully")
-      # Get the new document ID
-      new_id <- DBI::dbGetQuery(con, "SELECT last_insert_rowid() as document_id")$document_id
-      message(glue::glue("DEBUG: last_insert_rowid returned: {new_id}"))
-      return(new_id)
-    }, error = function(e) {
-      message("ERROR in save_document_to_db INSERT: ", e$message)
-      return(NA_integer_)
-    })
-
-  } else {
-    # Existing document - REPLACE with explicit id
-    DBI::dbExecute(con, "
-      INSERT OR REPLACE INTO documents (
-        document_id, file_name, file_path, file_hash, file_size, upload_timestamp,
-        title, first_author_lastname, publication_year, doi, journal,
-        document_content, ocr_images
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ", params = list(
-      doc_id,
-      basename(file_path),
-      file_path,
-      file_hash,
-      file_size,
-      as.character(Sys.time()),
-      metadata$title %||% NA_character_,
-      metadata$first_author_lastname %||% NA_character_,
-      metadata$publication_year %||% NA_integer_,
-      metadata$doi %||% NA_character_,
-      metadata$journal %||% NA_character_,
-      metadata$document_content %||% NA_character_,
-      metadata$ocr_images %||% NA_character_
-    ))
-
-    # Return the existing document ID
-    return(doc_id)
-  }
+  return(doc_id)
 }
 
 #' Save publication metadata to existing document (internal)

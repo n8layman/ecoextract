@@ -24,6 +24,14 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     "SELECT title, first_author_lastname, publication_year FROM documents WHERE document_id = ?",
     params = list(document_id))
 
+  message("DEBUG: existing_metadata nrow = ", nrow(existing_metadata))
+  message("DEBUG: existing_metadata structure: ", paste(capture.output(str(existing_metadata)), collapse = "\n"))
+  message("DEBUG: force_reprocess = ", force_reprocess)
+  message("DEBUG: nrow check = ", nrow(existing_metadata) == 0)
+  message("DEBUG: title check = ", is.na(existing_metadata$title[1]))
+  message("DEBUG: first_author check = ", is.na(existing_metadata$first_author_lastname[1]))
+  message("DEBUG: pub_year check = ", is.na(existing_metadata$publication_year[1]))
+
   should_run <- force_reprocess ||
                 nrow(existing_metadata) == 0 ||
                 is.na(existing_metadata$title[1]) ||
@@ -196,7 +204,12 @@ json_schema_to_ellmer_type_metadata <- function(schema_path) {
     issue = ellmer::type_string(description = pub_meta_props$issue$description, required = FALSE),
     pages = ellmer::type_string(description = pub_meta_props$pages$description, required = FALSE),
     issn = ellmer::type_string(description = pub_meta_props$issn$description, required = FALSE),
-    publisher = ellmer::type_string(description = pub_meta_props$publisher$description, required = FALSE)
+    publisher = ellmer::type_string(description = pub_meta_props$publisher$description, required = FALSE),
+    bibliography = ellmer::type_array(
+      items = ellmer::type_string(),
+      description = pub_meta_props$bibliography$description,
+      required = FALSE
+    )
   )
 
   # Build complete schema
