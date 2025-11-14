@@ -98,7 +98,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         deleted_by_user BOOLEAN DEFAULT FALSE,
 
         UNIQUE(document_id, record_id),
-        FOREIGN KEY (document_id) REFERENCES documents (id)
+        FOREIGN KEY (document_id) REFERENCES documents (document_id)
       )
     ")
     DBI::dbExecute(con, record_table_sql)
