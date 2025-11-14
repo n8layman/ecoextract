@@ -91,8 +91,8 @@ Before returning your result:
 - Capture **all detection methods** (PCR, serology, culture, sequencing, etc.).
 - Record **sample types** (`Sample_type`) and **vector names** (`Vector_Name`) if mentioned.
 - Include **GenBank accession numbers** (`GenBank_Accession`) when available.
-- Include **table references** (`Sentence_Reference`) when data comes from tables.
 - Each detection must include **verbatim supporting sentences** in the `all_supporting_source_sentences` array.
+- Create **one record per unique pathogen-host-detection combination** with all supporting sentences in the array.
 
 ### Interaction Types to Include
 
@@ -107,7 +107,7 @@ Before returning your result:
 - Copy **exact sentences** (no rephrasing) into the `all_supporting_source_sentences` array.
 - **One sentence per array element** - split multi-sentence evidence into individual elements.
 - Include **figure or table captions verbatim** as array elements if relevant.
-- Use the `Sentence_Reference` field for any table citation text.
+- **Collect all sentences** for the same pathogen-host-detection combination into a single record's array.
 
 ---
 

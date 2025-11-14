@@ -13,7 +13,7 @@
           "Pathogen_Name",
           "Host_Name",
           "Detection_Method",
-          "Relevant_Sentence"
+          "all_supporting_source_sentences"
         ],
         "properties": {
           "OHP_Pathogen_Name": {
@@ -44,9 +44,13 @@
             "type": "string",
             "description": "Identity of the samples that were tested. Found in ticks but not in tick hosts (optional)"
           },
-          "Relevant_Sentence": {
-            "type": "string",
-            "description": "Text that describes the relationship between host and pathogen in PDF (should generally be in the Results section)"
+          "all_supporting_source_sentences": {
+            "type": "array",
+            "description": "Array of verbatim sentences from the source document that support this host-pathogen-detection relationship. Each element should contain exactly ONE sentence.",
+            "items": {
+              "type": "string",
+              "description": "Individual supporting sentence from the document"
+            }
           },
           "Confidence_Score": {
             "type": "integer",
@@ -54,17 +58,13 @@
             "maximum": 5,
             "description": "Model confidence score (5-point Likert scale)"
           },
-          "Opt_Vector_Name": {
+          "Vector_Name": {
             "type": "string",
             "description": "Optional: Name of vector from PDF"
           },
-          "Opt_GenBank_Accession": {
+          "GenBank_Accession": {
             "type": "string",
             "description": "Optional: GenBank Accession numbers reported in PDF"
-          },
-          "Opt_Sentence_Reference": {
-            "type": "string",
-            "description": "If relationship is from a table with a reference, put associated reference text here (optional)"
           },
           "Extraction_quality_score": {
             "type": "integer",

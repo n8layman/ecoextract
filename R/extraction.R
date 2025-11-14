@@ -107,9 +107,10 @@ extract_records <- function(document_id = NA,
         # Already a dataframe
         extraction_df <- tibble::as_tibble(records_data)
       } else if (is.list(records_data) && length(records_data) > 0) {
-        # List of lists - convert to dataframe
-        # Use bind_rows which handles list-of-lists nicely
-        extraction_df <- dplyr::bind_rows(records_data)
+        # List of lists - use jsonlite to preserve array structure
+        # Convert to JSON and back to ensure arrays stay as list columns
+        json_str <- jsonlite::toJSON(records_data, auto_unbox = TRUE)
+        extraction_df <- jsonlite::fromJSON(json_str, simplifyDataFrame = TRUE)
       } else {
         extraction_df <- tibble::tibble()
       }
