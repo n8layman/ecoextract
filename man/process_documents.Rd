@@ -10,8 +10,8 @@ process_documents(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  run_ocr = TRUE,
-  run_metadata = TRUE,
+  force_reprocess_ocr = FALSE,
+  force_reprocess_metadata = FALSE,
   run_extraction = TRUE,
   run_refinement = FALSE
 )
@@ -29,23 +29,23 @@ If a connection is provided, tables must already exist (use \code{init_ecoextrac
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
-\item{run_ocr}{If TRUE, run OCR step. Re-running deletes metadata and records (default: TRUE)}
+\item{force_reprocess_ocr}{If TRUE, re-run OCR and delete all data for documents (OCR, metadata, records, status, reasoning). User will be warned. Default FALSE - skips if OCR already done.}
 
-\item{run_metadata}{If TRUE, run metadata extraction. Re-running overwrites all fields (default: TRUE)}
+\item{force_reprocess_metadata}{If TRUE, re-run metadata extraction and overwrite all metadata fields. Default FALSE - skips if metadata already exists.}
 
-\item{run_extraction}{If TRUE, run extraction step (default: TRUE)}
+\item{run_extraction}{If TRUE, run extraction step to find new records. Default TRUE.}
 
-\item{run_refinement}{If TRUE, run refinement step (default: FALSE)}
+\item{run_refinement}{If TRUE, run refinement step to enhance existing records. Default FALSE.}
 }
 \value{
 Tibble with processing results
 }
 \description{
-Process PDFs through the complete pipeline: OCR → Audit → Extract → Refine
+Process PDFs through the complete pipeline: OCR → Metadata → Extract → Refine
 }
 \examples{
 \dontrun{
-# SQLite (path string - automatic initialization)
+# Basic usage - process new PDFs
 process_documents("pdfs/")
 process_documents("paper.pdf", "my_interactions.db")
 
@@ -63,11 +63,11 @@ init_ecoextract_database(con)
 process_documents("pdfs/", db_conn = con)
 dbDisconnect(con)
 
-# Re-run OCR (deletes metadata + records, starts fresh)
-process_documents("pdfs/", run_ocr = TRUE)
+# Force re-run OCR (WARNING: deletes ALL data for documents - OCR, metadata, records)
+process_documents("pdfs/", force_reprocess_ocr = TRUE)
 
-# Re-run metadata only (overwrites all metadata fields)
-process_documents("pdfs/", run_ocr = FALSE, run_metadata = TRUE)
+# Force re-run metadata only (overwrites metadata fields, keeps records)
+process_documents("pdfs/", force_reprocess_metadata = TRUE)
 
 # With custom schema and prompts
 process_documents("pdfs/", "interactions.db",
@@ -77,7 +77,7 @@ process_documents("pdfs/", "interactions.db",
 # With refinement (opt-in)
 process_documents("pdfs/", run_refinement = TRUE)
 
-# Skip extraction (refinement only on existing records)
+# Skip extraction, refinement only on existing records
 process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
 }
 }

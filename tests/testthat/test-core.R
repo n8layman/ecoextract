@@ -44,37 +44,7 @@ test_that("save and retrieve records workflow", {
   expect_equal(nrow(saved), nrow(records))
 })
 
-# Schema Validation ------------------------------------------------------------
-
-test_that("validate_interactions_schema accepts valid data", {
-  records <- sample_records()
-  validation <- validate_interactions_schema(records)
-
-  expect_true(validation$valid)
-  expect_length(validation$errors, 0)
-})
-
-test_that("validate_interactions_schema reports warnings for unknown columns", {
-  test_df <- sample_records()
-  test_df$unknown_column <- "extra data"
-
-  validation <- validate_interactions_schema(test_df)
-
-  # Should still be valid but may have warnings
-  expect_true(validation$valid)
-  expect_type(validation, "list")
-})
-
-test_that("filter_to_schema_columns removes unknown columns", {
-  schema_cols <- get_db_schema_columns()
-  test_df <- sample_records()
-  test_df$unknown_column <- "should be removed"
-
-  filtered <- filter_to_schema_columns(test_df)
-
-  expect_false("unknown_column" %in% names(filtered))
-  expect_true(all(names(filtered) %in% schema_cols))
-})
+# Schema Validation tests removed - schema.R was domain-specific legacy code
 
 # ID Generation ----------------------------------------------------------------
 

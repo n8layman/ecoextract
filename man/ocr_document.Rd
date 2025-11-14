@@ -23,3 +23,4 @@ Performs OCR on PDF and saves document to database
 When force_reprocess=TRUE, overwrites existing document_content.
 Note: Caller is responsible for cascade deletion of metadata/records.
 }
+\keyword{internal}

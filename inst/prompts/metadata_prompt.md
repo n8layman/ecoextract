@@ -106,6 +106,15 @@ The document is provided as a JSON array of page objects. Each page contains:
 - Look in copyright line, footer, or near publication information
 - Extract organization name associated with copyright or publication
 
+### bibliography
+
+- Array of citations from the References/Bibliography/Literature Cited section
+- Look for sections titled: "References", "Bibliography", "Literature Cited", "Works Cited"
+- Extract each citation as a separate array element
+- Preserve the citation format as written in the document
+- Include all citations found in the reference list
+- If no reference section is found, return empty array or null
+
 ## Search Strategy
 
 1. **page_header field** - Check here FIRST for journal and year

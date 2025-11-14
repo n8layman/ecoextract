@@ -67,11 +67,8 @@ MISTRAL_API_KEY=your_mistral_api_key_here
 3. Load environment variables before running tests:
 
 ```r
-# Load environment variables
+# Run all tests including integration tests (loads .env automatically)
 library(ecoextract)
-load_env()
-
-# Run all tests including integration tests
 devtools::test()
 ```
 

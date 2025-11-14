@@ -283,8 +283,7 @@ Sys.setenv(ANTHROPIC_API_KEY = "sk-ant-...")
 # The API key will be automatically detected by ellmer
 
 # Or load from .env file
-library(ecoextract)
-load_env()
+readRenviron(".env")
 ```
 
 ### Schema Validation Errors

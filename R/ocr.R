@@ -35,50 +35,69 @@ perform_ocr <- function(pdf_file) {
 #' @param db_conn Database connection
 #' @param force_reprocess If TRUE, re-run OCR even if document_content already exists (default: FALSE)
 #' @return List with status ("completed"/"skipped"/<error message>) and document_id
-#' @export
+#' @keywords internal
 ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
 
-  # Check if already processed (document exists with valid OCR content)
-  if (!force_reprocess) {
-    existing <- DBI::dbGetQuery(db_conn,
-      "SELECT id, document_content FROM documents WHERE file_path = ?",
-      params = list(pdf_file))
+  status <- "skipped"
+  document_id <- NA
 
-    if (nrow(existing) > 0 &&
-        !is.na(existing$document_content[1]) &&
-        nchar(existing$document_content[1]) > 0) {
-      message(glue::glue("OCR already completed for {basename(pdf_file)}, skipping (force_reprocess=FALSE)"))
-      return(list(
-        status = "skipped",
-        document_id = existing$id[1]
+  # Check if already processed (document exists with valid OCR content)
+  pdf_hash <- digest::digest(pdf_file, file = TRUE, algo = "md5") 
+  existing <- DBI::dbGetQuery(
+    db_conn,
+    "SELECT document_id, document_content
+      FROM documents
+      WHERE file_hash = ?",
+    params = list(pdf_hash)
+  )
+
+  should_run <- force_reprocess ||
+                nrow(existing) == 0 ||
+                is.na(existing$document_content[1]) ||
+                nchar(existing$document_content[1]) == 0
+
+  if (!should_run) {
+    message(glue::glue("OCR already completed for {basename(pdf_file)}, skipping (force_reprocess=FALSE)"))
+    document_id <- existing$document_id[1]
+  } else {
+    # Run OCR
+    ocr_response <- tryCatch({
+
+      message(glue::glue("Performing OCR on {basename(pdf_file)}..."))
+      ocr_result <- perform_ocr(pdf_file)
+
+      # Save document to database with JSON content
+      saved_id <- save_document_to_db(
+        db_conn = db_conn,
+        file_path = pdf_file,
+        overwrite = force_reprocess_ocr,
+        metadata = list(
+          document_content = ocr_result$json_content
+        )
+      )
+
+      message(glue::glue("DEBUG: OCR save returned document_id = {saved_id}"))
+      message(glue::glue(
+        "OCR completed: {length(ocr_result$pages)} pages extracted"
       ))
-    }
+      list(status = "completed", document_id = saved_id)
+    }, error = function(e) {
+      list(status = paste("OCR failed:", e$message), document_id = NA)
+    })
+
+    status <- ocr_response$status
+    document_id <- ocr_response$document_id
   }
 
-  tryCatch({
-    message(glue::glue("Performing OCR on {basename(pdf_file)}..."))
-    ocr_result <- perform_ocr(pdf_file)
-
-    # Save document to database with JSON content
-    document_id <- save_document_to_db(
-      db_conn = db_conn,
-      file_path = pdf_file,
-      metadata = list(
-        document_content = ocr_result$json_content
-      )
-    )
-
-    message(glue::glue(
-      "OCR completed: {length(ocr_result$pages)} pages extracted"
-    ))
-    list(
-      status = "completed",
-      document_id = document_id
-    )
+  # Save status to DB
+  status <- tryCatch({
+    DBI::dbExecute(db_conn,
+      "UPDATE documents SET ocr_status = ? WHERE document_id = ?",
+      params = list(status, document_id))
+    status
   }, error = function(e) {
-    list(
-      status = paste("OCR failed:", e$message),
-      document_id = NA
-    )
+    paste("OCR failed: Could not save status -", e$message)
   })
+
+  return(list(status = status, document_id = document_id))
 }

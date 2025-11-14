@@ -14,32 +14,43 @@
 #' @param force_reprocess If TRUE, re-run and overwrite all metadata fields (default: FALSE)
 #' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")
 #' @return List with status ("completed"/"skipped"/<error message>)
-#' @export
+#' @keywords internal
 extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
 
-  # Skip if not force reprocessing and metadata already exists
-  if (!force_reprocess) {
-    existing_metadata <- DBI::dbGetQuery(db_conn,
-      "SELECT title, first_author_lastname, publication_year FROM documents WHERE id = ?",
-      params = list(document_id))
+  status <- "skipped"
 
-    if (nrow(existing_metadata) > 0 &&
-        !is.na(existing_metadata$title[1]) &&
-        !is.na(existing_metadata$first_author_lastname[1]) &&
-        !is.na(existing_metadata$publication_year[1])) {
-      message("Metadata already exists for document ", document_id,
-              ", skipping (force_reprocess=FALSE)")
-      return(list(status = "skipped", document_id = document_id))
-    }
-  }
+  # Check if metadata already exists
+  existing_metadata <- DBI::dbGetQuery(db_conn,
+    "SELECT title, first_author_lastname, publication_year FROM documents WHERE document_id = ?",
+    params = list(document_id))
 
-  tryCatch({
-    # Read document content from database
-    document_content <- get_document_content(document_id, db_conn)
+  message("DEBUG: existing_metadata nrow = ", nrow(existing_metadata))
+  message("DEBUG: existing_metadata structure: ", paste(capture.output(str(existing_metadata)), collapse = "\n"))
+  message("DEBUG: force_reprocess = ", force_reprocess)
+  message("DEBUG: nrow check = ", nrow(existing_metadata) == 0)
+  message("DEBUG: title check = ", is.na(existing_metadata$title[1]))
+  message("DEBUG: first_author check = ", is.na(existing_metadata$first_author_lastname[1]))
+  message("DEBUG: pub_year check = ", is.na(existing_metadata$publication_year[1]))
 
-    if (is.na(document_content) || is.null(document_content)) {
-      return(list(status = "No document content found in database", document_id = document_id))
-    }
+  should_run <- force_reprocess ||
+                nrow(existing_metadata) == 0 ||
+                is.na(existing_metadata$title[1]) ||
+                is.na(existing_metadata$first_author_lastname[1]) ||
+                is.na(existing_metadata$publication_year[1])
+
+  if (!should_run) {
+    message("Metadata already exists for document ", document_id,
+            ", skipping (force_reprocess=FALSE)")
+    # Keep status = "skipped"
+  } else {
+    # Run metadata extraction
+    status <- tryCatch({
+      # Read document content from database
+      document_content <- get_document_content(document_id, db_conn)
+
+      if (is.na(document_content) || is.null(document_content)) {
+        "Metadata extraction failed: No document content found in database"
+      } else {
 
     message("Extracting publication metadata...")
 
@@ -98,6 +109,13 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       NA_character_
     }
 
+    # Convert bibliography array to JSON string for storage
+    references_json <- if (!is.null(pub_metadata$bibliography) && length(pub_metadata$bibliography) > 0) {
+      jsonlite::toJSON(pub_metadata$bibliography, auto_unbox = FALSE)
+    } else {
+      NA_character_
+    }
+
     # Debug: Show what was extracted
     message("Metadata extraction raw results:")
     message(glue::glue("  title: {pub_metadata$title %||% '<empty>'}"))
@@ -111,6 +129,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     message(glue::glue("  pages: {pub_metadata$pages %||% '<empty>'}"))
     message(glue::glue("  issn: {pub_metadata$issn %||% '<empty>'}"))
     message(glue::glue("  publisher: {pub_metadata$publisher %||% '<empty>'}"))
+    message(glue::glue("  references: {if(!is.null(pub_metadata$bibliography)) length(pub_metadata$bibliography) else 0} citations"))
 
     # Save metadata to database
     save_metadata_to_db(
@@ -127,17 +146,32 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
         issue = pub_metadata$issue,
         pages = pub_metadata$pages,
         issn = pub_metadata$issn,
-        publisher = pub_metadata$publisher
+        publisher = pub_metadata$publisher,
+        bibliography = references_json
       )
     )
 
-    message("Metadata extraction completed")
-    message(glue::glue("  {pub_metadata$first_author_lastname %||% 'Unknown'} ({pub_metadata$publication_year %||% 'Year unknown'})"))
+        message("Metadata extraction completed")
+        message(glue::glue("  {pub_metadata$first_author_lastname %||% 'Unknown'} ({pub_metadata$publication_year %||% 'Year unknown'})"))
 
-    return(list(status = "completed", document_id = document_id))
+        "completed"
+      }
+    }, error = function(e) {
+      paste("Metadata extraction failed:", e$message)
+    })
+  }
+
+  # Save status to DB
+  status <- tryCatch({
+    DBI::dbExecute(db_conn,
+      "UPDATE documents SET metadata_status = ? WHERE document_id = ?",
+      params = list(status, document_id))
+    status
   }, error = function(e) {
-    return(list(status = paste("Metadata extraction failed:", e$message), document_id = document_id))
+    paste("Metadata extraction failed: Could not save status -", e$message)
   })
+
+  return(list(status = status, document_id = document_id))
 }
 
 #' Convert metadata JSON schema to native ellmer type specification
@@ -170,7 +204,12 @@ json_schema_to_ellmer_type_metadata <- function(schema_path) {
     issue = ellmer::type_string(description = pub_meta_props$issue$description, required = FALSE),
     pages = ellmer::type_string(description = pub_meta_props$pages$description, required = FALSE),
     issn = ellmer::type_string(description = pub_meta_props$issn$description, required = FALSE),
-    publisher = ellmer::type_string(description = pub_meta_props$publisher$description, required = FALSE)
+    publisher = ellmer::type_string(description = pub_meta_props$publisher$description, required = FALSE),
+    bibliography = ellmer::type_array(
+      items = ellmer::type_string(),
+      description = pub_meta_props$bibliography$description,
+      required = FALSE
+    )
   )
 
   # Build complete schema
@@ -203,22 +242,6 @@ get_metadata_context <- function(context_file = NULL) {
     package_subdir = "prompts",
     return_content = TRUE
   )
-}
-
-#' @rdname extract_metadata
-#' @export
-audit_document <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
-  .Deprecated("extract_metadata", package = "ecoextract",
-    msg = "audit_document() is deprecated. Use extract_metadata() instead.")
-  extract_metadata(document_id, db_conn, force_reprocess, model)
-}
-
-#' @rdname extract_metadata
-#' @export
-audit_ocr <- function(document_id, db_conn, model = "anthropic/claude-sonnet-4-5") {
-  .Deprecated("extract_metadata", package = "ecoextract",
-    msg = "audit_ocr() is deprecated. Use extract_metadata() instead.")
-  extract_metadata(document_id, db_conn, model = model)
 }
 
 #' Limit document content to first N pages

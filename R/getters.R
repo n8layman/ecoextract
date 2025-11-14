@@ -38,55 +38,6 @@ get_ocr_markdown <- function(document_id, db_conn = "ecoextract_records.db") {
   get_document_content(document_id, con)
 }
 
-#' Get OCR Audit
-#'
-#' Retrieve OCR quality audit results for a document
-#'
-#' @param document_id Document ID
-#' @param db_conn Database connection (any DBI backend) or path to SQLite
-#'   database file. Defaults to "ecoextract_records.db"
-#' @return OCR audit data (JSON string), or NA if not found
-#' @export
-#' @examples
-#' \dontrun{
-#' # Using default SQLite database
-#' audit <- get_ocr_audit(1)
-#'
-#' # Using explicit connection
-#' db <- DBI::dbConnect(RSQLite::SQLite(), "ecoextract.sqlite")
-#' audit <- get_ocr_audit(1, db)
-#' DBI::dbDisconnect(db)
-#' }
-get_ocr_audit <- function(document_id, db_conn = "ecoextract_records.db") {
-  # Handle database connection - accept either connection object or path
-  if (inherits(db_conn, "DBIConnection")) {
-    con <- db_conn
-    close_on_exit <- FALSE
-  } else {
-    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
-    close_on_exit <- TRUE
-  }
-
-  if (close_on_exit) {
-    on.exit(DBI::dbDisconnect(con), add = TRUE)
-  }
-
-  tryCatch({
-    result <- DBI::dbGetQuery(con, "
-      SELECT ocr_audit FROM documents WHERE id = ?
-    ", params = list(document_id))
-
-    if (nrow(result) == 0 || is.null(result$ocr_audit) || result$ocr_audit == "") {
-      NA
-    } else {
-      result$ocr_audit[1]
-    }
-  }, error = function(e) {
-    message("Error retrieving OCR audit: ", e$message)
-    NA
-  })
-}
-
 #' Get OCR HTML Preview
 #'
 #' Render OCR results as HTML with embedded images
@@ -132,7 +83,7 @@ get_ocr_html_preview <- function(document_id, db_conn = "ecoextract_records.db",
 
   # Get images
   result <- DBI::dbGetQuery(con, "
-    SELECT ocr_images FROM documents WHERE id = ?
+    SELECT ocr_images FROM documents WHERE document_id = ?
   ", params = list(document_id))
 
   if (nrow(result) == 0) {
@@ -192,7 +143,7 @@ get_ocr_html_preview <- function(document_id, db_conn = "ecoextract_records.db",
 
 #' Embed Images in Markdown (Internal Helper)
 #'
-#' Replace markdown image references with HTML img tags containing base64 data
+#' Replace markdown image bibliography with HTML img tags containing base64 data
 #'
 #' @param markdown_text Markdown text
 #' @param images_data Parsed images JSON object
@@ -323,7 +274,7 @@ get_documents <- function(document_id = NULL, db_conn = "ecoextract_records.db")
     } else {
       # Get specific document
       result <- DBI::dbGetQuery(con, "
-        SELECT * FROM documents WHERE id = ?
+        SELECT * FROM documents WHERE document_id = ?
       ", params = list(document_id)) |>
         tibble::as_tibble()
     }
@@ -384,6 +335,148 @@ get_records <- function(document_id = NULL, db_conn = "ecoextract_records.db") {
     result
   }, error = function(e) {
     message("Error retrieving records: ", e$message)
+    tibble::tibble()
+  })
+}
+
+#' Export Database
+#'
+#' Export records joined with document metadata
+#'
+#' @param document_id Optional document ID to filter by (NULL for all documents)
+#' @param db_conn Database connection (any DBI backend) or path to SQLite
+#'   database file. Defaults to "ecoextract_records.db"
+#' @param include_ocr If TRUE, include OCR content in export (default: FALSE)
+#' @param simple If TRUE, exclude processing metadata columns (default: FALSE)
+#' @param filename Optional path to save as CSV file (if NULL, returns tibble only)
+#' @return Tibble with records joined to document metadata, or invisibly if saved to file
+#' @export
+#' @examples
+#' \dontrun{
+#' # Get all records with metadata as tibble
+#' data <- export_db()
+#'
+#' # Get records for specific document
+#' data <- export_db(document_id = 1)
+#'
+#' # Export to CSV
+#' export_db(filename = "extracted_data.csv")
+#'
+#' # Include OCR content
+#' data <- export_db(include_ocr = TRUE)
+#'
+#' # Simplified output (no processing metadata)
+#' data <- export_db(simple = TRUE)
+#' }
+export_db <- function(document_id = NULL,
+                      db_conn = "ecoextract_records.db",
+                      include_ocr = FALSE,
+                      simple = FALSE,
+                      filename = NULL) {
+  # Handle database connection
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
+  tryCatch({
+    # Build WHERE clause
+    where_clause <- if (!is.null(document_id)) {
+      paste0("WHERE d.document_id = ", document_id)
+    } else {
+      ""
+    }
+
+    # Build SELECT - include all columns then reorder
+    select_cols <- c(
+      "d.document_id", "d.file_name", "d.file_path",
+      "d.title", "d.authors", "d.first_author_lastname", "d.publication_year",
+      "d.journal", "d.volume", "d.issue", "d.pages",
+      "d.doi", "d.issn", "d.publisher", "d.bibliography",
+      "d.records_extracted",
+      "d.ocr_status", "d.metadata_status", "d.extraction_status", "d.refinement_status"
+    )
+
+    if (include_ocr) {
+      select_cols <- c(select_cols, "d.document_content", "d.ocr_images")
+    }
+
+    # Execute query with all columns
+    query <- paste0(
+      "SELECT d.*, r.* ",
+      "FROM records r ",
+      "JOIN documents d ON r.document_id = d.document_id ",
+      where_clause
+    )
+
+    result <- DBI::dbGetQuery(con, query) |>
+      tibble::as_tibble()
+
+    # Reorder columns logically if data exists
+    if (nrow(result) > 0) {
+      # Define fixed document metadata columns in logical order
+      doc_cols_ordered <- c(
+        # Document identification
+        "document_id", "file_name", "file_path",
+        # Publication metadata
+        "title", "authors", "first_author_lastname", "publication_year",
+        "journal", "volume", "issue", "pages", "doi", "issn", "publisher", "bibliography",
+        # Extraction summary and status
+        "records_extracted",
+        "ocr_status", "metadata_status", "extraction_status", "refinement_status"
+      )
+
+      # Add OCR content if requested
+      if (include_ocr) {
+        doc_cols_ordered <- c(doc_cols_ordered, "document_content")
+      }
+
+      # Get all document columns that exist in result (in our specified order)
+      doc_cols_present <- intersect(doc_cols_ordered, names(result))
+
+      # Get all records columns (in database order - user controls this via schema)
+      all_doc_cols <- c(doc_cols_ordered, "file_hash", "file_size", "upload_timestamp",
+                        "ocr_images", "extraction_reasoning", "refinement_reasoning")
+      record_cols <- setdiff(names(result), all_doc_cols)
+
+      # Final order: document columns (logical order) + records columns (database order)
+      col_order <- c(doc_cols_present, record_cols)
+
+      # Select and reorder
+      result <- result |>
+        dplyr::select(dplyr::any_of(col_order))
+    }
+
+    # Filter columns if simple mode
+    if (simple && nrow(result) > 0) {
+      # Remove processing metadata columns
+      metadata_cols <- c(
+        "id", "extraction_timestamp", "llm_model_version", "prompt_hash",
+        "fields_changed_count", "flagged_for_review", "review_reason",
+        "human_edited", "rejected", "deleted_by_user"
+      )
+      result <- result |>
+        dplyr::select(-dplyr::any_of(metadata_cols))
+    }
+
+    # Save to CSV if filename provided
+    if (!is.null(filename)) {
+      readr::write_csv(result, filename)
+      message("Exported ", nrow(result), " records to ", filename)
+      return(invisible(result))
+    }
+
+    return(result)
+
+  }, error = function(e) {
+    message("Error exporting database: ", e$message)
     tibble::tibble()
   })
 }

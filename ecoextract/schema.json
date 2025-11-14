@@ -17,7 +17,7 @@
           "Pathogen_Name",
           "Host_Name",
           "Detection_Method",
-          "Relevant_Sentence"
+          "all_supporting_source_sentences"
         ],
         "properties": {
           "Pathogen_Name": {
@@ -34,11 +34,15 @@
           },
           "Sample_type": {
             "type": "string",
-            "description": "Identity of the samples that were tested. Found in ticks but not in tick hosts (optional)"
+            "description": "Identity of the samples that were tested. Found in ticks but not in tick hosts"
           },
-          "Relevant_Sentence": {
-            "type": "string",
-            "description": "Text that describes the relationship between host and pathogen in PDF (should generally be in the Results section)"
+          "all_supporting_source_sentences": {
+            "type": "array",
+            "description": "Array where each element contains exactly ONE sentence from the source document that supports this host-pathogen relationship",
+            "items": {
+              "type": "string",
+              "description": "Individual supporting sentence from the document"
+            }
           },
           "Confidence_Score": {
             "type": "integer",
@@ -46,17 +50,17 @@
             "maximum": 5,
             "description": "Model confidence score (5-point Likert scale)"
           },
-          "Opt_Vector_Name": {
+          "Vector_Name": {
             "type": "string",
-            "description": "Optional: Name of vector from PDF"
+            "description": "Name of vector from PDF"
           },
-          "Opt_GenBank_Accession": {
+          "GenBank_Accession": {
             "type": "string",
-            "description": "Optional: GenBank Accession numbers reported in PDF"
+            "description": "GenBank Accession numbers reported in PDF"
           },
-          "Opt_Sentence_Reference": {
+          "Sentence_Reference": {
             "type": "string",
-            "description": "If relationship is from a table with a reference, put associated reference text here (optional)"
+            "description": "If relationship is from a table with a reference, put associated reference text here"
           },
           "Extraction_quality_score": {
             "type": "integer",
@@ -76,5 +80,5 @@
       }
     }
   },
-  "required": ["records"]
+  "required": ["reasoning", "records"]
 }

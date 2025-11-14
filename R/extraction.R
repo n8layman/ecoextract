@@ -13,7 +13,7 @@
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
-#' @export
+#' @keywords internal
 extract_records <- function(document_id = NA,
                                  db_conn = NA,
                                  document_content = NA,
@@ -86,10 +86,16 @@ extract_records <- function(document_id = NA,
     # Extract and save reasoning
     if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
       reasoning_text <- extract_result$reasoning
-      if (!is.na(document_id) && !inherits(db_conn, "logical") && !is.null(reasoning_text)) {
+      if (!is.na(document_id) && !inherits(db_conn, "logical") && !is.null(reasoning_text) && nchar(reasoning_text) > 0) {
         message("Saving extraction reasoning to database...")
         save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "extraction")
+      } else {
+        if (is.na(document_id)) message("Note: No document_id - reasoning not saved")
+        else if (inherits(db_conn, "logical")) message("Note: No database connection - reasoning not saved")
+        else if (is.null(reasoning_text) || nchar(reasoning_text) == 0) message("Note: Reasoning is empty - not saved")
       }
+    } else {
+      message("Note: No reasoning field in extraction result - reasoning not saved")
     }
 
     # Extract records from result
@@ -135,31 +141,68 @@ extract_records <- function(document_id = NA,
           )
         )
 
-        return(list(
-          status = "completed",
-          records_extracted = nrow(extraction_df),
-          document_id = document_id
-        ))
+        status <- "completed"
+        records_count <- nrow(extraction_df)
       } else {
-        # No DB connection - return data without saving
-        return(list(
-          status = "completed (not saved - no DB connection)",
-          records_extracted = nrow(extraction_df),
-          records = extraction_df,  # Include data when not saving
-          document_id = if (!is.na(document_id)) document_id else NA
-        ))
+        # No DB connection
+        status <- "Extraction failed: No database connection"
+        records_count <- nrow(extraction_df)
+        extraction_df_no_db <- extraction_df  # Save for return
       }
     } else {
       message("No valid records extracted")
+      status <- "completed"
+      records_count <- 0
+    }
+
+    # Save status and record count to DB (only if DB connection exists)
+    if (!inherits(db_conn, "logical") && !is.na(document_id)) {
+      status <- tryCatch({
+        # Get current total record count for this document
+        current_count <- DBI::dbGetQuery(db_conn,
+          "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
+          params = list(document_id))$count[1]
+
+        DBI::dbExecute(db_conn,
+          "UPDATE documents SET extraction_status = ?, records_extracted = ? WHERE document_id = ?",
+          params = list(status, current_count, document_id))
+        status
+      }, error = function(e) {
+        paste("Extraction failed: Could not save status -", e$message)
+      })
+    }
+
+    # Return appropriate structure based on DB connection
+    if (exists("extraction_df_no_db")) {
       return(list(
-        status = "completed",
-        records_extracted = 0,
+        status = status,
+        records_extracted = records_count,
+        records = extraction_df_no_db,
+        document_id = if (!is.na(document_id)) document_id else NA
+      ))
+    } else {
+      return(list(
+        status = status,
+        records_extracted = records_count,
         document_id = if (!is.na(document_id)) document_id else NA
       ))
     }
   }, error = function(e) {
+    status <- paste("Extraction failed:", e$message)
+
+    # Try to save error status if DB exists
+    if (!inherits(db_conn, "logical") && !is.na(document_id)) {
+      tryCatch({
+        DBI::dbExecute(db_conn,
+          "UPDATE documents SET extraction_status = ? WHERE document_id = ?",
+          params = list(status, document_id))
+      }, error = function(e2) {
+        # Silently fail if can't save status
+      })
+    }
+
     return(list(
-      status = paste("Extraction failed:", e$message),
+      status = status,
       records_extracted = 0,
       document_id = if (!is.na(document_id)) document_id else NA
     ))
@@ -178,6 +221,8 @@ generate_record_id <- function(author_lastname, publication_year, sequence_numbe
   clean_author <- stringr::str_replace_all(author_lastname, "[^A-Za-z]", "")
   if (nchar(clean_author) == 0) clean_author <- "Author"
 
-  # Create record ID
-  paste0(clean_author, publication_year, "-o", sequence_number)
+  # Create record ID: Author_Year_Paper_Record
+  # Paper number (1) differentiates multiple papers from same author/year
+  # Record number is the sequence within that paper
+  paste0(clean_author, "_", publication_year, "_1_r", sequence_number)
 }

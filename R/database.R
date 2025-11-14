@@ -32,7 +32,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     # Create documents table
     DBI::dbExecute(con, "
       CREATE TABLE IF NOT EXISTS documents (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        document_id INTEGER PRIMARY KEY AUTOINCREMENT,
         file_name TEXT NOT NULL,
         file_path TEXT NOT NULL,
         file_hash TEXT UNIQUE NOT NULL,
@@ -51,15 +51,24 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         pages TEXT,
         issn TEXT,
         publisher TEXT,
+        bibliography TEXT,  -- JSON array of bibliography citations
 
         -- Content storage
         document_content TEXT,  -- OCR markdown results
-        ocr_audit TEXT,         -- OCR quality audit (JSON)
         ocr_images TEXT,        -- OCR images (JSON array of base64 images)
 
         -- Reasoning logs
         extraction_reasoning TEXT,  -- Reasoning from extraction step
-        refinement_reasoning TEXT   -- Reasoning from refinement step
+        refinement_reasoning TEXT,  -- Reasoning from refinement step
+
+        -- Step status tracking
+        ocr_status TEXT,            -- NULL | 'completed' | 'skipped' | 'OCR failed: <msg>'
+        metadata_status TEXT,       -- NULL | 'completed' | 'skipped' | 'Metadata extraction failed: <msg>'
+        extraction_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Extraction failed: <msg>'
+        refinement_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Refinement failed: <msg>'
+
+        -- Extraction summary
+        records_extracted INTEGER DEFAULT 0  -- Total number of records extracted from this document
       )
     ")
 
@@ -89,7 +98,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         deleted_by_user BOOLEAN DEFAULT FALSE,
 
         UNIQUE(document_id, record_id),
-        FOREIGN KEY (document_id) REFERENCES documents (id)
+        FOREIGN KEY (document_id) REFERENCES documents (document_id)
       )
     ")
     DBI::dbExecute(con, record_table_sql)
@@ -147,111 +156,70 @@ get_record_columns_sql <- function(schema_json_list = NULL) {
 #' @param metadata List with document metadata
 #' @return Document ID or NULL if failed
 #' @keywords internal
-save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list()) {
-  # Accept either a connection object or a path string
-  if (inherits(db_conn, "DBIConnection")) {
-    con <- db_conn
-    close_on_exit <- FALSE
-  } else {
+save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list(), overwrite = FALSE) {
+  # Open connection if needed
+  if (!inherits(db_conn, "DBIConnection")) {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
-    close_on_exit <- TRUE
-  }
-
-  if (close_on_exit) {
     on.exit(DBI::dbDisconnect(con), add = TRUE)
   }
 
-  # Compute file hash if not provided
-  if (is.null(file_hash)) {
-    if (file.exists(file_path)) {
-      file_hash <- digest::digest(file_path, file = TRUE, algo = "md5")
-    } else {
-      # For test cases where file doesn't exist, use path as hash
-      file_hash <- digest::digest(file_path, algo = "md5")
+  # Compute file hash and basic file info
+  if (is.null(file_hash)) file_hash <- digest::digest(file_path, file = TRUE, algo = "md5")
+  file_size <- if (file.exists(file_path)) as.numeric(file.info(file_path)$size) else NA_integer_
+  file_name <- basename(file_path)
+  timestamp <- as.character(Sys.time())
+
+  # Handle overwrite: drop existing row by hash if requested
+  doc_id <- NULL
+  if (overwrite) {
+    existing <- DBI::dbGetQuery(con, "SELECT document_id FROM documents WHERE file_hash = ?", params = list(file_hash))
+    if (nrow(existing) > 0) {
+      doc_id <- existing$document_id[1]
+      DBI::dbExecute(con, "DELETE FROM records WHERE document_id = ?", params = list(doc_id))
+      DBI::dbExecute(con, "DELETE FROM documents WHERE document_id = ?", params = list(doc_id))
     }
   }
 
-  # Check if document already exists (to preserve document ID)
-  existing <- DBI::dbGetQuery(con, "
-    SELECT id FROM documents WHERE file_hash = ?
-  ", params = list(file_hash))
+  # Prepare metadata in correct order
+  meta_keys <- c("title", "first_author_lastname", "publication_year", 
+                 "doi", "journal", "document_content", "ocr_images")
+  metadata_complete <- lapply(meta_keys, function(k) metadata[[k]] %||% NA)
 
-  doc_id <- if (nrow(existing) > 0) existing$id[1] else NULL
+  # Combine with file info
+  params <- c(list(file_name, file_path, file_hash, file_size, timestamp), metadata_complete)
 
-  # INSERT OR REPLACE - overwrites entire row if exists, inserts if new
-  file_size <- if (file.exists(file_path)) {
-    as.numeric(file.info(file_path)$size)
+  # Insert new row (autoincrement)
+  DBI::dbExecute(con, "
+    INSERT INTO documents (
+      file_name, file_path, file_hash, file_size, upload_timestamp,
+      title, first_author_lastname, publication_year, doi, journal,
+      document_content, ocr_images
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ", params = params)
+
+  # Get the rowid of the inserted row
+  last_id <- DBI::dbGetQuery(con, "SELECT last_insert_rowid() AS rowid")$rowid
+
+  # If old_id existed, overwrite document_id with old_id
+  if (!is.null(doc_id)) {
+    DBI::dbExecute(con, "UPDATE documents SET document_id = ? WHERE rowid = ?", params = list(doc_id, last_id))
   } else {
-    NA_integer_
+    doc_id <- last_id
   }
 
-  if (is.null(doc_id)) {
-    # New document - INSERT without specifying id (auto-generated)
-    DBI::dbExecute(con, "
-      INSERT INTO documents (
-        file_name, file_path, file_hash, file_size, upload_timestamp,
-        title, first_author_lastname, publication_year, doi, journal,
-        document_content, ocr_audit, ocr_images
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ", params = list(
-      basename(file_path),
-      file_path,
-      file_hash,
-      file_size,
-      as.character(Sys.time()),
-      metadata$title %||% NA_character_,
-      metadata$first_author_lastname %||% NA_character_,
-      metadata$publication_year %||% NA_integer_,
-      metadata$doi %||% NA_character_,
-      metadata$journal %||% NA_character_,
-      metadata$document_content %||% NA_character_,
-      metadata$ocr_audit %||% NA_character_,
-      metadata$ocr_images %||% NA_character_
-    ))
-
-    # Get the new document ID
-    return(DBI::dbGetQuery(con, "SELECT last_insert_rowid() as id")$id)
-
-  } else {
-    # Existing document - REPLACE with explicit id
-    DBI::dbExecute(con, "
-      INSERT OR REPLACE INTO documents (
-        id, file_name, file_path, file_hash, file_size, upload_timestamp,
-        title, first_author_lastname, publication_year, doi, journal,
-        document_content, ocr_audit, ocr_images
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ", params = list(
-      doc_id,
-      basename(file_path),
-      file_path,
-      file_hash,
-      file_size,
-      as.character(Sys.time()),
-      metadata$title %||% NA_character_,
-      metadata$first_author_lastname %||% NA_character_,
-      metadata$publication_year %||% NA_integer_,
-      metadata$doi %||% NA_character_,
-      metadata$journal %||% NA_character_,
-      metadata$document_content %||% NA_character_,
-      metadata$ocr_audit %||% NA_character_,
-      metadata$ocr_images %||% NA_character_
-    ))
-
-    # Return the existing document ID
-    return(doc_id)
-  }
+  return(doc_id)
 }
 
 #' Save publication metadata to existing document (internal)
 #' @param document_id Document ID
 #' @param db_conn Database connection
-#' @param metadata List with metadata fields (title, first_author_lastname, publication_year, doi, journal, ocr_audit)
+#' @param metadata List with metadata fields (title, first_author_lastname, publication_year, doi, journal)
 #' @return Document ID
 #' @keywords internal
 save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
   # Get existing metadata
   existing <- DBI::dbGetQuery(db_conn,
-    "SELECT title, first_author_lastname, authors, publication_year, doi, journal, volume, issue, pages, issn, publisher, ocr_audit FROM documents WHERE id = ?",
+    "SELECT title, first_author_lastname, authors, publication_year, doi, journal, volume, issue, pages, issn, publisher, bibliography, ocr_status, metadata_status, extraction_status, refinement_status FROM documents WHERE document_id = ?",
     params = list(document_id))
 
   if (nrow(existing) == 0) {
@@ -280,8 +248,8 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
          pages = CASE WHEN (pages IS NULL OR pages = '') THEN ? ELSE pages END,
          issn = CASE WHEN (issn IS NULL OR issn = '') THEN ? ELSE issn END,
          publisher = CASE WHEN (publisher IS NULL OR publisher = '') THEN ? ELSE publisher END,
-         ocr_audit = CASE WHEN (ocr_audit IS NULL OR ocr_audit = '') THEN ? ELSE ocr_audit END
-     WHERE id = ?",
+         bibliography = CASE WHEN (bibliography IS NULL OR bibliography = '') THEN ? ELSE bibliography END
+     WHERE document_id = ?",
     params = list(
       metadata$title %||% NA_character_,
       metadata$first_author_lastname %||% NA_character_,
@@ -294,7 +262,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
       metadata$pages %||% NA_character_,
       metadata$issn %||% NA_character_,
       metadata$publisher %||% NA_character_,
-      metadata$ocr_audit %||% NA_character_,
+      metadata$bibliography %||% NA_character_,
       document_id
     )
   )
@@ -326,12 +294,12 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   }
 
   # Handle record IDs - mix of existing (valid) and new (null/invalid) records
-  # Valid IDs: Match pattern "Author2023-o1" format (from refinement preserving existing records)
+  # Valid IDs: Match pattern "Author_2023_1_r1" format (from refinement preserving existing records)
   # Invalid IDs: Don't match pattern, are NA, or are null (from extraction or refinement's new records)
 
   if ("record_id" %in% names(interactions_df) && nrow(interactions_df) > 0) {
     # Check each ID for validity
-    valid_pattern <- "^[A-Za-z]+[0-9]+-o[0-9]+$"
+    valid_pattern <- "^[A-Za-z]+_[0-9]+_[0-9]+_r[0-9]+$"
     is_valid <- !is.na(interactions_df$record_id) &
                 grepl(valid_pattern, interactions_df$record_id)
 
@@ -350,7 +318,7 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     if (invalid_count > 0) {
       # Get publication metadata
       doc_meta <- DBI::dbGetQuery(con,
-        "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
+        "SELECT first_author_lastname, publication_year FROM documents WHERE document_id = ?",
         params = list(document_id))
 
       author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
@@ -377,8 +345,8 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 
       max_seq <- 0
       if (length(existing_ids) > 0) {
-        # Extract sequence numbers from existing IDs
-        seqs <- as.integer(sub(".*-o([0-9]+)$", "\\1", existing_ids))
+        # Extract sequence numbers from existing IDs (format: Author_Year_Paper_rN)
+        seqs <- as.integer(sub(".*_r([0-9]+)$", "\\1", existing_ids))
         max_seq <- max(seqs, na.rm = TRUE)
       }
 
@@ -386,13 +354,13 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       new_id_count <- 0
       for (i in which(!is_valid)) {
         new_id_count <- new_id_count + 1
-        interactions_df$record_id[i] <- paste0(author_lastname, publication_year, "-o", max_seq + new_id_count)
+        interactions_df$record_id[i] <- paste0(author_lastname, "_", publication_year, "_1_r", max_seq + new_id_count)
       }
     }
   } else {
     # No record_id column or empty dataframe - generate all IDs
     doc_meta <- DBI::dbGetQuery(con,
-      "SELECT first_author_lastname, publication_year FROM documents WHERE id = ?",
+      "SELECT first_author_lastname, publication_year FROM documents WHERE document_id = ?",
       params = list(document_id))
 
     author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
@@ -507,7 +475,7 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 
     if (nrow(existing) > 0) {
       # Update existing record (only if not human_edited and not rejected)
-      # Build SET clause dynamically for all columns except id
+      # Build SET clause dynamically for all columns except id (primary key)
       cols_to_update <- setdiff(names(row), c("id"))
       set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
 
@@ -710,7 +678,7 @@ generate_columns_from_json_schema <- function(schema_json_list) {
 get_document_content <- function(document_id, db_conn) {
   tryCatch({
     result <- DBI::dbGetQuery(db_conn, "
-      SELECT document_content FROM documents WHERE id = ?
+      SELECT document_content FROM documents WHERE document_id = ?
     ", params = list(document_id))
     
     if (nrow(result) == 0 || is.null(result$document_content) || result$document_content == "") {
@@ -720,28 +688,6 @@ get_document_content <- function(document_id, db_conn) {
     return(result$document_content[1])
   }, error = function(e) {
     message("Error retrieving document content: ", e$message)
-    return(NA)
-  })
-}
-
-#' Get OCR audit data from database (internal)
-#' @param document_id Document ID to retrieve
-#' @param db_conn Database connection
-#' @return OCR audit data (JSON string), or NA if not found
-#' @keywords internal
-get_ocr_audit <- function(document_id, db_conn) {
-  tryCatch({
-    result <- DBI::dbGetQuery(db_conn, "
-      SELECT ocr_audit FROM documents WHERE id = ?
-    ", params = list(document_id))
-    
-    if (nrow(result) == 0 || is.null(result$ocr_audit) || result$ocr_audit == "") {
-      return(NA)
-    }
-    
-    return(result$ocr_audit[1])
-  }, error = function(e) {
-    message("Error retrieving OCR audit: ", e$message)
     return(NA)
   })
 }
@@ -774,7 +720,7 @@ save_reasoning_to_db <- function(document_id, db_conn, reasoning_text, step = c(
   step <- match.arg(step)
   column_name <- paste0(step, "_reasoning")
 
-  sql <- paste0("UPDATE documents SET ", column_name, " = ? WHERE id = ?")
+  sql <- paste0("UPDATE documents SET ", column_name, " = ? WHERE document_id = ?")
 
   DBI::dbExecute(db_conn, sql, params = list(reasoning_text, document_id))
 

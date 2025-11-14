@@ -42,3 +42,4 @@ List with extraction results
 Extract structured ecological interaction data from OCR-processed documents
 Extract records from markdown text
 }
+\keyword{internal}
