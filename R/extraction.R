@@ -86,10 +86,16 @@ extract_records <- function(document_id = NA,
     # Extract and save reasoning
     if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
       reasoning_text <- extract_result$reasoning
-      if (!is.na(document_id) && !inherits(db_conn, "logical") && !is.null(reasoning_text)) {
+      if (!is.na(document_id) && !inherits(db_conn, "logical") && !is.null(reasoning_text) && nchar(reasoning_text) > 0) {
         message("Saving extraction reasoning to database...")
         save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "extraction")
+      } else {
+        if (is.na(document_id)) message("Note: No document_id - reasoning not saved")
+        else if (inherits(db_conn, "logical")) message("Note: No database connection - reasoning not saved")
+        else if (is.null(reasoning_text) || nchar(reasoning_text) == 0) message("Note: Reasoning is empty - not saved")
       }
+    } else {
+      message("Note: No reasoning field in extraction result - reasoning not saved")
     }
 
     # Extract records from result

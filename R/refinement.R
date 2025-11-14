@@ -126,10 +126,14 @@ refine_records <- function(db_conn = NULL, document_id,
     # Extract and save reasoning
     if (is.list(refine_result) && "reasoning" %in% names(refine_result)) {
       reasoning_text <- refine_result$reasoning
-      if (!is.null(reasoning_text)) {
+      if (!is.null(reasoning_text) && nchar(reasoning_text) > 0) {
         message("Saving refinement reasoning to database...")
         save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "refinement")
+      } else {
+        if (is.null(reasoning_text) || nchar(reasoning_text) == 0) message("Note: Reasoning is empty - not saved")
       }
+    } else {
+      message("Note: No reasoning field in refinement result - reasoning not saved")
     }
 
     # Now extract the records
