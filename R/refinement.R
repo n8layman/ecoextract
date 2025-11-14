@@ -251,11 +251,16 @@ refine_records <- function(db_conn = NULL, document_id,
     }
     }  # Close the else block from skip check
 
-    # Save status to DB
+    # Save status and record count to DB
     status <- tryCatch({
+      # Get current total record count for this document
+      current_count <- DBI::dbGetQuery(db_conn,
+        "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
+        params = list(document_id))$count[1]
+
       DBI::dbExecute(db_conn,
-        "UPDATE documents SET refinement_status = ? WHERE document_id = ?",
-        params = list(status, document_id))
+        "UPDATE documents SET refinement_status = ?, records_extracted = ? WHERE document_id = ?",
+        params = list(status, current_count, document_id))
       status
     }, error = function(e) {
       paste("Refinement failed: Could not save status -", e$message)

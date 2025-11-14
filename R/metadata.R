@@ -231,22 +231,6 @@ get_metadata_context <- function(context_file = NULL) {
   )
 }
 
-#' @rdname extract_metadata
-#' @export
-audit_document <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
-  .Deprecated("extract_metadata", package = "ecoextract",
-    msg = "audit_document() is deprecated. Use extract_metadata() instead.")
-  extract_metadata(document_id, db_conn, force_reprocess, model)
-}
-
-#' @rdname extract_metadata
-#' @export
-audit_ocr <- function(document_id, db_conn, model = "anthropic/claude-sonnet-4-5") {
-  .Deprecated("extract_metadata", package = "ecoextract",
-    msg = "audit_ocr() is deprecated. Use extract_metadata() instead.")
-  extract_metadata(document_id, db_conn, model = model)
-}
-
 #' Limit document content to first N pages
 #' @param content Full document content (markdown from OCR)
 #' @param n Number of pages to keep (default: 3)

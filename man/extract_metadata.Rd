@@ -2,8 +2,6 @@
 % Please edit documentation in R/metadata.R
 \name{extract_metadata}
 \alias{extract_metadata}
-\alias{audit_document}
-\alias{audit_ocr}
 \title{Extract Publication Metadata}
 \usage{
 extract_metadata(
@@ -12,15 +10,6 @@ extract_metadata(
   force_reprocess = FALSE,
   model = "anthropic/claude-sonnet-4-5"
 )
-
-audit_document(
-  document_id,
-  db_conn,
-  force_reprocess = FALSE,
-  model = "anthropic/claude-sonnet-4-5"
-)
-
-audit_ocr(document_id, db_conn, model = "anthropic/claude-sonnet-4-5")
 }
 \arguments{
 \item{document_id}{Document ID in database}

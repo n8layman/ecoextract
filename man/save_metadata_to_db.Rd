@@ -11,7 +11,7 @@ save_metadata_to_db(document_id, db_conn, metadata = list())
 
 \item{db_conn}{Database connection}
 
-\item{metadata}{List with metadata fields (title, first_author_lastname, publication_year, doi, journal, ocr_audit)}
+\item{metadata}{List with metadata fields (title, first_author_lastname, publication_year, doi, journal)}
 }
 \value{
 Document ID

@@ -149,12 +149,17 @@ extract_records <- function(document_id = NA,
       records_count <- 0
     }
 
-    # Save status to DB (only if DB connection exists)
+    # Save status and record count to DB (only if DB connection exists)
     if (!inherits(db_conn, "logical") && !is.na(document_id)) {
       status <- tryCatch({
+        # Get current total record count for this document
+        current_count <- DBI::dbGetQuery(db_conn,
+          "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
+          params = list(document_id))$count[1]
+
         DBI::dbExecute(db_conn,
-          "UPDATE documents SET extraction_status = ? WHERE document_id = ?",
-          params = list(status, document_id))
+          "UPDATE documents SET extraction_status = ?, records_extracted = ? WHERE document_id = ?",
+          params = list(status, current_count, document_id))
         status
       }, error = function(e) {
         paste("Extraction failed: Could not save status -", e$message)

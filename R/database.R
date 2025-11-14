@@ -65,7 +65,10 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         ocr_status TEXT,            -- NULL | 'completed' | 'skipped' | 'OCR failed: <msg>'
         metadata_status TEXT,       -- NULL | 'completed' | 'skipped' | 'Metadata extraction failed: <msg>'
         extraction_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Extraction failed: <msg>'
-        refinement_status TEXT      -- NULL | 'completed' | 'skipped' | 'Refinement failed: <msg>'
+        refinement_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Refinement failed: <msg>'
+
+        -- Extraction summary
+        records_extracted INTEGER DEFAULT 0  -- Total number of records extracted from this document
       )
     ")
 

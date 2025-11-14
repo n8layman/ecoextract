@@ -387,20 +387,6 @@ export_db <- function(document_id = NULL,
   }
 
   tryCatch({
-    # Build SELECT clause based on options
-    doc_cols <- c(
-      "d.document_id", "d.file_name", "d.file_path",
-      "d.title", "d.first_author_lastname", "d.authors", "d.publication_year",
-      "d.doi", "d.journal", "d.volume", "d.issue", "d.pages", "d.issn", "d.publisher",
-      "d.references"
-    )
-
-    if (include_ocr) {
-      doc_cols <- c(doc_cols, "d.document_content")
-    }
-
-    select_clause <- paste(c(doc_cols, "r.*"), collapse = ", ")
-
     # Build WHERE clause
     where_clause <- if (!is.null(document_id)) {
       paste0("WHERE d.document_id = ", document_id)
@@ -408,9 +394,23 @@ export_db <- function(document_id = NULL,
       ""
     }
 
-    # Execute query
+    # Build SELECT - include all columns then reorder
+    select_cols <- c(
+      "d.document_id", "d.file_name", "d.file_path",
+      "d.title", "d.authors", "d.first_author_lastname", "d.publication_year",
+      "d.journal", "d.volume", "d.issue", "d.pages",
+      "d.doi", "d.issn", "d.publisher", "d.references",
+      "d.records_extracted",
+      "d.ocr_status", "d.metadata_status", "d.extraction_status", "d.refinement_status"
+    )
+
+    if (include_ocr) {
+      select_cols <- c(select_cols, "d.document_content", "d.ocr_images")
+    }
+
+    # Execute query with all columns
     query <- paste0(
-      "SELECT ", select_clause, " ",
+      "SELECT d.*, r.* ",
       "FROM records r ",
       "JOIN documents d ON r.document_id = d.document_id ",
       where_clause
@@ -418,6 +418,41 @@ export_db <- function(document_id = NULL,
 
     result <- DBI::dbGetQuery(con, query) |>
       tibble::as_tibble()
+
+    # Reorder columns logically if data exists
+    if (nrow(result) > 0) {
+      # Define fixed document metadata columns in logical order
+      doc_cols_ordered <- c(
+        # Document identification
+        "document_id", "file_name", "file_path",
+        # Publication metadata
+        "title", "authors", "first_author_lastname", "publication_year",
+        "journal", "volume", "issue", "pages", "doi", "issn", "publisher", "references",
+        # Extraction summary and status
+        "records_extracted",
+        "ocr_status", "metadata_status", "extraction_status", "refinement_status"
+      )
+
+      # Add OCR content if requested
+      if (include_ocr) {
+        doc_cols_ordered <- c(doc_cols_ordered, "document_content")
+      }
+
+      # Get all document columns that exist in result (in our specified order)
+      doc_cols_present <- intersect(doc_cols_ordered, names(result))
+
+      # Get all records columns (in database order - user controls this via schema)
+      all_doc_cols <- c(doc_cols_ordered, "file_hash", "file_size", "upload_timestamp",
+                        "ocr_images", "extraction_reasoning", "refinement_reasoning")
+      record_cols <- setdiff(names(result), all_doc_cols)
+
+      # Final order: document columns (logical order) + records columns (database order)
+      col_order <- c(doc_cols_present, record_cols)
+
+      # Select and reorder
+      result <- result |>
+        dplyr::select(dplyr::any_of(col_order))
+    }
 
     # Filter columns if simple mode
     if (simple && nrow(result) > 0) {

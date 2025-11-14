@@ -297,7 +297,8 @@ process_single_document <- function(pdf_file,
         ocr_status = NULL,
         metadata_status = NULL,
         extraction_status = NULL,
-        refinement_status = NULL
+        refinement_status = NULL,
+        records_extracted = 0
       WHERE document_id = ?",
       params = list(doc_id))
   }
