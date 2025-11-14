@@ -2,23 +2,48 @@
 % Please edit documentation in R/database.R
 \name{save_document_to_db}
 \alias{save_document_to_db}
-\title{Save document to EcoExtract database (internal)}
+\title{Save or reprocess a document in the EcoExtract database}
 \usage{
-save_document_to_db(db_conn, file_path, file_hash = NULL, metadata = list())
+save_document_to_db(
+  db_conn,
+  file_path,
+  file_hash = NULL,
+  metadata = list(),
+  overwrite = FALSE
+)
 }
 \arguments{
-\item{db_conn}{Database connection or path to database file}
+\item{db_conn}{A DBI connection object or a path to an SQLite database file.}
 
-\item{file_path}{Path to processed file}
+\item{file_path}{Path to the PDF or document file to store.}
 
-\item{file_hash}{Optional file hash (computed automatically if not provided)}
+\item{file_hash}{Optional precomputed file hash (MD5). If `NULL`, it is computed automatically from the file.}
 
-\item{metadata}{List with document metadata}
+\item{metadata}{A named list of document metadata. Recognized keys include:
+\describe{
+  \item{title}{Document title.}
+  \item{first_author_lastname}{Last name of first author.}
+  \item{publication_year}{Year of publication.}
+  \item{doi}{DOI of the document.}
+  \item{journal}{Journal name.}
+  \item{document_content}{OCR or processed content.}
+  \item{ocr_images}{OCR images (as JSON array or similar).}
+}}
+
+\item{overwrite}{Logical; if `TRUE`, any existing row with the same file hash is deleted and the new row preserves the old `document_id`.}
 }
 \value{
-Document ID or NULL if failed
+The `document_id` of the inserted or replaced row, or `NULL` if insertion fails.
 }
 \description{
-Save document to EcoExtract database (internal)
+Inserts a new document row into the `documents` table, automatically computing file hash if not provided.
+Optionally, if `overwrite = TRUE`, any existing document with the same file hash is deleted (including associated records),
+and the new row preserves the old `document_id`.
+}
+\examples{
+\dontrun{
+db <- "ecoextract_results.sqlite"
+save_document_to_db(db, "example.pdf", metadata = list(title = "My Paper"), overwrite = TRUE)
+}
 }
 \keyword{internal}

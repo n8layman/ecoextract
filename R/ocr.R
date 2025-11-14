@@ -49,6 +49,7 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
       init_ecoextract_database(db_conn, schema_file = schema_file)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(db_conn)
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
@@ -87,7 +88,6 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
         )
       )
 
-      message(glue::glue("DEBUG: OCR save returned document_id = {saved_id}"))
       message(glue::glue(
         "OCR completed: {length(ocr_result$pages)} pages extracted"
       ))

@@ -116,6 +116,7 @@ process_documents <- function(pdf_path,
       init_ecoextract_database(db_conn, schema_file = schema_src$path)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(db_conn)
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
@@ -240,6 +241,7 @@ process_single_document <- function(pdf_file,
       init_ecoextract_database(db_conn, schema_file = schema_file)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(db_conn)
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
@@ -256,64 +258,51 @@ process_single_document <- function(pdf_file,
 
   # Run OCR (will skip if document_content exists and force_reprocess=FALSE)
   ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = force_reprocess_ocr)
-  status_tracking$document_id <- ocr_result$document_id
   status_tracking$ocr_status <- ocr_result$status
+  status_tracking$document_id <- ocr_result$document_id
 
-  # Continue if completed or skipped, stop on error
-  if(status_tracking$ocr_status != "completed" && status_tracking$ocr_status != "skipped") {
-    message(paste("OCR error detected:", status_tracking$ocr_status))
-    return(status_tracking)
-  }
+  # Save status to DB
+  status_tracking$ocr_status <- tryCatch({
+    DBI::dbExecute(db_conn,
+      "UPDATE documents SET ocr_status = ? WHERE document_id = ?",
+      params = list(status_tracking$ocr_status, status_tracking$document_id))
+    status_tracking$ocr_status
+  }, error = function(e) {
+    paste("Failure: Could not save status -", e$message)
+  })
+  
+  status_tracking$document_id <- ocr_result$document_id
 
   # Step 2: Extract Metadata
   message("\n[2/4] Extracting Metadata...")
 
-  # Check dependency: OCR must exist
-  message(glue::glue("DEBUG: Checking OCR content for document_id = {status_tracking$document_id}"))
-  doc_content <- DBI::dbGetQuery(db_conn,
-    "SELECT document_content FROM documents WHERE document_id = ?",
-    params = list(status_tracking$document_id))
+  failure <- any(!status_tracking[grep("status", names(status_tracking))] %in% c("skipped","completed"))
 
-  message(glue::glue("DEBUG: Query returned {nrow(doc_content)} rows"))
-  if (nrow(doc_content) > 0) {
-    message(glue::glue("DEBUG: document_content is.na = {is.na(doc_content$document_content[1])}, nchar = {if(!is.na(doc_content$document_content[1])) nchar(doc_content$document_content[1]) else 'NA'}"))
+  # Only run if no failures yet
+  if(!failure) {
+    # Run metadata extraction (will skip if metadata exists and force_reprocess=FALSE)
+    metadata_result <- extract_metadata(document_id = status_tracking$document_id,
+                                        db_conn,
+                                        force_reprocess = force_reprocess_metadata)
+    status_tracking$metadata_status <- metadata_result$status
   }
 
-  if (nrow(doc_content) == 0 || is.na(doc_content$document_content[1])) {
-    message("ERROR: No OCR content found. OCR must be run first.")
-    status_tracking$metadata_status <- "error: OCR required"
-    return(status_tracking)
-  }
+  # Save status to DB
+  status_tracking$metadata_status <- tryCatch({
+    DBI::dbExecute(db_conn,
+      "UPDATE documents SET metadata_status = ? WHERE document_id = ?",
+      params = list(status_tracking$metadata_status, status_tracking$document_id))
+    status_tracking$metadata_status
+  }, error = function(e) {
+    paste("Failure: Could not save status -", e$message)
+  }) 
 
-  # Run metadata extraction (will skip if metadata exists and force_reprocess=FALSE)
-  metadata_result <- extract_metadata(document_id = status_tracking$document_id, 
-                                      db_conn, 
-                                      force_reprocess = force_reprocess_metadata)
-                                
-  status_tracking$metadata_status <- metadata_result$status
-
-  # Continue if completed or skipped, stop on error
-  if(status_tracking$metadata_status != "completed" && status_tracking$metadata_status != "skipped") {
-    message(paste("Metadata extraction error detected:", status_tracking$metadata_status))
-    return(status_tracking)
-  }
+  failure <- any(!status_tracking[grep("status", names(status_tracking))] %in% c("skipped","completed"))
 
   # Step 3: Extract records
-  if (run_extraction) {
+  if (run_extraction && !failure) {
     message("\n[3/4] Extracting Records...")
 
-    # Check dependency: OCR must exist
-    doc_content <- DBI::dbGetQuery(db_conn,
-      "SELECT document_content FROM documents WHERE document_id = ?",
-      params = list(status_tracking$document_id))
-
-    if (nrow(doc_content) == 0 || is.na(doc_content$document_content[1])) {
-      message("ERROR: No OCR content found. OCR must be run first.")
-      status_tracking$extraction_status <- "error: OCR required"
-      return(status_tracking)
-    }
-
-    # Extraction always adds records (LLM checks for duplicates)
     extraction_result <- extract_records(
       document_id = status_tracking$document_id,
       db_conn = db_conn,
@@ -323,62 +312,52 @@ process_single_document <- function(pdf_file,
     )
     status_tracking$extraction_status <- extraction_result$status
     status_tracking$records_extracted <- extraction_result$records_extracted %||% 0
-
-    # Continue if completed or skipped, stop on error
-    if(status_tracking$extraction_status != "completed" && status_tracking$extraction_status != "skipped") {
-      message(paste("Extraction error detected:", status_tracking$extraction_status))
-      return(status_tracking)
-    }
-  } else {
-    message("\n[3/4] Extracting Records... SKIPPED (run_extraction = FALSE)")
-    status_tracking$extraction_status <- "skipped"
-    status_tracking$records_extracted <- 0
   }
 
+  # Save status to DB
+  status_tracking$extraction_status <- tryCatch({
+    DBI::dbExecute(db_conn,
+      "UPDATE documents SET extraction_status = ? WHERE document_id = ?",
+      params = list(status_tracking$extraction_status, status_tracking$document_id))
+    status_tracking$extraction_status
+  }, error = function(e) {
+    paste("Failure: Could not save status -", e$message)
+  })
+
+  failure <- any(!status_tracking[grep("status", names(status_tracking))] %in% c("skipped","completed"))
+
   # Step 4: Refine records
-  if (run_refinement) {
+  if (run_refinement && !failure) {
     message("\n[4/4] Refining Records...")
 
-    # Check dependency: OCR must exist
-    doc_content <- DBI::dbGetQuery(db_conn,
-      "SELECT document_content FROM documents WHERE document_id = ?",
-      params = list(status_tracking$document_id))
-
-    if (nrow(doc_content) == 0 || is.na(doc_content$document_content[1])) {
-      message("ERROR: No OCR content found. OCR must be run first.")
-      status_tracking$refinement_status <- "error: OCR required"
-      return(status_tracking)
-    }
-
-    # Check dependency: Records must exist
     existing_records <- DBI::dbGetQuery(db_conn,
       "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
       params = list(status_tracking$document_id))
 
     if (existing_records$count[1] == 0) {
-      message("No existing records found. Skipping refinement (extraction must be run first).")
+      message("No existing records found. Skipping refinement (no records to refine).")
       status_tracking$refinement_status <- "skipped: no records"
-      return(status_tracking)
-    }
-
-    refinement_result <- refine_records(
-      db_conn = db_conn,
-      document_id = status_tracking$document_id,
-      extraction_prompt_file = extraction_prompt_file,
-      schema_file = schema_file,
-      refinement_prompt_file = refinement_prompt_file
-    )
-    status_tracking$refinement_status <- refinement_result$status
-
-    # Continue if completed or skipped, stop on error
-    if(status_tracking$refinement_status != "completed" && status_tracking$refinement_status != "skipped") {
-      message(paste("Refinement error detected:", status_tracking$refinement_status))
-      return(status_tracking)
-    }
-  } else {
-    message("\n[4/4] Refining Records... SKIPPED (run_refinement = FALSE)")
-    status_tracking$refinement_status <- "skipped"
+    } else {
+      refinement_result <- refine_records(
+        db_conn = db_conn,
+        document_id = status_tracking$document_id,
+        extraction_prompt_file = extraction_prompt_file,
+        schema_file = schema_file,
+        refinement_prompt_file = refinement_prompt_file
+      )
+      status_tracking$refinement_status <- refinement_result$status
+    } 
   }
+
+  # Save status to DB
+  status_tracking$refinement_status <- tryCatch({
+    DBI::dbExecute(db_conn,
+      "UPDATE documents SET refinement_status = ? WHERE document_id = ?",
+      params = list(status_tracking$refinement_status, status_tracking$document_id))
+    status_tracking$refinement_status
+  }, error = function(e) {
+    paste("Failure: Could not save status -", e$message)
+  })
 
   # Get final record count from database (after extraction + refinement)
   final_count <- DBI::dbGetQuery(db_conn,

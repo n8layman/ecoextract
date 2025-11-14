@@ -17,6 +17,6 @@ embed_images_in_markdown(markdown_text, images_data, page_num = 1)
 Processed markdown with embedded images
 }
 \description{
-Replace markdown image references with HTML img tags containing base64 data
+Replace markdown image bibliography with HTML img tags containing base64 data
 }
 \keyword{internal}

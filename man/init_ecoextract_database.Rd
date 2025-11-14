@@ -2,7 +2,7 @@
 % Please edit documentation in R/database.R
 \name{init_ecoextract_database}
 \alias{init_ecoextract_database}
-\title{Database Functions for EcoExtract Package}
+\title{Initialize EcoExtract database}
 \usage{
 init_ecoextract_database(
   db_conn = "ecoextract_results.sqlite",
@@ -18,6 +18,5 @@ init_ecoextract_database(
 NULL (creates database with required tables)
 }
 \description{
-Standalone database operations for ecological interaction storage
 Initialize EcoExtract database
 }

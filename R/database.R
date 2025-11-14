@@ -1,6 +1,100 @@
 #' Database Functions for EcoExtract Package
-#' 
+#'
 #' Standalone database operations for ecological interaction storage
+
+#' Configure SQLite connection for optimal concurrency
+#'
+#' Sets PRAGMA options to prevent database locked errors and improve concurrent access
+#'
+#' @param con SQLite database connection
+#' @return The connection object (invisibly)
+#' @keywords internal
+configure_sqlite_connection <- function(con) {
+  # Set busy timeout to 10 seconds (retry on locked database)
+  DBI::dbExecute(con, "PRAGMA busy_timeout = 10000")
+
+  # Enable WAL mode for better concurrent access (readers don't block writers)
+  DBI::dbExecute(con, "PRAGMA journal_mode = WAL")
+
+  invisible(con)
+}
+
+#' Normalize array fields based on schema definition (schema-agnostic)
+#'
+#' Ensures that fields defined as arrays in the schema are properly formatted,
+#' even if the LLM returns scalar values. Works with any schema.
+#'
+#' @param df Dataframe with extracted records
+#' @param schema_list Parsed JSON schema (from jsonlite::fromJSON)
+#' @return Normalized dataframe with proper array formatting
+#' @keywords internal
+normalize_array_fields <- function(df, schema_list) {
+  if (nrow(df) == 0) return(df)
+
+  # Extract field definitions from schema
+  if (!("properties" %in% names(schema_list) &&
+        "records" %in% names(schema_list$properties))) {
+    # No schema structure, return as-is
+    return(df)
+  }
+
+  records_schema <- schema_list$properties$records
+  if (!("items" %in% names(records_schema) &&
+        "properties" %in% names(records_schema$items))) {
+    return(df)
+  }
+
+  field_properties <- records_schema$items$properties
+  required_fields <- records_schema$items$required %||% character(0)
+
+  # Identify which fields should be arrays
+  array_fields <- names(field_properties)[
+    sapply(field_properties, function(prop) {
+      type <- prop$type
+      if (is.null(type)) return(FALSE)
+      # Handle both "array" and ["array", "null"]
+      if (length(type) > 1) {
+        "array" %in% type
+      } else {
+        type == "array"
+      }
+    })
+  ]
+
+  # Normalize each array field
+  for (field in array_fields) {
+    if (!field %in% names(df)) next
+
+    for (i in 1:nrow(df)) {
+      value <- df[[field]][[i]]
+
+      # Check if value is missing/null
+      is_missing <- is.null(value) ||
+                   (is.atomic(value) && length(value) == 1 && is.na(value)) ||
+                   (is.atomic(value) && length(value) == 0)
+
+      if (is_missing) {
+        # Check if field is required
+        if (field %in% required_fields) {
+          stop(glue::glue(
+            "Required field '{field}' is missing in record {i}. ",
+            "LLM must return a value for this field."
+          ))
+        }
+        # Optional field - keep as NULL/NA
+        next
+      }
+
+      # Value exists - ensure it's a list (for JSON conversion)
+      # If it's a scalar (character/numeric/etc), wrap it in a list
+      if (is.atomic(value) && !is.list(value)) {
+        df[[field]][[i]] <- list(value)
+      }
+    }
+  }
+
+  return(df)
+}
 
 #' Initialize EcoExtract database
 #' @param db_conn Database connection (any DBI backend) or path to SQLite database file
@@ -25,6 +119,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     }
 
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
     close_on_exit <- TRUE
   }
 
@@ -192,6 +287,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
       init_ecoextract_database(db_conn, schema_file = schema_file)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(db_conn)
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
@@ -263,6 +359,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
   # Handle connection
   if (!inherits(db_conn, "DBIConnection")) {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
     on.exit(DBI::dbDisconnect(con), add = TRUE)
   } else {
     con <- db_conn
@@ -319,17 +416,24 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
 #' @param document_id Document ID
 #' @param interactions_df Dataframe of records
 #' @param metadata Processing metadata
+#' @param schema_list Optional parsed JSON schema for array normalization
 #' @return TRUE if successful
 #' @keywords internal
-save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list()) {
+save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list(), schema_list = NULL) {
   if (nrow(interactions_df) == 0) return(invisible(NULL))
 
+  # Normalize array fields based on schema (schema-agnostic)
+  if (!is.null(schema_list)) {
+    interactions_df <- normalize_array_fields(interactions_df, schema_list)
+  }
+
   # Accept either a path (string) or a connection object
-  if (inherits(db_path, "SQLiteConnection")) {
+  if (inherits(db_path, "DBIConnection")) {
     con <- db_path
     close_on_exit <- FALSE
   } else {
     con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+    configure_sqlite_connection(con)
     close_on_exit <- TRUE
   }
 
@@ -508,33 +612,39 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 
   # Use UPSERT logic: update existing records, insert new ones
   # This preserves data and handles both extraction (new records) and refinement (updates)
+  # Wrap in IMMEDIATE transaction to prevent write conflicts
 
-  for (i in 1:nrow(interactions_clean)) {
-    row <- interactions_clean[i, ]
+  DBI::dbWithTransaction(con, {
+    # Use IMMEDIATE transaction to announce write intent upfront
+    DBI::dbExecute(con, "BEGIN IMMEDIATE")
 
-    # Check if this record_id already exists for this document
-    existing <- DBI::dbGetQuery(con,
-      "SELECT id FROM records WHERE document_id = ? AND record_id = ?",
-      params = list(row$document_id, row$record_id))
+    for (i in 1:nrow(interactions_clean)) {
+      row <- interactions_clean[i, ]
 
-    if (nrow(existing) > 0) {
-      # Update existing record (only if not human_edited and not rejected)
-      # Build SET clause dynamically for all columns except id (primary key)
-      cols_to_update <- setdiff(names(row), c("id"))
-      set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
+      # Check if this record_id already exists for this document
+      existing <- DBI::dbGetQuery(con,
+        "SELECT id FROM records WHERE document_id = ? AND record_id = ?",
+        params = list(row$document_id, row$record_id))
 
-      update_sql <- paste0(
-        "UPDATE records SET ", set_clause,
-        " WHERE id = ? AND human_edited = 0 AND rejected = 0"
-      )
+      if (nrow(existing) > 0) {
+        # Update existing record (only if not human_edited and not rejected)
+        # Build SET clause dynamically for all columns except id (primary key)
+        cols_to_update <- setdiff(names(row), c("id"))
+        set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
 
-      params <- unname(c(as.list(row[cols_to_update]), list(existing$id[1])))
-      DBI::dbExecute(con, update_sql, params = params)
-    } else {
-      # Insert new record
-      DBI::dbWriteTable(con, "records", row, append = TRUE, row.names = FALSE)
+        update_sql <- paste0(
+          "UPDATE records SET ", set_clause,
+          " WHERE id = ? AND human_edited = 0 AND rejected = 0"
+        )
+
+        params <- unname(c(as.list(row[cols_to_update]), list(existing$id[1])))
+        DBI::dbExecute(con, update_sql, params = params)
+      } else {
+        # Insert new record
+        DBI::dbWriteTable(con, "records", row, append = TRUE, row.names = FALSE)
+      }
     }
-  }
+  })
 
   message(glue::glue("Saved {nrow(interactions_clean)} records to database"))
   invisible(NULL)
@@ -555,6 +665,7 @@ get_db_stats <- function(db_conn) {
       return(list(documents = 0, records = 0, message = "Database not found"))
     }
     con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
     close_on_exit <- TRUE
   }
 

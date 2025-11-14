@@ -87,15 +87,8 @@ extract_records <- function(document_id = NA,
     if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
       reasoning_text <- extract_result$reasoning
       if (!is.na(document_id) && !inherits(db_conn, "logical") && !is.null(reasoning_text) && nchar(reasoning_text) > 0) {
-        message("Saving extraction reasoning to database...")
         save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "extraction")
-      } else {
-        if (is.na(document_id)) message("Note: No document_id - reasoning not saved")
-        else if (inherits(db_conn, "logical")) message("Note: No database connection - reasoning not saved")
-        else if (is.null(reasoning_text) || nchar(reasoning_text) == 0) message("Note: Reasoning is empty - not saved")
       }
-    } else {
-      message("Note: No reasoning field in extraction result - reasoning not saved")
     }
 
     # Extract records from result
@@ -123,10 +116,6 @@ extract_records <- function(document_id = NA,
 
     # Process dataframe if valid
     if (is.data.frame(extraction_df) && nrow(extraction_df) > 0) {
-      message("\nExtraction output:")
-      print(extraction_df)
-      message(glue::glue("Extracted {nrow(extraction_df)} records"))
-
       # Set fields_changed_count to 0 for new extractions
       extraction_df$fields_changed_count <- 0L
 
@@ -139,7 +128,8 @@ extract_records <- function(document_id = NA,
           metadata = list(
             model = model,
             prompt_hash = extraction_prompt_hash
-          )
+          ),
+          schema_list = schema_list  # Pass schema for array normalization
         )
 
         status <- "completed"
@@ -151,7 +141,6 @@ extract_records <- function(document_id = NA,
         extraction_df_no_db <- extraction_df  # Save for return
       }
     } else {
-      message("No valid records extracted")
       status <- "completed"
       records_count <- 0
     }
