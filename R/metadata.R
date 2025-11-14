@@ -19,9 +19,20 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
 
   status <- "skipped"
 
+  # Handle database connection - accept either connection object or path
+  if (!inherits(db_conn, "DBIConnection")) {
+    # Path string - initialize if needed, then connect
+    if (!file.exists(db_conn)) {
+      cat("Initializing new database:", db_conn, "\n")
+      init_ecoextract_database(db_conn, schema_file = schema_file)
+    }
+    db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
+
   # Check if metadata already exists
   existing_metadata <- DBI::dbGetQuery(db_conn,
-    "SELECT title, first_author_lastname, publication_year FROM documents WHERE document_id = ?",
+    "SELECT * FROM documents WHERE document_id = ?",
     params = list(document_id))
 
   message("DEBUG: existing_metadata nrow = ", nrow(existing_metadata))
@@ -46,7 +57,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     # Run metadata extraction
     status <- tryCatch({
       # Read document content from database
-      document_content <- get_document_content(document_id, db_conn)
+      document_content <- existing_metadata$document_content
 
       if (is.na(document_content) || is.null(document_content)) {
         "Metadata extraction failed: No document content found in database"
@@ -54,8 +65,10 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
 
     message("Extracting publication metadata...")
 
-    # Limit to first 3 pages for metadata extraction (handles scanned papers with cover pages)
-    document_content <- limit_to_first_n_pages(document_content, n = 3)
+    # # 2. Parse JSON into tibble
+    # content_tbl <- jsonlite::fromJSON(document_content, simplifyDataFrame = TRUE) |> 
+    # dplyr::filter(page_number %in% c(1:3)) |>
+    # jsonlite::toJSON()
 
     # Debug: Show first 500 characters of OCR text
     message("OCR text preview (first 500 chars):")

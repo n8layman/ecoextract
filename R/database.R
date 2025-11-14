@@ -149,18 +149,50 @@ get_record_columns_sql <- function(schema_json_list = NULL) {
   "
 }
 
-#' Save document to EcoExtract database (internal)
-#' @param db_conn Database connection or path to database file
-#' @param file_path Path to processed file
-#' @param file_hash Optional file hash (computed automatically if not provided)
-#' @param metadata List with document metadata
-#' @return Document ID or NULL if failed
+#' Save or reprocess a document in the EcoExtract database
+#'
+#' Inserts a new document row into the `documents` table, automatically computing file hash if not provided.
+#' Optionally, if `overwrite = TRUE`, any existing document with the same file hash is deleted (including associated records),
+#' and the new row preserves the old `document_id`.
+#'
+#' @param db_conn A DBI connection object or a path to an SQLite database file.
+#' @param file_path Path to the PDF or document file to store.
+#' @param file_hash Optional precomputed file hash (MD5). If `NULL`, it is computed automatically from the file.
+#' @param metadata A named list of document metadata. Recognized keys include:
+#'   \describe{
+#'     \item{title}{Document title.}
+#'     \item{first_author_lastname}{Last name of first author.}
+#'     \item{publication_year}{Year of publication.}
+#'     \item{doi}{DOI of the document.}
+#'     \item{journal}{Journal name.}
+#'     \item{document_content}{OCR or processed content.}
+#'     \item{ocr_images}{OCR images (as JSON array or similar).}
+#'   }
+#' @param overwrite Logical; if `TRUE`, any existing row with the same file hash is deleted and the new row preserves the old `document_id`.
+#'
+#' @return The `document_id` of the inserted or replaced row, or `NULL` if insertion fails.
 #' @keywords internal
+#' @examples
+#' \dontrun{
+#' db <- "ecoextract_results.sqlite"
+#' save_document_to_db(db, "example.pdf", metadata = list(title = "My Paper"), overwrite = TRUE)
+#' }
 save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list(), overwrite = FALSE) {
-  # Open connection if needed
+  
+  # Safe null/NA coalescing
+  `%||NA%` <- function(x, y) {
+    if (is.null(x) || length(x) == 0 || (is.atomic(x) && all(is.na(x)))) y else x
+  }
+
+  # Handle database connection - accept either connection object or path
   if (!inherits(db_conn, "DBIConnection")) {
-    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
-    on.exit(DBI::dbDisconnect(con), add = TRUE)
+    # Path string - initialize if needed, then connect
+    if (!file.exists(db_conn)) {
+      cat("Initializing new database:", db_conn, "\n")
+      init_ecoextract_database(db_conn, schema_file = schema_file)
+    }
+    db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
   # Compute file hash and basic file info
@@ -172,11 +204,11 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
   # Handle overwrite: drop existing row by hash if requested
   doc_id <- NULL
   if (overwrite) {
-    existing <- DBI::dbGetQuery(con, "SELECT document_id FROM documents WHERE file_hash = ?", params = list(file_hash))
+    existing <- DBI::dbGetQuery(db_conn, "SELECT document_id FROM documents WHERE file_hash = ?", params = list(file_hash))
     if (nrow(existing) > 0) {
       doc_id <- existing$document_id[1]
-      DBI::dbExecute(con, "DELETE FROM records WHERE document_id = ?", params = list(doc_id))
-      DBI::dbExecute(con, "DELETE FROM documents WHERE document_id = ?", params = list(doc_id))
+      DBI::dbExecute(db_conn, "DELETE FROM records WHERE document_id = ?", params = list(doc_id))
+      DBI::dbExecute(db_conn, "DELETE FROM documents WHERE document_id = ?", params = list(doc_id))
     }
   }
 
@@ -189,7 +221,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
   params <- c(list(file_name, file_path, file_hash, file_size, timestamp), metadata_complete)
 
   # Insert new row (autoincrement)
-  DBI::dbExecute(con, "
+  DBI::dbExecute(db_conn, "
     INSERT INTO documents (
       file_name, file_path, file_hash, file_size, upload_timestamp,
       title, first_author_lastname, publication_year, doi, journal,
@@ -198,11 +230,11 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
   ", params = params)
 
   # Get the rowid of the inserted row
-  last_id <- DBI::dbGetQuery(con, "SELECT last_insert_rowid() AS rowid")$rowid
+  last_id <- DBI::dbGetQuery(db_conn, "SELECT last_insert_rowid() AS rowid")$rowid
 
   # If old_id existed, overwrite document_id with old_id
   if (!is.null(doc_id)) {
-    DBI::dbExecute(con, "UPDATE documents SET document_id = ? WHERE rowid = ?", params = list(doc_id, last_id))
+    DBI::dbExecute(db_conn, "UPDATE documents SET document_id = ? WHERE rowid = ?", params = list(doc_id, last_id))
   } else {
     doc_id <- last_id
   }
@@ -210,62 +242,74 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
   return(doc_id)
 }
 
-#' Save publication metadata to existing document (internal)
-#' @param document_id Document ID
-#' @param db_conn Database connection
-#' @param metadata List with metadata fields (title, first_author_lastname, publication_year, doi, journal)
+#' Save publication metadata to EcoExtract database (internal)
+#' 
+#' Updates existing document metadata fields that are currently NULL/NA/empty.
+#' Optionally overwrites all metadata if `overwrite = TRUE`.
+#' 
+#' @param document_id Document ID to update
+#' @param db_conn Database connection or path to SQLite database
+#' @param metadata Named list with metadata fields
+#' @param overwrite Logical, if TRUE will overwrite all existing fields
 #' @return Document ID
 #' @keywords internal
-save_metadata_to_db <- function(document_id, db_conn, metadata = list()) {
-  # Get existing metadata
-  existing <- DBI::dbGetQuery(db_conn,
-    "SELECT title, first_author_lastname, authors, publication_year, doi, journal, volume, issue, pages, issn, publisher, bibliography, ocr_status, metadata_status, extraction_status, refinement_status FROM documents WHERE document_id = ?",
-    params = list(document_id))
+save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwrite = FALSE) {
 
-  if (nrow(existing) == 0) {
-    stop("Document ID ", document_id, " not found in database")
+  # Safe null/NA coalescing
+  `%||NA%` <- function(x, y) {
+    if (is.null(x) || length(x) == 0 || (is.atomic(x) && all(is.na(x)))) y else x
   }
 
-  # Explicitly convert publication_year to integer
-  pub_year <- if (!is.null(metadata$publication_year)) {
-    as.integer(metadata$publication_year)
+  # Handle connection
+  if (!inherits(db_conn, "DBIConnection")) {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
   } else {
-    NA_integer_
+    con <- db_conn
   }
 
-  # Only update fields that are currently NULL/NA/empty in the database
-  # Use CASE to only update when existing value is NULL or empty string
-  DBI::dbExecute(db_conn,
-    "UPDATE documents
-     SET title = CASE WHEN (title IS NULL OR title = '') THEN ? ELSE title END,
-         first_author_lastname = CASE WHEN (first_author_lastname IS NULL OR first_author_lastname = '') THEN ? ELSE first_author_lastname END,
-         authors = CASE WHEN (authors IS NULL OR authors = '') THEN ? ELSE authors END,
-         publication_year = CASE WHEN publication_year IS NULL THEN ? ELSE publication_year END,
-         doi = CASE WHEN (doi IS NULL OR doi = '') THEN ? ELSE doi END,
-         journal = CASE WHEN (journal IS NULL OR journal = '') THEN ? ELSE journal END,
-         volume = CASE WHEN (volume IS NULL OR volume = '') THEN ? ELSE volume END,
-         issue = CASE WHEN (issue IS NULL OR issue = '') THEN ? ELSE issue END,
-         pages = CASE WHEN (pages IS NULL OR pages = '') THEN ? ELSE pages END,
-         issn = CASE WHEN (issn IS NULL OR issn = '') THEN ? ELSE issn END,
-         publisher = CASE WHEN (publisher IS NULL OR publisher = '') THEN ? ELSE publisher END,
-         bibliography = CASE WHEN (bibliography IS NULL OR bibliography = '') THEN ? ELSE bibliography END
-     WHERE document_id = ?",
-    params = list(
-      metadata$title %||% NA_character_,
-      metadata$first_author_lastname %||% NA_character_,
-      metadata$authors %||% NA_character_,
-      pub_year,
-      metadata$doi %||% NA_character_,
-      metadata$journal %||% NA_character_,
-      metadata$volume %||% NA_character_,
-      metadata$issue %||% NA_character_,
-      metadata$pages %||% NA_character_,
-      metadata$issn %||% NA_character_,
-      metadata$publisher %||% NA_character_,
-      metadata$bibliography %||% NA_character_,
-      document_id
-    )
+  # Ensure document exists
+  existing <- DBI::dbGetQuery(con, "SELECT * FROM documents WHERE document_id = ?", params = list(document_id))
+  if (nrow(existing) == 0) stop("Document ID ", document_id, " not found")
+
+   # Handle overwrite: drop existing row by hash if requested
+  if (overwrite) {
+      DBI::dbExecute(db_conn, "DELETE FROM records WHERE document_id = ?", params = list(document_id))
+      DBI::dbExecute(db_conn, "DELETE FROM documents WHERE document_id = ?", params = list(document_id))
+    }
+
+  # Define all possible metadata columns
+  meta_keys <- c(
+    "title", "first_author_lastname", "authors", "publication_year",
+    "doi", "journal", "volume", "issue", "pages", "issn", "publisher", "bibliography"
   )
+
+  # Fill missing keys with NA
+  metadata_complete <- unname(sapply(meta_keys, function(k) metadata[[k]] %||% NA))
+  params <- c(metadata_complete, document_id)
+
+  # Overwrite flag
+  overwrite <- FALSE  # or TRUE
+
+  # Build the SET clause dynamically
+  set_clause <- glue::glue_collapse(
+    if (overwrite) {
+      glue::glue("{meta_keys} = ?")
+    } else {
+      glue::glue("{meta_keys} = COALESCE(?, {meta_keys})")
+    },
+    sep = ", "
+  )
+
+  # Build full SQL
+  sql <- glue::glue("
+    UPDATE documents
+    SET {set_clause}
+    WHERE document_id = ?
+  ")
+
+  # Execute query
+  DBI::dbExecute(db_conn, sql, params = params)
 
   return(document_id)
 }

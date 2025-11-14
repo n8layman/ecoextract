@@ -54,7 +54,7 @@
 #' process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
 #' }
 process_documents <- function(pdf_path,
-                             db = "ecoextract_records.db",
+                             db_conn = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
@@ -108,6 +108,17 @@ process_documents <- function(pdf_path,
     cat("\n")
   }
 
+ # Handle database connection - accept either connection object or path
+  if (!inherits(db_conn, "DBIConnection")) {
+    # Path string - initialize if needed, then connect
+    if (!file.exists(db_conn)) {
+      cat("Initializing new database:", db_conn, "\n")
+      init_ecoextract_database(db_conn, schema_file = schema_src$path)
+    }
+    db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
+
   # Track timing
   start_time <- Sys.time()
 
@@ -117,8 +128,8 @@ process_documents <- function(pdf_path,
   for (pdf_file in pdf_files) {
     result <- process_single_document(
       pdf_file = pdf_file,
-      db_conn = con,
-      schema_file = schema_file,
+      db_conn = db_conn,
+      schema_file = schema_src$path,
       extraction_prompt_file = extraction_prompt_file,
       refinement_prompt_file = refinement_prompt_file,
       force_reprocess_ocr = force_reprocess_ocr,
@@ -229,7 +240,7 @@ process_single_document <- function(pdf_file,
       init_ecoextract_database(db_conn, schema_file = schema_file)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
-    on.exit(DBI::dbDisconnect(con), add = TRUE)
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
   # Initialize status tracking with filename only (all start as 'skipped')
@@ -242,16 +253,6 @@ process_single_document <- function(pdf_file,
 
   # Step 1: OCR Processing
   message("\n[1/4] OCR Processing...")
-
-  # Check if document already exists by matching hash
-  pdf_hash <- digest::digest(pdf_file, file = TRUE, algo = "md5") 
-  existing <- DBI::dbGetQuery(
-    db_conn,
-    "SELECT document_id, document_content
-      FROM documents
-      WHERE file_hash = ?",
-    params = list(pdf_hash)
-  )
 
   # Run OCR (will skip if document_content exists and force_reprocess=FALSE)
   ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = force_reprocess_ocr)
@@ -285,7 +286,10 @@ process_single_document <- function(pdf_file,
   }
 
   # Run metadata extraction (will skip if metadata exists and force_reprocess=FALSE)
-  metadata_result <- extract_metadata(status_tracking$document_id, db_conn, force_reprocess = force_reprocess_metadata)
+  metadata_result <- extract_metadata(document_id = status_tracking$document_id, 
+                                      db_conn, 
+                                      force_reprocess = force_reprocess_metadata)
+                                
   status_tracking$metadata_status <- metadata_result$status
 
   # Continue if completed or skipped, stop on error
