@@ -17,6 +17,10 @@ refine_records <- function(db_conn = NULL, document_id,
                                 refinement_context_file = NULL,
                                 schema_file = NULL,
                                 model = "anthropic/claude-sonnet-4-5") {
+
+  status <- "skipped"
+  records_count <- 0
+
   tryCatch({
     # Read document content from database (atomic - starts with DB)
     markdown_text <- get_document_content(document_id, db_conn)
@@ -52,12 +56,8 @@ refine_records <- function(db_conn = NULL, document_id,
     # Skip refinement if no records to refine (refinement only enhances, doesn't create)
     if (nrow(existing_records) == 0) {
       message("No records to refine (refinement only enhances existing records)")
-      return(list(
-        status = "skipped",
-        records_refined = 0,
-        document_id = document_id
-      ))
-    }
+      # Keep status = "skipped", records_count = 0
+    } else {
 
     # Load schema
     # Step 1: Identify schema file path
@@ -242,24 +242,45 @@ refine_records <- function(db_conn = NULL, document_id,
         )
       )
 
-      return(list(
-        status = "completed",
-        records_extracted = nrow(refined_df),
-        document_id = document_id
-      ))
+      status <- "completed"
+      records_count <- nrow(refined_df)
     } else {
       message("No valid refined records returned")
-
-      return(list(
-        status = "completed",
-        records_extracted = 0,
-        document_id = document_id
-      ))
+      status <- "completed"
+      records_count <- 0
     }
-  }, error = function(e) {
+    }  # Close the else block from skip check
+
+    # Save status to DB
+    status <- tryCatch({
+      DBI::dbExecute(db_conn,
+        "UPDATE documents SET refinement_status = ? WHERE document_id = ?",
+        params = list(status, document_id))
+      status
+    }, error = function(e) {
+      paste("Refinement failed: Could not save status -", e$message)
+    })
+
     return(list(
-      status = paste("Refinement failed:", e$message),
-      records_extracted = 0,
+      status = status,
+      records_refined = records_count,
+      document_id = document_id
+    ))
+  }, error = function(e) {
+    status <- paste("Refinement failed:", e$message)
+
+    # Try to save error status
+    tryCatch({
+      DBI::dbExecute(db_conn,
+        "UPDATE documents SET refinement_status = ? WHERE document_id = ?",
+        params = list(status, document_id))
+    }, error = function(e2) {
+      # Silently fail if can't save status
+    })
+
+    return(list(
+      status = status,
+      records_refined = 0,
       document_id = document_id
     ))
   })

@@ -135,31 +135,63 @@ extract_records <- function(document_id = NA,
           )
         )
 
-        return(list(
-          status = "completed",
-          records_extracted = nrow(extraction_df),
-          document_id = document_id
-        ))
+        status <- "completed"
+        records_count <- nrow(extraction_df)
       } else {
-        # No DB connection - return data without saving
-        return(list(
-          status = "completed (not saved - no DB connection)",
-          records_extracted = nrow(extraction_df),
-          records = extraction_df,  # Include data when not saving
-          document_id = if (!is.na(document_id)) document_id else NA
-        ))
+        # No DB connection
+        status <- "Extraction failed: No database connection"
+        records_count <- nrow(extraction_df)
+        extraction_df_no_db <- extraction_df  # Save for return
       }
     } else {
       message("No valid records extracted")
+      status <- "completed"
+      records_count <- 0
+    }
+
+    # Save status to DB (only if DB connection exists)
+    if (!inherits(db_conn, "logical") && !is.na(document_id)) {
+      status <- tryCatch({
+        DBI::dbExecute(db_conn,
+          "UPDATE documents SET extraction_status = ? WHERE document_id = ?",
+          params = list(status, document_id))
+        status
+      }, error = function(e) {
+        paste("Extraction failed: Could not save status -", e$message)
+      })
+    }
+
+    # Return appropriate structure based on DB connection
+    if (exists("extraction_df_no_db")) {
       return(list(
-        status = "completed",
-        records_extracted = 0,
+        status = status,
+        records_extracted = records_count,
+        records = extraction_df_no_db,
+        document_id = if (!is.na(document_id)) document_id else NA
+      ))
+    } else {
+      return(list(
+        status = status,
+        records_extracted = records_count,
         document_id = if (!is.na(document_id)) document_id else NA
       ))
     }
   }, error = function(e) {
+    status <- paste("Extraction failed:", e$message)
+
+    # Try to save error status if DB exists
+    if (!inherits(db_conn, "logical") && !is.na(document_id)) {
+      tryCatch({
+        DBI::dbExecute(db_conn,
+          "UPDATE documents SET extraction_status = ? WHERE document_id = ?",
+          params = list(status, document_id))
+      }, error = function(e2) {
+        # Silently fail if can't save status
+      })
+    }
+
     return(list(
-      status = paste("Extraction failed:", e$message),
+      status = status,
       records_extracted = 0,
       document_id = if (!is.na(document_id)) document_id else NA
     ))
@@ -178,6 +210,8 @@ generate_record_id <- function(author_lastname, publication_year, sequence_numbe
   clean_author <- stringr::str_replace_all(author_lastname, "[^A-Za-z]", "")
   if (nchar(clean_author) == 0) clean_author <- "Author"
 
-  # Create record ID
-  paste0(clean_author, publication_year, "-o", sequence_number)
+  # Create record ID: Author_Year_Paper_Record
+  # Paper number (1) differentiates multiple papers from same author/year
+  # Record number is the sequence within that paper
+  paste0(clean_author, "_", publication_year, "_1_r", sequence_number)
 }

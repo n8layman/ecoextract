@@ -1,129 +1,127 @@
-# HOST-PATHOGEN INTERACTION EXTRACTION SYSTEM
+# HOST–PATHOGEN INTERACTION EXTRACTION SYSTEM
 
-Extract host-pathogen relationships from scientific literature for the One Health PROTECT project. Host-pathogen interactions include any documented occurrence of pathogens (viruses, bacteria, parasites, fungi, prions, etc.) in wildlife host species, including detection, isolation, or identification through various diagnostic methods.
+Extract host–pathogen relationships from scientific literature.
+These include any documented detection, isolation, or identification of pathogens (viruses, bacteria, parasites, fungi, prions, etc.) in wildlife hosts, detected through diagnostic methods.
 
-**Your output will be used by researchers building a database of zoonotic disease risks in wildlife entering the United States.** The data must be accurate, well-supported, and structured for database storage and analysis.
+Your goal is to produce **high-quality, verifiable data** that can populate a research database assessing zoonotic disease risks in wildlife entering the United States.
 
-## Extraction Process
+---
 
-Complete these phases in order for systematic extraction:
+## OVERVIEW OF TASK
 
-### Phase 1: Read and Understand
+Follow these steps **in strict order** — do not skip ahead.
 
-- Read the entire document content, OCR audit, and existing records section
-- Identify the document structure (text, tables, figures, captions)
-- Review the output schema to understand required fields
+1. **READ the paper carefully first.**  
+   Understand its structure, content, and purpose before extraction.
+2. **REASON through the problem next.**  
+   Analyze what’s relevant, how evidence connects, and what challenges exist.
+3. **EXTRACT data last.**  
+   Only after reasoning, populate structured records using the schema.
 
-### Phase 2: Find Host-Pathogen Interactions
+---
 
-- Search text for descriptions of pathogen detection in host organisms
-- Note figure/table captions that describe pathogen identification or detection methods
-- Scan tables for species-pathogen associations, detection data, or diagnostic results
-- Cross-reference between text and tables for complete information
-- Look for study locations, sample dates, and diagnostic methodology
+## PHASE 1: READ AND UNDERSTAND
 
-### Phase 3: Extract Records
+Before extraction, perform a **complete reading and structural analysis**.
 
-- For each host-pathogen interaction found, create a record with all available fields
-- Include verbatim supporting sentences from the document
-- Skip interactions already listed in the existing records section
-- Ensure both host and pathogen are identifiable (at least genus-level)
-- Document all identification/detection methods used
+- Read the **entire document**, including text, tables, figures, captions, and supplementary sections.
+- Identify key sections (Abstract, Methods, Results, Tables, References).
+- Note where evidence of **host–pathogen interactions** is most likely to appear.
+- Review the **output schema** carefully to understand required and optional fields.
+- Record your analytical process in the `reasoning` field:
+  - How the document is organized
+  - Where potential data sources are (text/tables)
+  - What extraction challenges exist (e.g., ambiguous hosts, missing methods)
+  - Why you make specific decisions
 
-### Phase 4: Structure Output
+---
 
-- Format all records according to the output schema
-- Verify each record has supporting evidence
-- Return the complete records array
+## PHASE 2: REASON THROUGH HOST–PATHOGEN RELATIONSHIPS
 
-## Extraction Rules
+Once the paper is understood, reason through potential interactions systematically.
+
+- Identify **explicit statements** or **tabular data** showing pathogen detection in hosts.
+- Consider context clues that clarify host, pathogen, or detection method.
+- Evaluate **the strength of evidence** (explicit detection vs. inference).
+- Note **cross-references** between tables and main text.
+- Assess the **reliability and completeness** of the information.
+
+Only after this reasoning step should you begin structured extraction.
+
+---
+
+## PHASE 3: EXTRACT RECORDS
+
+For each distinct host–pathogen interaction:
+
+- Create a **record** in the JSON array that includes:
+  - `Pathogen_Name`, `Host_Name`, `Detection_Method`, and `all_supporting_source_sentences` (all required)
+- Use **verbatim supporting sentences** from the paper in the array (no paraphrasing)
+- Each sentence should be a separate element in the `all_supporting_source_sentences` array
+- If information is unclear or missing, leave fields blank (`""` or `null`)
+- Avoid duplicates or records already in an existing dataset
+- Ensure the **method of detection** is always captured if mentioned
+
+---
+
+## PHASE 4: STRUCTURE AND VALIDATE OUTPUT
+
+Before returning your result:
+
+- Format all data according to the **Host–Pathogen Relationship Schema**
+- Ensure each record:
+  - Has verifiable evidence from the source
+  - Includes verbatim sentences in the `all_supporting_source_sentences` array from the Results or Table captions
+  - Is supported by reasoning documented in the `reasoning` field
+- Check for completeness and consistency with required fields
+
+---
+
+## EXTRACTION RULES
 
 ### Organism Requirements
 
-- **Both organisms must be identifiable**: Provide the scientific name, genus, or other identifying information for both host and pathogen. In some cases, the identity may need to be inferred from context elsewhere in the document.
-- **Genus-level identification is acceptable** from common names that refer to well-established taxonomic groups
-- **Host taxonomy standardization**: Standardize host names against GBIF or other taxonomic backbone when possible
-- **Organism identity may only be present in tables** - also check figure and table captions for identifying information
-- **Recognize taxonomic group identifications** - common names that refer to taxonomic groups (family, genus) provide sufficient organism identification
-- **Interpret tabular evidence** - when tables list pathogen detection, isolation, or identification in host species, treat this as evidence of interaction
-- **Cross-reference throughout document** for the most specific identification available
+- Both **host and pathogen** must be scientifically identifiable (genus-level minimum).
+- Accept **common names** that map to known taxonomic groups.
+- When host or pathogen names appear only in tables or captions, extract them.
+- Cross-reference across the document to find the **most specific identification**.
 
-### Pathogen Detection and Identification
+### Pathogen Detection and Methodology
 
-- **Document all diagnostic methods**: PCR/sequencing, serology, isolation, culture, centrifugation, microscopy, immunohistochemistry, ELISA, etc.
-- **Include method details**: When specific protocols or assays are mentioned, include them in Detection_Method field
-- **Capture sample information**: Note sample types when available (especially for tick-borne pathogens)
-- **Record vector information**: Document vector species when mentioned (use Opt_Vector_Name field)
-- **Capture GenBank accessions**: Include any GenBank accession numbers mentioned (use Opt_GenBank_Accession field)
+- Capture **all detection methods** (PCR, serology, culture, sequencing, etc.).
+- Record **sample types** (`Sample_type`) and **vector names** (`Vector_Name`) if mentioned.
+- Include **GenBank accession numbers** (`GenBank_Accession`) when available.
+- Include **table references** (`Sentence_Reference`) when data comes from tables.
+- Each detection must include **verbatim supporting sentences** in the `all_supporting_source_sentences` array.
 
 ### Interaction Types to Include
 
-- **Pathogen Detection**: Any documented presence of pathogen in host organism (detect, identify, serosurvey)
-- **Disease Cases**: Clinical or subclinical infections
-- **Surveillance Data**: Screening results, prevalence studies
-- **Experimental Infections**: Laboratory studies documenting host-pathogen relationships
-- **Molecular Detection**: PCR, sequencing, or other molecular evidence
-- **Serological Evidence**: Antibody detection indicating exposure
+- Detection, isolation, or identification of pathogens in hosts
+- Serological evidence of exposure
+- Experimental infections or surveillance studies
 
-### Supporting Sentence Requirements
+---
 
-- **VERBATIM QUOTES ONLY** - copy sentences word-for-word from the document text
-- **NO paraphrasing or rewording** - sentences must match exactly as written in the source
-- **Generally from Results section** - the relevant sentence should describe the relationship between host and pathogen
-- **Include table captions verbatim** when referencing tables/figures
-- **Include organism identification sentences** exactly as written
-- **Include methodology sentences** that describe detection/identification methods
-- **Use Opt_Sentence_Reference field** if the relationship is from a table with a citation reference
+## SUPPORTING SENTENCE REQUIREMENTS
 
-### Critical Validation
+- Copy **exact sentences** (no rephrasing) into the `all_supporting_source_sentences` array.
+- **One sentence per array element** - split multi-sentence evidence into individual elements.
+- Include **figure or table captions verbatim** as array elements if relevant.
+- Use the `Sentence_Reference` field for any table citation text.
 
-- **Leave fields empty if information unavailable** (use empty string or null for optional fields)
-- **Extract ALL relevant host-pathogen interactions**
-- **Ensure diagnostic methods are documented** - this is a critical requirement for One Health PROTECT
-- **Flag non-English papers** - set English field to false if the language could affect extraction quality
-- **Note supplemental materials** - set Supplemental_Material to true if more information might be in supplements
+---
 
-## Output Schema
+## QUALITY & VALIDATION
 
-Return a JSON array with records. Each record must include these fields:
+- Use empty string or `null` for missing optional data.
+- Assign **Confidence_Score** and **Extraction_quality_score** per guidelines.
+- Flag non-English or partially translated papers (`English = false`).
+- Note if supplemental materials likely contain relevant data (`Supplemental_Material = true`).
 
-### Required Fields
+---
 
-- **OHP_Pathogen_Name**: The pathogen of interest that was queried in PubMed (folder name)
-- **PDF_Name**: PDF file name
-- **Pathogen_Name**: Pathogen name extracted from PDF
-- **Host_Name**: Host name extracted from PDF
-- **Detection_Method**: Detection method (PCR, Serology, etc.)
-- **Relevant_Sentence**: Verbatim text describing the host-pathogen relationship (from Results section)
+## REMINDER: ORDER MATTERS
 
-### Optional Fields
-
-- **DOI**: DOI from PDF
-- **Sample_type**: Identity of samples tested (e.g., for ticks vs tick hosts)
-- **Confidence_Score**: Your confidence in the accuracy of this extraction (5-point scale: 1, 2, 3, 4, or 5):
-  - 5 = Very high: Explicit statement in text, clear organism IDs, specific method details
-  - 4 = High: Clear relationship stated, good organism IDs, method mentioned
-  - 3 = Moderate: Relationship implied or from table, some ambiguity in IDs or method
-  - 2 = Low: Significant inference required, vague IDs, or missing method details
-  - 1 = Very low: Heavy interpretation needed, poor organism ID, or questionable relationship
-- **Opt_Vector_Name**: Vector name from PDF
-- **Opt_GenBank_Accession**: GenBank accession numbers from PDF
-- **Opt_Sentence_Reference**: Reference text if from a table citation
-- **Extraction_quality_score**: Quality of the source data for this record (5-point scale: 1, 2, 3, 4, or 5):
-  - 5 = Excellent: Primary research data, specific methods, clear IDs, explicit results
-  - 4 = Good: Clear methods and results, good organism identification
-  - 3 = Fair: Some details missing, organism ID from common names, or limited method info
-  - 2 = Poor: Minimal details, ambiguous identifications, or cited secondary sources
-  - 1 = Very poor: Vague information, poor organism ID, or highly aggregated data
-- **English**: Boolean flag (false if non-English could affect quality)
-- **Supplemental_Material**: Boolean flag (true if supplements might have more info)
-
-## Important Notes
-
-- **OHP_Pathogen_Name** is the query pathogen - the thing they searched for in PubMed
-- **Output format**: Records should be structured as CSV-compatible data
-- **Pathogen taxonomic standardization**: Use established pathogen taxonomy when possible
-- **Search structure guidance**: Look for detect/identify/serosurvey patterns to guide extraction of pathogenic interactions
-- **Quality assessment**: Provide both confidence and extraction quality scores when possible
-
-**IMPORTANT**: Use empty string or `null` for optional fields when no data is available. Do not use "UNKNOWN" or placeholder text.
+1. **Read first** — full comprehension before data collection.
+2. **Reason second** — think through relationships, evidence, and ambiguities.
+3. **Extract third** — produce only structured, verified outputs aligned with schema.
