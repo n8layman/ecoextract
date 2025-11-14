@@ -88,11 +88,12 @@ Before returning your result:
 
 ### Pathogen Detection and Methodology
 
-- Capture **all detection methods** (PCR, serology, culture, sequencing, etc.).
-- Record **sample types** (`Sample_type`) and **vector names** (`Vector_Name`) if mentioned.
-- Include **GenBank accession numbers** (`GenBank_Accession`) when available.
-- Include **table references** (`Sentence_Reference`) when data comes from tables.
+- Capture **all detection methods** as an array (e.g., `["PCR", "Serology", "Culture"]`).
+- Record **sample types** as an array (e.g., `["blood", "tissue", "tick midgut"]`).
+- Record **vector names** as an array (e.g., `["Ixodes persulcatus", "Ixodes ovatus"]`).
+- Include **GenBank accession numbers** as an array when available.
 - Each detection must include **verbatim supporting sentences** in the `all_supporting_source_sentences` array.
+- Create **one record per unique pathogen-host combination** with all detection methods, sample types, vectors, and supporting sentences as arrays.
 
 ### Interaction Types to Include
 
@@ -107,7 +108,7 @@ Before returning your result:
 - Copy **exact sentences** (no rephrasing) into the `all_supporting_source_sentences` array.
 - **One sentence per array element** - split multi-sentence evidence into individual elements.
 - Include **figure or table captions verbatim** as array elements if relevant.
-- Use the `Sentence_Reference` field for any table citation text.
+- **Collect all sentences** for the same pathogen-host-detection combination into a single record's array.
 
 ---
 

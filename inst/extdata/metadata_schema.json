@@ -16,6 +16,14 @@
           "type": ["string", "null"],
           "description": "CRITICAL: Last name of first author only - essential for generating unique record identifiers (e.g., Smith2023-o1). Search thoroughly in title area, headers, footers, and citation blocks."
         },
+        "authors": {
+          "type": ["array", "null"],
+          "description": "Array of all authors",
+          "items": {
+            "type": "string",
+            "description": "Each individual author"
+          }
+        },
         "publication_year": {
           "type": ["integer", "null"],
           "description": "CRITICAL: Year of publication - essential for generating unique record identifiers (e.g., Smith2023-o1). Search thoroughly near author names, copyright notices, and date stamps."

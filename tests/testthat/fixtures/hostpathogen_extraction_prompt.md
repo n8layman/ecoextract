@@ -50,11 +50,11 @@ Complete these phases in order for systematic extraction:
 
 ### Pathogen Detection and Identification
 
-- **Document all diagnostic methods**: PCR/sequencing, serology, isolation, culture, centrifugation, microscopy, immunohistochemistry, ELISA, etc.
-- **Include method details**: When specific protocols or assays are mentioned, include them in Detection_Method field
-- **Capture sample information**: Note sample types when available (especially for tick-borne pathogens)
-- **Record vector information**: Document vector species when mentioned (use Opt_Vector_Name field)
-- **Capture GenBank accessions**: Include any GenBank accession numbers mentioned (use Opt_GenBank_Accession field)
+- **Document all diagnostic methods**: Provide as an array (e.g., `["PCR", "Serology", "Culture"]`)
+- **Include method details**: When specific protocols or assays are mentioned, include them in the Detection_Method array
+- **Capture sample information**: Provide sample types as an array (e.g., `["blood", "tissue", "tick midgut"]`)
+- **Record vector information**: Provide vector species as an array (e.g., `["Ixodes persulcatus", "Ixodes ovatus"]`)
+- **Capture GenBank accessions**: Provide as an array when multiple accessions are mentioned
 
 ### Interaction Types to Include
 
@@ -69,11 +69,12 @@ Complete these phases in order for systematic extraction:
 
 - **VERBATIM QUOTES ONLY** - copy sentences word-for-word from the document text
 - **NO paraphrasing or rewording** - sentences must match exactly as written in the source
-- **Generally from Results section** - the relevant sentence should describe the relationship between host and pathogen
+- **Array format** - provide all supporting sentences as an array, with one sentence per array element
+- **Generally from Results section** - sentences should describe the relationship between host and pathogen
 - **Include table captions verbatim** when referencing tables/figures
 - **Include organism identification sentences** exactly as written
 - **Include methodology sentences** that describe detection/identification methods
-- **Use Opt_Sentence_Reference field** if the relationship is from a table with a citation reference
+- **Multiple sentences per record** - collect ALL sentences that support the same pathogen-host-detection combination into a single record
 
 ### Critical Validation
 
@@ -85,7 +86,7 @@ Complete these phases in order for systematic extraction:
 
 ## Output Schema
 
-Return a JSON array with records. Each record must include these fields:
+Return a JSON array with records. Each record represents ONE unique pathogen-host-detection method combination. Multiple supporting sentences for the same combination should be in a single record's array.
 
 ### Required Fields
 
@@ -94,7 +95,7 @@ Return a JSON array with records. Each record must include these fields:
 - **Pathogen_Name**: Pathogen name extracted from PDF
 - **Host_Name**: Host name extracted from PDF
 - **Detection_Method**: Detection method (PCR, Serology, etc.)
-- **Relevant_Sentence**: Verbatim text describing the host-pathogen relationship (from Results section)
+- **all_supporting_source_sentences**: Array of verbatim sentences supporting this relationship (multiple sentences per record)
 
 ### Optional Fields
 
@@ -106,9 +107,8 @@ Return a JSON array with records. Each record must include these fields:
   - 3 = Moderate: Relationship implied or from table, some ambiguity in IDs or method
   - 2 = Low: Significant inference required, vague IDs, or missing method details
   - 1 = Very low: Heavy interpretation needed, poor organism ID, or questionable relationship
-- **Opt_Vector_Name**: Vector name from PDF
-- **Opt_GenBank_Accession**: GenBank accession numbers from PDF
-- **Opt_Sentence_Reference**: Reference text if from a table citation
+- **Vector_Name**: Vector name from PDF
+- **GenBank_Accession**: GenBank accession numbers from PDF (comma-separated if multiple)
 - **Extraction_quality_score**: Quality of the source data for this record (5-point scale: 1, 2, 3, 4, or 5):
   - 5 = Excellent: Primary research data, specific methods, clear IDs, explicit results
   - 4 = Good: Clear methods and results, good organism identification

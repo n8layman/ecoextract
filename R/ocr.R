@@ -41,6 +41,17 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
   status <- "skipped"
   document_id <- NA
 
+  # Handle database connection - accept either connection object or path
+  if (!inherits(db_conn, "DBIConnection")) {
+    # Path string - initialize if needed, then connect
+    if (!file.exists(db_conn)) {
+      cat("Initializing new database:", db_conn, "\n")
+      init_ecoextract_database(db_conn, schema_file = schema_file)
+    }
+    db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
+
   # Check if already processed (document exists with valid OCR content)
   pdf_hash <- digest::digest(pdf_file, file = TRUE, algo = "md5") 
   existing <- DBI::dbGetQuery(
@@ -70,7 +81,7 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
       saved_id <- save_document_to_db(
         db_conn = db_conn,
         file_path = pdf_file,
-        overwrite = force_reprocess_ocr,
+        overwrite = force_reprocess,
         metadata = list(
           document_content = ocr_result$json_content
         )

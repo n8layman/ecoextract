@@ -13,7 +13,7 @@
           "Pathogen_Name",
           "Host_Name",
           "Detection_Method",
-          "Relevant_Sentence"
+          "all_supporting_source_sentences"
         ],
         "properties": {
           "OHP_Pathogen_Name": {
@@ -37,16 +37,28 @@
             "description": "Host name extracted from PDF"
           },
           "Detection_Method": {
-            "type": "string",
-            "description": "Detection method used (e.g., PCR, Serology, etc.)"
+            "type": "array",
+            "description": "Array of detection methods used for this host-pathogen relationship",
+            "items": {
+              "type": "string",
+              "description": "Individual detection method (e.g., PCR, Serology, Culture, etc.)"
+            }
           },
           "Sample_type": {
-            "type": "string",
-            "description": "Identity of the samples that were tested. Found in ticks but not in tick hosts (optional)"
+            "type": "array",
+            "description": "Array of sample types that were tested (e.g., blood, tissue, tick midgut)",
+            "items": {
+              "type": "string",
+              "description": "Individual sample type"
+            }
           },
-          "Relevant_Sentence": {
-            "type": "string",
-            "description": "Text that describes the relationship between host and pathogen in PDF (should generally be in the Results section)"
+          "all_supporting_source_sentences": {
+            "type": "array",
+            "description": "Array of verbatim sentences from the source document that support this host-pathogen-detection relationship. Each element should contain exactly ONE sentence.",
+            "items": {
+              "type": "string",
+              "description": "Individual supporting sentence from the document"
+            }
           },
           "Confidence_Score": {
             "type": "integer",
@@ -54,17 +66,21 @@
             "maximum": 5,
             "description": "Model confidence score (5-point Likert scale)"
           },
-          "Opt_Vector_Name": {
-            "type": "string",
-            "description": "Optional: Name of vector from PDF"
+          "Vector_Name": {
+            "type": "array",
+            "description": "Optional: Array of vector names from PDF (e.g., tick species)",
+            "items": {
+              "type": "string",
+              "description": "Individual vector name"
+            }
           },
-          "Opt_GenBank_Accession": {
-            "type": "string",
-            "description": "Optional: GenBank Accession numbers reported in PDF"
-          },
-          "Opt_Sentence_Reference": {
-            "type": "string",
-            "description": "If relationship is from a table with a reference, put associated reference text here (optional)"
+          "GenBank_Accession": {
+            "type": "array",
+            "description": "Optional: Array of GenBank Accession numbers reported in PDF",
+            "items": {
+              "type": "string",
+              "description": "Individual GenBank accession number"
+            }
           },
           "Extraction_quality_score": {
             "type": "integer",
