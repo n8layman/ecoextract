@@ -318,9 +318,15 @@ process_single_document <- function(pdf_file,
   message("\n[2/4] Extracting Metadata...")
 
   # Check dependency: OCR must exist
+  message(glue::glue("DEBUG: Checking OCR content for document_id = {status_tracking$document_id}"))
   doc_content <- DBI::dbGetQuery(db_conn,
     "SELECT document_content FROM documents WHERE document_id = ?",
     params = list(status_tracking$document_id))
+
+  message(glue::glue("DEBUG: Query returned {nrow(doc_content)} rows"))
+  if (nrow(doc_content) > 0) {
+    message(glue::glue("DEBUG: document_content is.na = {is.na(doc_content$document_content[1])}, nchar = {if(!is.na(doc_content$document_content[1])) nchar(doc_content$document_content[1]) else 'NA'}"))
+  }
 
   if (nrow(doc_content) == 0 || is.na(doc_content$document_content[1])) {
     message("ERROR: No OCR content found. OCR must be run first.")

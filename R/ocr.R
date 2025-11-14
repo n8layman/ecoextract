@@ -57,12 +57,12 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
     # Keep status = "skipped"
   } else {
     # Run OCR
-    status <- tryCatch({
+    ocr_response <- tryCatch({
       message(glue::glue("Performing OCR on {basename(pdf_file)}..."))
       ocr_result <- perform_ocr(pdf_file)
 
       # Save document to database with JSON content
-      document_id <<- save_document_to_db(
+      saved_id <- save_document_to_db(
         db_conn = db_conn,
         file_path = pdf_file,
         metadata = list(
@@ -70,13 +70,17 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = FALSE) {
         )
       )
 
+      message(glue::glue("DEBUG: OCR save returned document_id = {saved_id}"))
       message(glue::glue(
         "OCR completed: {length(ocr_result$pages)} pages extracted"
       ))
-      "completed"
+      list(status = "completed", document_id = saved_id)
     }, error = function(e) {
-      paste("OCR failed:", e$message)
+      list(status = paste("OCR failed:", e$message), document_id = NA)
     })
+
+    status <- ocr_response$status
+    document_id <- ocr_response$document_id
   }
 
   # Save status to DB
