@@ -29,12 +29,20 @@
             "description": "Host name extracted from PDF"
           },
           "Detection_Method": {
-            "type": "string",
-            "description": "Detection method used (e.g., PCR, Serology, etc.)"
+            "type": "array",
+            "description": "Array of detection methods used for this host-pathogen relationship",
+            "items": {
+              "type": "string",
+              "description": "Individual detection method (e.g., PCR, Serology, Culture, etc.)"
+            }
           },
           "Sample_type": {
-            "type": "string",
-            "description": "Identity of the samples that were tested. Found in ticks but not in tick hosts"
+            "type": "array",
+            "description": "Array of sample types that were tested (e.g., blood, tissue, tick midgut)",
+            "items": {
+              "type": "string",
+              "description": "Individual sample type"
+            }
           },
           "all_supporting_source_sentences": {
             "type": "array",
@@ -51,12 +59,20 @@
             "description": "Model confidence score (5-point Likert scale)"
           },
           "Vector_Name": {
-            "type": "string",
-            "description": "Name of vector from PDF"
+            "type": "array",
+            "description": "Array of vector names from PDF (e.g., tick species)",
+            "items": {
+              "type": "string",
+              "description": "Individual vector name"
+            }
           },
           "GenBank_Accession": {
-            "type": "string",
-            "description": "GenBank Accession numbers reported in PDF"
+            "type": "array",
+            "description": "Array of GenBank Accession numbers reported in PDF",
+            "items": {
+              "type": "string",
+              "description": "Individual GenBank accession number"
+            }
           },
           "Extraction_quality_score": {
             "type": "integer",

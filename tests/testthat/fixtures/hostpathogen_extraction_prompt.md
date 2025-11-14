@@ -50,11 +50,11 @@ Complete these phases in order for systematic extraction:
 
 ### Pathogen Detection and Identification
 
-- **Document all diagnostic methods**: PCR/sequencing, serology, isolation, culture, centrifugation, microscopy, immunohistochemistry, ELISA, etc.
-- **Include method details**: When specific protocols or assays are mentioned, include them in Detection_Method field
-- **Capture sample information**: Note sample types when available (especially for tick-borne pathogens)
-- **Record vector information**: Document vector species when mentioned (use Opt_Vector_Name field)
-- **Capture GenBank accessions**: Include any GenBank accession numbers mentioned (use Opt_GenBank_Accession field)
+- **Document all diagnostic methods**: Provide as an array (e.g., `["PCR", "Serology", "Culture"]`)
+- **Include method details**: When specific protocols or assays are mentioned, include them in the Detection_Method array
+- **Capture sample information**: Provide sample types as an array (e.g., `["blood", "tissue", "tick midgut"]`)
+- **Record vector information**: Provide vector species as an array (e.g., `["Ixodes persulcatus", "Ixodes ovatus"]`)
+- **Capture GenBank accessions**: Provide as an array when multiple accessions are mentioned
 
 ### Interaction Types to Include
 
