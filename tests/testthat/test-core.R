@@ -29,8 +29,12 @@ test_that("database schema matches JSON schema definition", {
 test_that("save and retrieve records workflow", {
   db_path <- local_test_db()
 
+  # Create temporary test file
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+
   # Save document (hash computed automatically)
-  doc_id <- save_document_to_db(db_path, "test.pdf")
+  doc_id <- save_document_to_db(db_path, test_file)
   expect_type(doc_id, "integer")
 
   # Save records (will throw error if it fails)
@@ -52,13 +56,13 @@ test_that("generate_record_id creates correct format", {
   id <- generate_record_id("Smith", 2020, 1)
 
   expect_type(id, "character")
-  expect_match(id, "Smith2020-o1")
+  expect_match(id, "Smith_2020_1_r1")
 })
 
 test_that("generate_record_id handles special characters", {
   id <- generate_record_id("O'Brien", 2020, 1)
 
-  expect_match(id, "OBrien2020-o1")
+  expect_match(id, "OBrien_2020_1_r1")
   expect_false(grepl("'", id))
 })
 

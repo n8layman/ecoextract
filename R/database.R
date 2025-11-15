@@ -281,7 +281,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
     # Path string - initialize if needed, then connect
     if (!file.exists(db_conn)) {
       cat("Initializing new database:", db_conn, "\n")
-      init_ecoextract_database(db_conn, schema_file = schema_file)
+      init_ecoextract_database(db_conn)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
     configure_sqlite_connection(db_conn)
