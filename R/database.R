@@ -606,12 +606,10 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 
   # Use UPSERT logic: update existing records, insert new ones
   # This preserves data and handles both extraction (new records) and refinement (updates)
-  # Wrap in IMMEDIATE transaction to prevent write conflicts
+  # Wrap in transaction to prevent write conflicts
 
-  DBI::dbWithTransaction(con, {
-    # Use IMMEDIATE transaction to announce write intent upfront
-    DBI::dbExecute(con, "BEGIN IMMEDIATE")
-
+  DBI::dbBegin(con)
+  tryCatch({
     for (i in 1:nrow(interactions_clean)) {
       row <- interactions_clean[i, ]
 
@@ -638,6 +636,10 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
         DBI::dbWriteTable(con, "records", row, append = TRUE, row.names = FALSE)
       }
     }
+    DBI::dbCommit(con)
+  }, error = function(e) {
+    DBI::dbRollback(con)
+    stop("Error saving records: ", e$message)
   })
 
   message(glue::glue("Saved {nrow(interactions_clean)} records to database"))
