@@ -74,7 +74,7 @@ extract_records <- function(document_id = NA,
       name = model,
       system_prompt = extraction_prompt,
       echo = "none",
-      params = list(max_tokens = 8192)
+      params = list(max_tokens = 16384)
     )
 
     # Execute extraction with structured output

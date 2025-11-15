@@ -4,7 +4,7 @@
 
 #' Configure SQLite connection for optimal concurrency
 #'
-#' Sets PRAGMA options to prevent database locked errors and improve concurrent access
+#' Sets PRAGMA options to prevent database locked errors
 #'
 #' @param con SQLite database connection
 #' @return The connection object (invisibly)
@@ -12,9 +12,6 @@
 configure_sqlite_connection <- function(con) {
   # Set busy timeout to 10 seconds (retry on locked database)
   DBI::dbExecute(con, "PRAGMA busy_timeout = 10000")
-
-  # Enable WAL mode for better concurrent access (readers don't block writers)
-  DBI::dbExecute(con, "PRAGMA journal_mode = WAL")
 
   invisible(con)
 }
@@ -371,8 +368,8 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
 
    # Handle overwrite: drop existing row by hash if requested
   if (overwrite) {
-      DBI::dbExecute(db_conn, "DELETE FROM records WHERE document_id = ?", params = list(document_id))
-      DBI::dbExecute(db_conn, "DELETE FROM documents WHERE document_id = ?", params = list(document_id))
+      DBI::dbExecute(con, "DELETE FROM records WHERE document_id = ?", params = list(document_id))
+      DBI::dbExecute(con, "DELETE FROM documents WHERE document_id = ?", params = list(document_id))
     }
 
   # Define all possible metadata columns
@@ -382,11 +379,8 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
   )
 
   # Fill missing keys with NA
-  metadata_complete <- unname(sapply(meta_keys, function(k) metadata[[k]] %||% NA))
+  metadata_complete <- unname(sapply(meta_keys, function(k) metadata[[k]] %||NA% NA))
   params <- c(metadata_complete, document_id)
-
-  # Overwrite flag
-  overwrite <- FALSE  # or TRUE
 
   # Build the SET clause dynamically
   set_clause <- glue::glue_collapse(
@@ -406,7 +400,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
   ")
 
   # Execute query
-  DBI::dbExecute(db_conn, sql, params = params)
+  DBI::dbExecute(con, sql, params = params)
 
   return(document_id)
 }
@@ -612,12 +606,10 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 
   # Use UPSERT logic: update existing records, insert new ones
   # This preserves data and handles both extraction (new records) and refinement (updates)
-  # Wrap in IMMEDIATE transaction to prevent write conflicts
+  # Wrap in transaction to prevent write conflicts
 
-  DBI::dbWithTransaction(con, {
-    # Use IMMEDIATE transaction to announce write intent upfront
-    DBI::dbExecute(con, "BEGIN IMMEDIATE")
-
+  DBI::dbBegin(con)
+  tryCatch({
     for (i in 1:nrow(interactions_clean)) {
       row <- interactions_clean[i, ]
 
@@ -644,6 +636,10 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
         DBI::dbWriteTable(con, "records", row, append = TRUE, row.names = FALSE)
       }
     }
+    DBI::dbCommit(con)
+  }, error = function(e) {
+    DBI::dbRollback(con)
+    stop("Error saving records: ", e$message)
   })
 
   message(glue::glue("Saved {nrow(interactions_clean)} records to database"))

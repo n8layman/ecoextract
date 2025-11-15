@@ -100,7 +100,7 @@ refine_records <- function(db_conn = NULL, document_id,
       name = model,
       system_prompt = refinement_prompt,  # System prompt is just the generic refinement instructions
       echo = "none",
-      params = list(max_tokens = 8192)
+      params = list(max_tokens = 16384)
     )
 
     # Build refinement context using glue to inject data
