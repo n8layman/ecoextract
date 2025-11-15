@@ -371,8 +371,8 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
 
    # Handle overwrite: drop existing row by hash if requested
   if (overwrite) {
-      DBI::dbExecute(db_conn, "DELETE FROM records WHERE document_id = ?", params = list(document_id))
-      DBI::dbExecute(db_conn, "DELETE FROM documents WHERE document_id = ?", params = list(document_id))
+      DBI::dbExecute(con, "DELETE FROM records WHERE document_id = ?", params = list(document_id))
+      DBI::dbExecute(con, "DELETE FROM documents WHERE document_id = ?", params = list(document_id))
     }
 
   # Define all possible metadata columns
@@ -382,11 +382,8 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
   )
 
   # Fill missing keys with NA
-  metadata_complete <- unname(sapply(meta_keys, function(k) metadata[[k]] %||% NA))
+  metadata_complete <- unname(sapply(meta_keys, function(k) metadata[[k]] %||NA% NA))
   params <- c(metadata_complete, document_id)
-
-  # Overwrite flag
-  overwrite <- FALSE  # or TRUE
 
   # Build the SET clause dynamically
   set_clause <- glue::glue_collapse(
@@ -406,7 +403,7 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
   ")
 
   # Execute query
-  DBI::dbExecute(db_conn, sql, params = params)
+  DBI::dbExecute(con, sql, params = params)
 
   return(document_id)
 }

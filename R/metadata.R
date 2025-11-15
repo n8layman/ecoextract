@@ -36,14 +36,21 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     "SELECT * FROM documents WHERE document_id = ?",
     params = list(document_id))
 
+  # Helper function to check if a value is missing (NULL, NA, or empty)
+  is_missing <- function(x) {
+    is.null(x) ||
+      (is.atomic(x) && length(x) == 1 && is.na(x)) ||
+      (is.atomic(x) && length(x) == 0)
+  }
+
   # Check if we should run metadata extraction
   # Use isTRUE() for safer logical evaluation with potential NAs
   should_run <- isTRUE(force_reprocess) ||
                 nrow(existing_metadata) == 0 ||
                 (nrow(existing_metadata) > 0 && (
-                  is.na(existing_metadata$title[1]) ||
-                  is.na(existing_metadata$first_author_lastname[1]) ||
-                  is.na(existing_metadata$publication_year[1])
+                  is_missing(existing_metadata$title[1]) ||
+                  is_missing(existing_metadata$first_author_lastname[1]) ||
+                  is_missing(existing_metadata$publication_year[1])
                 ))
 
   if (!should_run) {
@@ -61,11 +68,6 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       } else {
 
     message("Extracting publication metadata...")
-
-    # # 2. Parse JSON into tibble
-    # content_tbl <- jsonlite::fromJSON(document_content, simplifyDataFrame = TRUE) |> 
-    # dplyr::filter(page_number %in% c(1:3)) |>
-    # jsonlite::toJSON()
 
     # Load metadata schema and convert to native ellmer types
     schema_path <- system.file("extdata", "metadata_schema.json", package = "ecoextract")
@@ -89,7 +91,8 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     metadata_chat <- ellmer::chat(
       name = model,
       system_prompt = metadata_prompt,
-      echo = "none"
+      echo = "none",
+      params = list(max_tokens = 16384)  # Increased to max for Claude Sonnet 4.5 to handle large bibliographies
     )
 
     # Execute metadata extraction with structured output
