@@ -22,7 +22,8 @@ test_that("host-pathogen schema works end-to-end", {
     test_pdf,
     db_conn = db_path,
     schema_file = schema_file,
-    extraction_prompt_file = prompt_file
+    extraction_prompt_file = prompt_file,
+    run_refinement = TRUE
   )
 
   expect_s3_class(result, "tbl_df")
@@ -69,6 +70,6 @@ test_that("host-pathogen schema works end-to-end", {
               "Should have Detection_Method column in schema")
 
   # Verify record IDs were generated correctly
-  expect_true(all(grepl("^[A-Za-z]+[0-9]+-o[0-9]+$", records$record_id)),
-              "All record_ids should match pattern Author2024-o1")
+  expect_true(all(grepl("^[A-Za-z]+_[0-9]+_1_r[0-9]+$", records$record_id)),
+              "All record_ids should match pattern Author_2024_1_r1")
 })

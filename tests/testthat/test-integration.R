@@ -90,7 +90,7 @@ test_that("extraction rediscovers physically deleted records", {
                    initial_count, after_delete_count))
 
   # Re-run pipeline (will skip OCR/audit, run extraction+refinement)
-  result2 <- process_documents(test_pdf, db_conn = db_path)
+  result2 <- process_documents(test_pdf, db_conn = db_path, run_refinement = TRUE)
 
   # Check that early steps were skipped, but extraction+refinement run
   expect_equal(result2$ocr_status[1], "skipped")
