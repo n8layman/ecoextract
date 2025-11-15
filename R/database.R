@@ -4,7 +4,7 @@
 
 #' Configure SQLite connection for optimal concurrency
 #'
-#' Sets PRAGMA options to prevent database locked errors and improve concurrent access
+#' Sets PRAGMA options to prevent database locked errors
 #'
 #' @param con SQLite database connection
 #' @return The connection object (invisibly)
@@ -12,9 +12,6 @@
 configure_sqlite_connection <- function(con) {
   # Set busy timeout to 10 seconds (retry on locked database)
   DBI::dbExecute(con, "PRAGMA busy_timeout = 10000")
-
-  # Enable WAL mode for better concurrent access (readers don't block writers)
-  DBI::dbExecute(con, "PRAGMA journal_mode = WAL")
 
   invisible(con)
 }
