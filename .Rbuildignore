@@ -11,3 +11,7 @@
 ^ecoextract_records\.db$
 ^ecoextract$
 ^REFACTORING_STATUS\.md$
+^bulk_test_20\.csv$
+^ecoextract_records\.db-shm$
+^ecoextract_records\.db-wal$
+^todo\.md$
