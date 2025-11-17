@@ -55,7 +55,7 @@ test_that("full pipeline from PDF to database", {
 
 test_that("extraction rediscovers physically deleted records", {
   cat("\n========== TEST: extraction rediscovers physically deleted records ==========\n")
-  skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
+  skip_if(Sys.getenv("OPENAI_API_KEY") == "", "OPENAI_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
 
   test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")

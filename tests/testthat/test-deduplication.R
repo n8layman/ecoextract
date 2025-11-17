@@ -169,10 +169,10 @@ test_that("deduplicate_records validates x-unique-fields against schema properti
   )
 })
 
-# Integration test with real Mistral embeddings
-# This test requires MISTRAL_API_KEY to be set
+# Integration test with real OpenAI embeddings
+# This test requires OPENAI_API_KEY to be set
 test_that("deduplicate_records detects exact duplicates using embeddings", {
-  skip_if_not(nzchar(Sys.getenv("MISTRAL_API_KEY")), "MISTRAL_API_KEY not set")
+  skip_if_not(nzchar(Sys.getenv("OPENAI_API_KEY")), "OPENAI_API_KEY not set")
 
   existing_records <- tibble::tibble(
     bat_species_scientific_name = c("Myotis lucifugus", "Eptesicus fuscus"),
@@ -200,7 +200,7 @@ test_that("deduplicate_records detects exact duplicates using embeddings", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.9,
-    embedding_provider = "mistral"
+    embedding_provider = "openai"
   )
 
   # First record is exact duplicate, should be filtered
@@ -211,7 +211,7 @@ test_that("deduplicate_records detects exact duplicates using embeddings", {
 })
 
 test_that("deduplicate_records detects near-duplicates with threshold", {
-  skip_if_not(nzchar(Sys.getenv("MISTRAL_API_KEY")), "MISTRAL_API_KEY not set")
+  skip_if_not(nzchar(Sys.getenv("OPENAI_API_KEY")), "OPENAI_API_KEY not set")
 
   existing_records <- tibble::tibble(
     bat_species_scientific_name = "Myotis lucifugus",
@@ -240,7 +240,7 @@ test_that("deduplicate_records detects near-duplicates with threshold", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.95,
-    embedding_provider = "mistral"
+    embedding_provider = "openai"
   )
 
   # Exact bat species but different pathogen names should be below 0.95 similarity
@@ -248,7 +248,7 @@ test_that("deduplicate_records detects near-duplicates with threshold", {
 })
 
 test_that("deduplicate_records handles records with missing required fields", {
-  skip_if_not(nzchar(Sys.getenv("MISTRAL_API_KEY")), "MISTRAL_API_KEY not set")
+  skip_if_not(nzchar(Sys.getenv("OPENAI_API_KEY")), "OPENAI_API_KEY not set")
 
   existing_records <- tibble::tibble(
     bat_species_scientific_name = "Myotis lucifugus",
@@ -276,7 +276,7 @@ test_that("deduplicate_records handles records with missing required fields", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.9,
-    embedding_provider = "mistral"
+    embedding_provider = "openai"
   )
 
   # Both records should be kept (one has NA field, one is unique)
@@ -286,7 +286,7 @@ test_that("deduplicate_records handles records with missing required fields", {
 
 # Field-by-field comparison tests
 test_that("field-by-field: partial match on one field does not create duplicate", {
-  skip_if_not(nzchar(Sys.getenv("MISTRAL_API_KEY")), "MISTRAL_API_KEY not set")
+  skip_if_not(nzchar(Sys.getenv("OPENAI_API_KEY")), "OPENAI_API_KEY not set")
 
   schema_list <- list(
     properties = list(
@@ -319,7 +319,7 @@ test_that("field-by-field: partial match on one field does not create duplicate"
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.95,
-    embedding_provider = "mistral"
+    embedding_provider = "openai"
   )
 
   # Should be unique - ALL fields must match, not just some
@@ -328,7 +328,7 @@ test_that("field-by-field: partial match on one field does not create duplicate"
 })
 
 test_that("field-by-field: only compares populated fields in both records", {
-  skip_if_not(nzchar(Sys.getenv("MISTRAL_API_KEY")), "MISTRAL_API_KEY not set")
+  skip_if_not(nzchar(Sys.getenv("OPENAI_API_KEY")), "OPENAI_API_KEY not set")
 
   schema_list <- list(
     properties = list(
@@ -361,7 +361,7 @@ test_that("field-by-field: only compares populated fields in both records", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.95,
-    embedding_provider = "mistral"
+    embedding_provider = "openai"
   )
 
   # Should be duplicate - only scientific_name compared (both populated)
@@ -371,7 +371,7 @@ test_that("field-by-field: only compares populated fields in both records", {
 })
 
 test_that("field-by-field: exact match on all populated fields is duplicate", {
-  skip_if_not(nzchar(Sys.getenv("MISTRAL_API_KEY")), "MISTRAL_API_KEY not set")
+  skip_if_not(nzchar(Sys.getenv("OPENAI_API_KEY")), "OPENAI_API_KEY not set")
 
   schema_list <- list(
     properties = list(
@@ -406,7 +406,7 @@ test_that("field-by-field: exact match on all populated fields is duplicate", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.95,
-    embedding_provider = "mistral"
+    embedding_provider = "openai"
   )
 
   # All 3 fields match exactly → duplicate
@@ -415,7 +415,7 @@ test_that("field-by-field: exact match on all populated fields is duplicate", {
 })
 
 test_that("field-by-field: no populated overlap means unique", {
-  skip_if_not(nzchar(Sys.getenv("MISTRAL_API_KEY")), "MISTRAL_API_KEY not set")
+  skip_if_not(nzchar(Sys.getenv("OPENAI_API_KEY")), "OPENAI_API_KEY not set")
 
   schema_list <- list(
     properties = list(
@@ -448,7 +448,7 @@ test_that("field-by-field: no populated overlap means unique", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.95,
-    embedding_provider = "mistral"
+    embedding_provider = "openai"
   )
 
   # No overlapping populated fields → unique
@@ -457,7 +457,7 @@ test_that("field-by-field: no populated overlap means unique", {
 })
 
 test_that("field-by-field: multiple new records, some duplicates some unique", {
-  skip_if_not(nzchar(Sys.getenv("MISTRAL_API_KEY")), "MISTRAL_API_KEY not set")
+  skip_if_not(nzchar(Sys.getenv("OPENAI_API_KEY")), "OPENAI_API_KEY not set")
 
   schema_list <- list(
     properties = list(
@@ -490,7 +490,7 @@ test_that("field-by-field: multiple new records, some duplicates some unique", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.95,
-    embedding_provider = "mistral"
+    embedding_provider = "openai"
   )
 
   # Records 1 and 2 are duplicates, records 3 and 4 are unique

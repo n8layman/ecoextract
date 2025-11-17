@@ -26,7 +26,7 @@ extract_records <- function(document_id = NA,
                                  schema_file = NULL,
                                  model = "anthropic/claude-sonnet-4-5",
                                  min_similarity = 0.9,
-                                 embedding_provider = "mistral",
+                                 embedding_provider = "openai",
                                  similarity_method = "embedding",
                                  ...) {
 
@@ -144,7 +144,8 @@ extract_records <- function(document_id = NA,
               model = model,
               prompt_hash = extraction_prompt_hash
             ),
-            schema_list = schema_list  # Pass schema for array normalization
+            schema_list = schema_list,  # Pass schema for array normalization
+            mode = "insert"  # Extraction always inserts (deduplication already done)
           )
         }
 

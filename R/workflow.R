@@ -14,7 +14,7 @@
 #' @param run_extraction If TRUE, run extraction step to find new records. Default TRUE.
 #' @param run_refinement If TRUE, run refinement step to enhance existing records. Default FALSE.
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
-#' @param embedding_provider Provider for embeddings when using embedding method (default: "mistral")
+#' @param embedding_provider Provider for embeddings when using embedding method (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")
 #' @return Tibble with processing results
 #' @export
@@ -66,7 +66,7 @@ process_documents <- function(pdf_path,
                              run_extraction = TRUE,
                              run_refinement = FALSE,
                              min_similarity = 0.9,
-                             embedding_provider = "mistral",
+                             embedding_provider = "openai",
                              similarity_method = "embedding") {
 
   # Determine if processing single file, multiple files, or directory
@@ -144,7 +144,8 @@ process_documents <- function(pdf_path,
       run_extraction = run_extraction,
       run_refinement = run_refinement,
       min_similarity = min_similarity,
-      embedding_provider = embedding_provider
+      embedding_provider = embedding_provider,
+      similarity_method = similarity_method
     )
     results_list[[length(results_list) + 1]] <- result
   }
@@ -225,7 +226,8 @@ process_documents <- function(pdf_path,
 #' @param run_extraction If TRUE, run extraction step (default: TRUE)
 #' @param run_refinement If TRUE, run refinement step (default: FALSE)
 #' @param min_similarity Minimum cosine similarity for deduplication (default: 0.9)
-#' @param embedding_provider Provider for embeddings (default: "mistral")
+#' @param embedding_provider Provider for embeddings (default: "openai")
+#' @param similarity_method Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")
 #' @return List with processing result
 #' @keywords internal
 process_single_document <- function(pdf_file,
@@ -238,7 +240,8 @@ process_single_document <- function(pdf_file,
                                     run_extraction = TRUE,
                                     run_refinement = FALSE,
                                     min_similarity = 0.9,
-                                    embedding_provider = "mistral") {
+                                    embedding_provider = "openai",
+                                    similarity_method = "embedding") {
 
   # Log header
   message(strrep("=", 70))

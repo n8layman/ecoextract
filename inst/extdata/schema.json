@@ -13,7 +13,7 @@
       "description": "Array of ecological records",
       "items": {
         "type": "object",
-        "description": "Ecological interaction between identifiable organisms",
+        "description": "Ecological interaction between bats and other identifiable organisms",
         "required": [
           "all_supporting_source_sentences"
         ],
