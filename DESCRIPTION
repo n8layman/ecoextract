@@ -21,8 +21,10 @@ Imports:
     ohseer,
     readr,
     RSQLite,
+    stringi,
     stringr,
-    tibble
+    tibble,
+    tidyllm
 Suggests:
     devtools,
     knitr,

@@ -13,6 +13,9 @@ extract_records(
   extraction_context_file = NULL,
   schema_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
+  min_similarity = 0.9,
+  embedding_provider = "mistral",
+  similarity_method = "embedding",
   ...
 )
 }
@@ -32,6 +35,12 @@ extract_records(
 \item{schema_file}{Path to custom schema JSON file (optional)}
 
 \item{model}{Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")}
+
+\item{min_similarity}{Minimum similarity for deduplication (default: 0.9)}
+
+\item{embedding_provider}{Provider for embeddings when using embedding method (default: "mistral")}
+
+\item{similarity_method}{Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")}
 
 \item{...}{Additional arguments passed to extraction}
 }

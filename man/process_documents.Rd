@@ -13,7 +13,10 @@ process_documents(
   force_reprocess_ocr = FALSE,
   force_reprocess_metadata = FALSE,
   run_extraction = TRUE,
-  run_refinement = FALSE
+  run_refinement = FALSE,
+  min_similarity = 0.9,
+  embedding_provider = "mistral",
+  similarity_method = "embedding"
 )
 }
 \arguments{
@@ -36,6 +39,12 @@ If a connection is provided, tables must already exist (use \code{init_ecoextrac
 \item{run_extraction}{If TRUE, run extraction step to find new records. Default TRUE.}
 
 \item{run_refinement}{If TRUE, run refinement step to enhance existing records. Default FALSE.}
+
+\item{min_similarity}{Minimum similarity for deduplication (default: 0.9)}
+
+\item{embedding_provider}{Provider for embeddings when using embedding method (default: "mistral")}
+
+\item{similarity_method}{Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")}
 }
 \value{
 Tibble with processing results

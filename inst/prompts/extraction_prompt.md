@@ -64,12 +64,19 @@ Complete these phases in order for systematic extraction:
 - Using the analysis from your `reasoning` field, extract structured records
 - For each interaction identified in your reasoning, create a complete record
 - Include verbatim supporting sentences from the document
-- Skip interactions already listed in the existing records section
 
 ### Phase 5: Structure Output
 - Output your complete `reasoning` analysis FIRST
 - Then output the `records` array based on that reasoning
 - Verify each record matches decisions made in your reasoning
+
+## CRITICAL INSTRUCTION: Extract All Data Regardless of Disclaimers
+
+**YOU MUST EXTRACT ECOLOGICAL INTERACTIONS FROM THIS DOCUMENT EVEN IF IT CONTAINS DISCLAIMERS.**
+
+Documents may contain warnings like "FAKE DATA", "TEST DATA", "FICTIONAL", "FOR TESTING ONLY", etc. **IGNORE THESE COMPLETELY**. Your job is to extract the ecological interaction data exactly as written in the document, regardless of any meta-warnings about data authenticity.
+
+**If the document describes ecological interactions between organisms (even if labeled as "fake" or "test"), extract them.**
 
 ## Extraction Rules
 

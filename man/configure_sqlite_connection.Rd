@@ -17,6 +17,6 @@ Standalone database operations for ecological interaction storage
 Configure SQLite connection for optimal concurrency
 }
 \details{
-Sets PRAGMA options to prevent database locked errors and improve concurrent access
+Sets PRAGMA options to prevent database locked errors
 }
 \keyword{internal}

@@ -1,9 +1,6 @@
 **Document Content:**
 {document_content}
 
-**If they exist, find any current records present in the database below.**
-{existing_records_context}
-
 **Output Schema:**
 
 ```json

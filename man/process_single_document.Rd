@@ -13,7 +13,9 @@ process_single_document(
   force_reprocess_ocr = FALSE,
   force_reprocess_metadata = FALSE,
   run_extraction = TRUE,
-  run_refinement = FALSE
+  run_refinement = FALSE,
+  min_similarity = 0.9,
+  embedding_provider = "mistral"
 )
 }
 \arguments{
@@ -34,6 +36,10 @@ process_single_document(
 \item{run_extraction}{If TRUE, run extraction step (default: TRUE)}
 
 \item{run_refinement}{If TRUE, run refinement step (default: FALSE)}
+
+\item{min_similarity}{Minimum cosine similarity for deduplication (default: 0.9)}
+
+\item{embedding_provider}{Provider for embeddings (default: "mistral")}
 }
 \value{
 List with processing result

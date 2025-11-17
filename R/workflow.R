@@ -13,6 +13,9 @@
 #' @param force_reprocess_metadata If TRUE, re-run metadata extraction and overwrite all metadata fields. Default FALSE - skips if metadata already exists.
 #' @param run_extraction If TRUE, run extraction step to find new records. Default TRUE.
 #' @param run_refinement If TRUE, run refinement step to enhance existing records. Default FALSE.
+#' @param min_similarity Minimum similarity for deduplication (default: 0.9)
+#' @param embedding_provider Provider for embeddings when using embedding method (default: "mistral")
+#' @param similarity_method Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")
 #' @return Tibble with processing results
 #' @export
 #'
@@ -61,7 +64,10 @@ process_documents <- function(pdf_path,
                              force_reprocess_ocr = FALSE,
                              force_reprocess_metadata = FALSE,
                              run_extraction = TRUE,
-                             run_refinement = FALSE) {
+                             run_refinement = FALSE,
+                             min_similarity = 0.9,
+                             embedding_provider = "mistral",
+                             similarity_method = "embedding") {
 
   # Determine if processing single file, multiple files, or directory
   if (length(pdf_path) > 1) {
@@ -136,7 +142,9 @@ process_documents <- function(pdf_path,
       force_reprocess_ocr = force_reprocess_ocr,
       force_reprocess_metadata = force_reprocess_metadata,
       run_extraction = run_extraction,
-      run_refinement = run_refinement
+      run_refinement = run_refinement,
+      min_similarity = min_similarity,
+      embedding_provider = embedding_provider
     )
     results_list[[length(results_list) + 1]] <- result
   }
@@ -216,6 +224,8 @@ process_documents <- function(pdf_path,
 #' @param force_reprocess_metadata If TRUE, re-run metadata extraction (default: FALSE)
 #' @param run_extraction If TRUE, run extraction step (default: TRUE)
 #' @param run_refinement If TRUE, run refinement step (default: FALSE)
+#' @param min_similarity Minimum cosine similarity for deduplication (default: 0.9)
+#' @param embedding_provider Provider for embeddings (default: "mistral")
 #' @return List with processing result
 #' @keywords internal
 process_single_document <- function(pdf_file,
@@ -226,7 +236,9 @@ process_single_document <- function(pdf_file,
                                     force_reprocess_ocr = FALSE,
                                     force_reprocess_metadata = FALSE,
                                     run_extraction = TRUE,
-                                    run_refinement = FALSE) {
+                                    run_refinement = FALSE,
+                                    min_similarity = 0.9,
+                                    embedding_provider = "mistral") {
 
   # Log header
   message(strrep("=", 70))
@@ -308,7 +320,10 @@ process_single_document <- function(pdf_file,
       db_conn = db_conn,
       force_reprocess = FALSE,
       schema_file = schema_file,
-      extraction_prompt_file = extraction_prompt_file
+      extraction_prompt_file = extraction_prompt_file,
+      min_similarity = min_similarity,
+      embedding_provider = embedding_provider,
+      similarity_method = similarity_method
     )
     status_tracking$extraction_status <- extraction_result$status
     status_tracking$records_extracted <- extraction_result$records_extracted %||% 0

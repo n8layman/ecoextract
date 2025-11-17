@@ -14,6 +14,15 @@
       "items": {
         "type": "object",
         "description": "Ecological interaction between identifiable organisms",
+        "required": [
+          "all_supporting_source_sentences"
+        ],
+        "x-unique-fields": [
+          "bat_species_scientific_name",
+          "bat_species_common_name",
+          "interacting_organism_scientific_name",
+          "interacting_organism_common_name"
+        ],
         "properties": {
           "organisms_identifiable": {
             "type": "string",

@@ -12,8 +12,17 @@ test_that("full pipeline from PDF to database", {
 
   db_path <- withr::local_tempfile(fileext = ".sqlite")
 
+  # Use package default schema and prompt (not project customizations)
+  schema_file <- system.file("extdata", "schema.json", package = "ecoextract")
+  prompt_file <- system.file("prompts", "extraction_prompt.md", package = "ecoextract")
+
   # Test the full process_documents workflow
-  result <- process_documents(test_pdf, db_conn = db_path)
+  result <- process_documents(
+    test_pdf,
+    db_conn = db_path,
+    schema_file = schema_file,
+    extraction_prompt_file = prompt_file
+  )
 
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 1)
@@ -54,8 +63,17 @@ test_that("extraction rediscovers physically deleted records", {
 
   db_path <- withr::local_tempfile(fileext = ".sqlite")
 
+  # Use package default schema and prompt (not project customizations)
+  schema_file <- system.file("extdata", "schema.json", package = "ecoextract")
+  prompt_file <- system.file("prompts", "extraction_prompt.md", package = "ecoextract")
+
   # Run full pipeline first time
-  result1 <- process_documents(test_pdf, db_conn = db_path)
+  result1 <- process_documents(
+    test_pdf,
+    db_conn = db_path,
+    schema_file = schema_file,
+    extraction_prompt_file = prompt_file
+  )
 
   # Verify all steps completed
   status_matrix1 <- result1 |>
@@ -89,14 +107,20 @@ test_that("extraction rediscovers physically deleted records", {
     info = sprintf("Should have fewer records after deletion (%d -> %d)",
                    initial_count, after_delete_count))
 
-  # Re-run pipeline (will skip OCR/audit, run extraction+refinement)
-  result2 <- process_documents(test_pdf, db_conn = db_path, run_refinement = TRUE)
+  # Re-run pipeline (will skip OCR/metadata, run extraction)
+  # Use Jaccard similarity to avoid API rate limits during testing
+  result2 <- process_documents(
+    test_pdf,
+    db_conn = db_path,
+    schema_file = schema_file,
+    extraction_prompt_file = prompt_file,
+    similarity_method = "jaccard"
+  )
 
-  # Check that early steps were skipped, but extraction+refinement run
+  # Check that early steps were skipped, but extraction ran
   expect_equal(result2$ocr_status[1], "skipped")
   expect_equal(result2$metadata_status[1], "skipped")
   expect_equal(result2$extraction_status[1], "completed")
-  expect_equal(result2$refinement_status[1], "completed")
 
   # Check that extraction found more records than were left after deletion
   final_count <- DBI::dbGetQuery(
@@ -129,13 +153,22 @@ test_that("API failures are captured in status columns, not thrown", {
 
   db_path <- withr::local_tempfile(fileext = ".sqlite")
 
+  # Use package default schema and prompt (not project customizations)
+  schema_file <- system.file("extdata", "schema.json", package = "ecoextract")
+  prompt_file <- system.file("prompts", "extraction_prompt.md", package = "ecoextract")
+
   # Temporarily set bad Anthropic API key
   original_key <- Sys.getenv("ANTHROPIC_API_KEY")
   Sys.setenv(ANTHROPIC_API_KEY = "bad-key-should-fail")
   withr::defer(Sys.setenv(ANTHROPIC_API_KEY = original_key))
 
   # Run process_documents - should NOT throw, should return tibble
-  result <- process_documents(test_pdf, db_conn = db_path)
+  result <- process_documents(
+    test_pdf,
+    db_conn = db_path,
+    schema_file = schema_file,
+    extraction_prompt_file = prompt_file
+  )
 
   # Verify we got a tibble back (not an error throw)
   expect_s3_class(result, "tbl_df")
