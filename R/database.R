@@ -42,7 +42,7 @@ normalize_array_fields <- function(df, schema_list) {
   }
 
   field_properties <- records_schema$items$properties
-  required_fields <- records_schema$items$required %||% character(0)
+  required_fields <- rlang::`%||%`(records_schema$items$required, character(0))
 
   # Identify which fields should be arrays
   array_fields <- names(field_properties)[
@@ -306,9 +306,9 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
   }
 
   # Prepare metadata in correct order
-  meta_keys <- c("title", "first_author_lastname", "publication_year", 
+  meta_keys <- c("title", "first_author_lastname", "publication_year",
                  "doi", "journal", "document_content", "ocr_images")
-  metadata_complete <- lapply(meta_keys, function(k) metadata[[k]] %||% NA)
+  metadata_complete <- lapply(meta_keys, function(k) rlang::`%||%`(metadata[[k]], NA))
 
   # Combine with file info
   params <- c(list(file_name, file_path, file_hash, file_size, timestamp), metadata_complete)
@@ -529,8 +529,8 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   # Add required metadata columns
   interactions_df$document_id <- as.integer(document_id)
   interactions_df$extraction_timestamp <- as.character(Sys.time())
-  interactions_df$llm_model_version <- metadata$model %||% "unknown"
-  interactions_df$prompt_hash <- metadata$prompt_hash %||% "unknown"
+  interactions_df$llm_model_version <- rlang::`%||%`(metadata$model, "unknown")
+  interactions_df$prompt_hash <- rlang::`%||%`(metadata$prompt_hash, "unknown")
 
   # Get database column names dynamically
   db_columns <- DBI::dbListFields(con, "records")
@@ -721,7 +721,7 @@ extract_fields_from_json_schema <- function(schema_json_list) {
   }
 
   record_props <- records_schema$items$properties
-  required_fields <- records_schema$items$required %||% character()
+  required_fields <- rlang::`%||%`(records_schema$items$required, character())
 
   # Extract field information
   fields <- list()
@@ -751,7 +751,7 @@ extract_fields_from_json_schema <- function(schema_json_list) {
     fields[[field_name]] <- list(
       sql_type = sql_type,
       required = field_name %in% required_fields,
-      description = field_spec$description %||% ""
+      description = rlang::`%||%`(field_spec$description, "")
     )
   }
 
@@ -897,12 +897,3 @@ save_reasoning_to_db <- function(document_id, db_conn, reasoning_text, step = c(
   invisible(NULL)
 }
 
-#' Simple null coalescing operator
-#' @param x First value to check
-#' @param y Default value to use if x is NULL or empty
-#' @return Either x if not NULL/empty, or y
-#' @keywords internal
-#' @noRd
-`%||%` <- function(x, y) {
-  if (is.null(x) || length(x) == 0 || (is.character(x) && x == "")) y else x
-}
