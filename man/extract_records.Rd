@@ -14,7 +14,7 @@ extract_records(
   schema_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
   min_similarity = 0.9,
-  embedding_provider = "mistral",
+  embedding_provider = "openai",
   similarity_method = "embedding",
   ...
 )

@@ -69,7 +69,7 @@ refine_records <- function(db_conn = NULL, document_id,
 
     # Step 3: Convert to ellmer type schema
     schema <- ellmer::TypeJsonSchema(
-      description = schema_list$description %||% "Interaction schema",
+      description = rlang::`%||%`(schema_list$description, "Interaction schema"),
       json = schema_list
     )
 

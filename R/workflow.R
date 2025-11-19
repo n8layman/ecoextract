@@ -155,12 +155,12 @@ process_documents <- function(pdf_path,
   # Convert results to tibble
   results_tibble <- tibble::tibble(
     filename = sapply(results_list, function(x) x$filename),
-    document_id = sapply(results_list, function(x) x$document_id %||% NA),
+    document_id = sapply(results_list, function(x) rlang::`%||%`(x$document_id, NA)),
     ocr_status = sapply(results_list, function(x) x$ocr_status),
     metadata_status = sapply(results_list, function(x) x$metadata_status),
     extraction_status = sapply(results_list, function(x) x$extraction_status),
     refinement_status = sapply(results_list, function(x) x$refinement_status),
-    records_extracted = sapply(results_list, function(x) x$records_extracted %||% 0)
+    records_extracted = sapply(results_list, function(x) rlang::`%||%`(x$records_extracted, 0))
   )
 
   # Calculate summary stats using matrix approach (like tests)
@@ -329,7 +329,7 @@ process_single_document <- function(pdf_file,
       similarity_method = similarity_method
     )
     status_tracking$extraction_status <- extraction_result$status
-    status_tracking$records_extracted <- extraction_result$records_extracted %||% 0
+    status_tracking$records_extracted <- rlang::`%||%`(extraction_result$records_extracted, 0)
   }
 
   # Save status to DB

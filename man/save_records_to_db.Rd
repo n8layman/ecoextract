@@ -9,7 +9,8 @@ save_records_to_db(
   document_id,
   interactions_df,
   metadata = list(),
-  schema_list = NULL
+  schema_list = NULL,
+  mode = "insert"
 )
 }
 \arguments{

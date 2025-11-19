@@ -147,17 +147,17 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
 
       # Log metadata extracted to console for user.
       message("Metadata extraction completed:")
-      message(glue::glue("  title: {pub_metadata$title %||% '<empty>'}"))
-      message(glue::glue("  first_author_lastname: {pub_metadata$first_author_lastname %||% '<empty>'}"))
+      message(glue::glue("  title: {rlang::`%||%`(pub_metadata$title, '<empty>')}"))
+      message(glue::glue("  first_author_lastname: {rlang::`%||%`(pub_metadata$first_author_lastname, '<empty>')}"))
       message(glue::glue("  authors: {if(!is.null(pub_metadata$authors)) paste(pub_metadata$authors, collapse=', ') else '<empty>'}"))
-      message(glue::glue("  publication_year: {pub_metadata$publication_year %||% '<empty>'}"))
-      message(glue::glue("  doi: {pub_metadata$doi %||% '<empty>'}"))
-      message(glue::glue("  journal: {pub_metadata$journal %||% '<empty>'}"))
-      message(glue::glue("  volume: {pub_metadata$volume %||% '<empty>'}"))
-      message(glue::glue("  issue: {pub_metadata$issue %||% '<empty>'}"))
-      message(glue::glue("  pages: {pub_metadata$pages %||% '<empty>'}"))
-      message(glue::glue("  issn: {pub_metadata$issn %||% '<empty>'}"))
-      message(glue::glue("  publisher: {pub_metadata$publisher %||% '<empty>'}"))
+      message(glue::glue("  publication_year: {rlang::`%||%`(pub_metadata$publication_year, '<empty>')}"))
+      message(glue::glue("  doi: {rlang::`%||%`(pub_metadata$doi, '<empty>')}"))
+      message(glue::glue("  journal: {rlang::`%||%`(pub_metadata$journal, '<empty>')}"))
+      message(glue::glue("  volume: {rlang::`%||%`(pub_metadata$volume, '<empty>')}"))
+      message(glue::glue("  issue: {rlang::`%||%`(pub_metadata$issue, '<empty>')}"))
+      message(glue::glue("  pages: {rlang::`%||%`(pub_metadata$pages, '<empty>')}"))
+      message(glue::glue("  issn: {rlang::`%||%`(pub_metadata$issn, '<empty>')}"))
+      message(glue::glue("  publisher: {rlang::`%||%`(pub_metadata$publisher, '<empty>')}"))
       message(glue::glue("  references: {if(!is.null(pub_metadata$bibliography)) length(pub_metadata$bibliography) else 0} citations"))
 
 

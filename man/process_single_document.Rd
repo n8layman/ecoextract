@@ -15,7 +15,8 @@ process_single_document(
   run_extraction = TRUE,
   run_refinement = FALSE,
   min_similarity = 0.9,
-  embedding_provider = "mistral"
+  embedding_provider = "openai",
+  similarity_method = "embedding"
 )
 }
 \arguments{
@@ -39,7 +40,9 @@ process_single_document(
 
 \item{min_similarity}{Minimum cosine similarity for deduplication (default: 0.9)}
 
-\item{embedding_provider}{Provider for embeddings (default: "mistral")}
+\item{embedding_provider}{Provider for embeddings (default: "openai")}
+
+\item{similarity_method}{Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")}
 }
 \value{
 List with processing result

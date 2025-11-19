@@ -15,7 +15,7 @@ process_documents(
   run_extraction = TRUE,
   run_refinement = FALSE,
   min_similarity = 0.9,
-  embedding_provider = "mistral",
+  embedding_provider = "openai",
   similarity_method = "embedding"
 )
 }
@@ -42,7 +42,7 @@ If a connection is provided, tables must already exist (use \code{init_ecoextrac
 
 \item{min_similarity}{Minimum similarity for deduplication (default: 0.9)}
 
-\item{embedding_provider}{Provider for embeddings when using embedding method (default: "mistral")}
+\item{embedding_provider}{Provider for embeddings when using embedding method (default: "openai")}
 
 \item{similarity_method}{Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")}
 }
