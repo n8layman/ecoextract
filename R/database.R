@@ -413,8 +413,13 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
 #' @param schema_list Optional parsed JSON schema for array normalization
 #' @return TRUE if successful
 #' @keywords internal
-save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list(), schema_list = NULL) {
+save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list(), schema_list = NULL, mode = "insert") {
   if (nrow(interactions_df) == 0) return(invisible(NULL))
+
+  # Validate mode parameter
+  if (!mode %in% c("insert", "update")) {
+    stop("mode must be either 'insert' (extraction) or 'update' (refinement)")
+  }
 
   # Normalize array fields based on schema (schema-agnostic)
   if (!is.null(schema_list)) {
@@ -604,36 +609,50 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   # ellmer handles schema-defined types (integers, strings, etc.) correctly
   # SQLite will auto-coerce types as needed when inserting
 
-  # Use UPSERT logic: update existing records, insert new ones
-  # This preserves data and handles both extraction (new records) and refinement (updates)
+  # Save records based on mode
+  # - insert: Always insert new records (for extraction)
+  # - update: Only update existing records (for refinement)
   # Wrap in transaction to prevent write conflicts
 
   DBI::dbBegin(con)
   tryCatch({
-    for (i in 1:nrow(interactions_clean)) {
-      row <- interactions_clean[i, ]
+    if (mode == "insert") {
+      # Insert mode: Simply append all records (extraction already deduplicated)
+      DBI::dbWriteTable(con, "records", interactions_clean, append = TRUE, row.names = FALSE)
+    } else if (mode == "update") {
+      # Update mode: Only update existing records (for refinement)
+      updated_count <- 0
+      skipped_count <- 0
 
-      # Check if this record_id already exists for this document
-      existing <- DBI::dbGetQuery(con,
-        "SELECT id FROM records WHERE document_id = ? AND record_id = ?",
-        params = list(row$document_id, row$record_id))
+      for (i in 1:nrow(interactions_clean)) {
+        row <- interactions_clean[i, ]
 
-      if (nrow(existing) > 0) {
-        # Update existing record (only if not human_edited and not rejected)
-        # Build SET clause dynamically for all columns except id (primary key)
-        cols_to_update <- setdiff(names(row), c("id"))
-        set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
+        # Check if this record_id exists for this document
+        existing <- DBI::dbGetQuery(con,
+          "SELECT id FROM records WHERE document_id = ? AND record_id = ?",
+          params = list(row$document_id, row$record_id))
 
-        update_sql <- paste0(
-          "UPDATE records SET ", set_clause,
-          " WHERE id = ? AND human_edited = 0 AND rejected = 0"
-        )
+        if (nrow(existing) > 0) {
+          # Update existing record (only if not human_edited and not rejected)
+          cols_to_update <- setdiff(names(row), c("id"))
+          set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
 
-        params <- unname(c(as.list(row[cols_to_update]), list(existing$id[1])))
-        DBI::dbExecute(con, update_sql, params = params)
-      } else {
-        # Insert new record
-        DBI::dbWriteTable(con, "records", row, append = TRUE, row.names = FALSE)
+          update_sql <- paste0(
+            "UPDATE records SET ", set_clause,
+            " WHERE id = ? AND human_edited = 0 AND rejected = 0"
+          )
+
+          params <- unname(c(as.list(row[cols_to_update]), list(existing$id[1])))
+          rows_affected <- DBI::dbExecute(con, update_sql, params = params)
+          updated_count <- updated_count + rows_affected
+        } else {
+          # Record doesn't exist - skip (refinement should never insert)
+          skipped_count <- skipped_count + 1
+        }
+      }
+
+      if (skipped_count > 0) {
+        message(glue::glue("Skipped {skipped_count} records (not found in database)"))
       }
     }
     DBI::dbCommit(con)

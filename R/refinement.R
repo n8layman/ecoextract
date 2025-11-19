@@ -244,7 +244,8 @@ refine_records <- function(db_conn = NULL, document_id,
           model = model,
           prompt_hash = prompt_hash
         ),
-        schema_list = schema_list  # Pass schema for array normalization
+        schema_list = schema_list,  # Pass schema for array normalization
+        mode = "update"  # Refinement only updates existing records
       )
 
       status <- "completed"

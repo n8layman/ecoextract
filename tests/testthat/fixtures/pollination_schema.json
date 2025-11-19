@@ -59,7 +59,13 @@
             "description": "Year of publication"
           }
         },
-        "required": ["organisms_identifiable", "plant_species_scientific_name", "pollinator_species_scientific_name"]
+        "required": ["organisms_identifiable", "plant_species_scientific_name", "pollinator_species_scientific_name", "all_supporting_source_sentences"],
+        "x-unique-fields": [
+          "plant_species_scientific_name",
+          "plant_species_common_name",
+          "pollinator_species_scientific_name",
+          "pollinator_species_common_name"
+        ]
       }
     }
   },

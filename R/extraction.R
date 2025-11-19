@@ -11,6 +11,9 @@
 #' @param extraction_context_file Path to custom extraction context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
+#' @param min_similarity Minimum similarity for deduplication (default: 0.9)
+#' @param embedding_provider Provider for embeddings when using embedding method (default: "mistral")
+#' @param similarity_method Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @keywords internal
@@ -22,18 +25,14 @@ extract_records <- function(document_id = NA,
                                  extraction_context_file = NULL,
                                  schema_file = NULL,
                                  model = "anthropic/claude-sonnet-4-5",
+                                 min_similarity = 0.9,
+                                 embedding_provider = "openai",
+                                 similarity_method = "embedding",
                                  ...) {
 
   # Document content must be available either through the db or provided
-  existing_records <- tibble::tibble()
   if(!is.na(document_id) && !inherits(db_conn, "logical")) {
     document_content <- get_document_content(document_id, db_conn)
-
-    # Always get existing records to provide as context (extraction looks for NEW records)
-    existing_records <- get_records(document_id, db_conn)
-    if (is.null(existing_records)) {
-      existing_records <- tibble::tibble()
-    }
   }
   if(is.na(document_content)) {
     stop("ERROR message please provide either the id of a document in the database or markdown OCR document content.")
@@ -53,17 +52,13 @@ extract_records <- function(document_id = NA,
     extraction_prompt <- get_extraction_prompt(extraction_prompt_file)
     extraction_prompt_hash <- digest::digest(extraction_prompt, algo = "md5")
 
-    # Build existing records context (so extraction can avoid duplicates)
-    # Don't include record_id - extraction doesn't generate IDs, system does
-    existing_records_context <- build_existing_records_context(existing_records, document_id, include_record_id = FALSE)
-
     # Load extraction context template and inject variables with glue
     extraction_context_template <- get_extraction_context_template(extraction_context_file)
     extraction_context <- glue::glue(extraction_context_template, .na = "", .null = "")
 
     # Log input sizes
     cat(glue::glue(
-      "Inputs loaded: Document content ({estimate_tokens(document_content)} tokens), {nrow(existing_records)} existing records, extraction prompt (hash:{substring(extraction_prompt_hash, 1, 8)}, {estimate_tokens(extraction_prompt)} tokens)",
+      "Inputs loaded: Document content ({estimate_tokens(document_content)} tokens), extraction prompt (hash:{substring(extraction_prompt_hash, 1, 8)}, {estimate_tokens(extraction_prompt)} tokens)",
       .na = "0",
       .null = "0"
     ), "\n")
@@ -121,19 +116,41 @@ extract_records <- function(document_id = NA,
 
       # Save to database (atomic step)
       if (!is.na(document_id) && !inherits(db_conn, "logical")) {
-        save_records_to_db(
-          db_path = db_conn,  # Pass connection object, not path
-          document_id = document_id,
-          interactions_df = extraction_df,
-          metadata = list(
-            model = model,
-            prompt_hash = extraction_prompt_hash
-          ),
-          schema_list = schema_list  # Pass schema for array normalization
+        # Get existing records for deduplication
+        existing_records <- get_records(document_id, db_conn)
+        if (is.null(existing_records)) {
+          existing_records <- tibble::tibble()
+        }
+
+        # Deduplicate using similarity method
+        dedup_result <- deduplicate_records(
+          new_records = extraction_df,
+          existing_records = existing_records,
+          schema_list = schema_list,
+          min_similarity = min_similarity,
+          embedding_provider = embedding_provider,
+          similarity_method = similarity_method
         )
 
+        # Save only unique records
+        unique_records <- dedup_result$unique_records
+
+        if (nrow(unique_records) > 0) {
+          save_records_to_db(
+            db_path = db_conn,  # Pass connection object, not path
+            document_id = document_id,
+            interactions_df = unique_records,
+            metadata = list(
+              model = model,
+              prompt_hash = extraction_prompt_hash
+            ),
+            schema_list = schema_list,  # Pass schema for array normalization
+            mode = "insert"  # Extraction always inserts (deduplication already done)
+          )
+        }
+
         status <- "completed"
-        records_count <- nrow(extraction_df)
+        records_count <- dedup_result$new_records_count
       } else {
         # No DB connection
         status <- "Extraction failed: No database connection"
@@ -168,13 +185,15 @@ extract_records <- function(document_id = NA,
         status = status,
         records_extracted = records_count,
         records = extraction_df_no_db,
-        document_id = if (!is.na(document_id)) document_id else NA
+        document_id = if (!is.na(document_id)) document_id else NA,
+        raw_llm_response = extract_result  # Include raw LLM response
       ))
     } else {
       return(list(
         status = status,
         records_extracted = records_count,
-        document_id = if (!is.na(document_id)) document_id else NA
+        document_id = if (!is.na(document_id)) document_id else NA,
+        raw_llm_response = extract_result  # Include raw LLM response
       ))
     }
   }, error = function(e) {
@@ -194,7 +213,8 @@ extract_records <- function(document_id = NA,
     return(list(
       status = status,
       records_extracted = 0,
-      document_id = if (!is.na(document_id)) document_id else NA
+      document_id = if (!is.na(document_id)) document_id else NA,
+      raw_llm_response = NULL  # No response on error
     ))
   })
 }

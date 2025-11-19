@@ -18,6 +18,10 @@
           "Host_Name",
           "all_supporting_source_sentences"
         ],
+        "x-unique-fields": [
+          "Pathogen_Name",
+          "Host_Name"
+        ],
         "properties": {
           "Pathogen_Name": {
             "type": "string",
