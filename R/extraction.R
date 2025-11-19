@@ -185,13 +185,15 @@ extract_records <- function(document_id = NA,
         status = status,
         records_extracted = records_count,
         records = extraction_df_no_db,
-        document_id = if (!is.na(document_id)) document_id else NA
+        document_id = if (!is.na(document_id)) document_id else NA,
+        raw_llm_response = extract_result  # Include raw LLM response
       ))
     } else {
       return(list(
         status = status,
         records_extracted = records_count,
-        document_id = if (!is.na(document_id)) document_id else NA
+        document_id = if (!is.na(document_id)) document_id else NA,
+        raw_llm_response = extract_result  # Include raw LLM response
       ))
     }
   }, error = function(e) {
@@ -211,7 +213,8 @@ extract_records <- function(document_id = NA,
     return(list(
       status = status,
       records_extracted = 0,
-      document_id = if (!is.na(document_id)) document_id else NA
+      document_id = if (!is.na(document_id)) document_id else NA,
+      raw_llm_response = NULL  # No response on error
     ))
   })
 }
