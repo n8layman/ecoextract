@@ -47,6 +47,10 @@
               "description": "Individual sample type"
             }
           },
+          "number_of_interactions_detected": {
+            "type": "integer",
+            "description": "The number of positive dections for this type host, pathogen, vector interaction",
+          },
           "all_supporting_source_sentences": {
             "type": "array",
             "description": "Array where each element contains exactly ONE sentence from the source document that supports this host-pathogen relationship",
