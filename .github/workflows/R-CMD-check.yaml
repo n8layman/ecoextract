@@ -14,7 +14,7 @@ jobs:
       MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
       TENSORLAKE_API_KEY: ${{ secrets.TENSORLAKE_API_KEY }}
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      RENV_CONFIG_REPOS_OVERRIDE: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+      RENV_CONFIG_REPOS_OVERRIDE: https://cloud.r-project.org
 
     steps:
       - uses: actions/checkout@v4
