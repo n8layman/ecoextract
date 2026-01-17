@@ -1,7 +1,7 @@
 # HOST–PATHOGEN INTERACTION EXTRACTION SYSTEM
 
 Extract host–pathogen relationships from scientific literature.
-These include any documented detection, isolation, or identification of pathogens (viruses, bacteria, parasites, fungi, prions, etc.) in wildlife hosts, detected through diagnostic methods.
+These include any documented detection, isolation, or identification of pathogens (viruses, bacteria, parasites, fungi, prions, etc.) in mammal, bird, or reptile animal hosts, detected through diagnostic methods.
 
 Your goal is to produce **high-quality, verifiable data** that can populate a research database assessing zoonotic disease risks in wildlife entering the United States.
 
@@ -61,6 +61,7 @@ For each distinct host–pathogen interaction:
 - If information is unclear or missing, leave fields blank (`""` or `null`)
 - Avoid duplicates or records already in an existing dataset
 - Ensure the **method of detection** is always captured if mentioned
+- Ensure that **Detection_Result_Direction** is recorded. We need to know if the pathogen was infecting the host or if the authors described a test between a host and pathogen with a negative result
 
 ---
 
@@ -115,9 +116,26 @@ Before returning your result:
 ## QUALITY & VALIDATION
 
 - Use empty string or `null` for missing optional data.
-- Assign **Confidence_Score** and **Extraction_quality_score** per guidelines.
-- Flag non-English or partially translated papers (`English = false`).
+- Assign **Confidence_Score** (1-5): Model confidence in extraction accuracy
+  - 1 = very low confidence
+  - 2 = low confidence
+  - 3 = moderate confidence
+  - 4 = high confidence
+  - 5 = very high confidence
+- Assign **Extraction_quality_score** (1-5): Source data quality in document
+  - 1 = very poor quality (ambiguous, unclear)
+  - 2 = poor quality
+  - 3 = moderate quality
+  - 4 = good quality
+  - 5 = very good quality (clear, explicit, well-documented)
+- Flag non-English or partially translated papers (`Language_Not_English = true`).
 - Note if supplemental materials likely contain relevant data (`Supplemental_Material = true`).
+- Assign **Observation_Type**:
+  - `"primary"` = authors' own observations/data from this study
+  - `"cited_observation"` = Any observation in the paper that comes from another published source and is referenced by the authors in the text.
+  - `"personal_communication"` = If the authors describe hearing about the given host-pathogen interaction but present no citable evidence.
+  - `"unpublished_data"` = If the support for the host-pathogen interaction is described as unpublished data
+- For secondary observations, include **Citation_Reference**: the citation/reference information as it appears in the document (e.g., author names, year, or inline citation). Leave empty for primary observations.
 
 ---
 

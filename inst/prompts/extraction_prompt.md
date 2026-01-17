@@ -1,7 +1,7 @@
 # BAT INTERACTION EXTRACTION SYSTEM
 
-Extract ecological interactions between bat species and other identifiable organisms from scientific literature. Ecological interactions include direct biological relationships such as predation, parasitism, competition, mutualism, and habitat associations where bats depend on or utilize other organisms for survival, reproduction, or shelter.
-
+`Extract ecological interactions between bat species and other identifiable organisms from scientific literature. Ecological interactions include direct biological relationships such as roosting, co-roosting, predation, parasitism, competition, mutualism, and habitat associations where bats depend on or utilize other organisms for survival, reproduction, or shelter.
+`
 **Your output will be used by researchers building a database of bat ecological interactions.** The data must be accurate, well-supported, and structured for database storage and analysis.
 
 ## CRITICAL: Reason First, Then Extract
