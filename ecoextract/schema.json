@@ -16,6 +16,7 @@
         "required": [
           "Pathogen_Name",
           "Host_Name",
+          "Detection_Method",
           "all_supporting_source_sentences"
         ],
         "x-unique-fields": [
@@ -47,10 +48,6 @@
               "description": "Individual sample type"
             }
           },
-          "number_of_interactions_detected": {
-            "type": "integer",
-            "description": "The number of positive dections for this type host, pathogen, vector interaction",
-          },
           "all_supporting_source_sentences": {
             "type": "array",
             "description": "Array where each element contains exactly ONE sentence from the source document that supports this host-pathogen relationship",
@@ -59,11 +56,16 @@
               "description": "Individual supporting sentence from the document"
             }
           },
+          "Detection_Result_Direction": {
+            "type": "string",
+            "enum": ["positive", "negative", "inconclusive"],
+            "description": "Whether the pathogen was detected in the host (positive), not detected (negative), or results were unclear (inconclusive)"
+          },
           "Confidence_Score": {
             "type": "integer",
             "minimum": 1,
             "maximum": 5,
-            "description": "Model confidence score (5-point Likert scale)"
+            "description": "Model confidence in extraction accuracy: 1 = very low confidence, 2 = low confidence, 3 = moderate confidence, 4 = high confidence, 5 = very high confidence"
           },
           "Vector_Name": {
             "type": "array",
@@ -85,15 +87,32 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 5,
-            "description": "Source data quality score (5-point Likert scale)"
+            "description": "Source data quality in document: 1 = very poor quality (ambiguous, unclear), 2 = poor quality, 3 = moderate quality, 4 = good quality, 5 = very good quality (clear, explicit, well-documented)"
           },
-          "English": {
+          "Language_Not_English": {
             "type": "boolean",
             "description": "Flag if language is not English - could affect extraction quality and should be reviewed by a human"
           },
           "Supplemental_Material": {
             "type": "boolean",
             "description": "Does it seem like more information might be present in the supplemental data?"
+          },
+          "Observation_Type": {
+            "type": "array",
+            "description": "Array of unique observation types present in this host-pathogen record (not tied to individual sentences, as one sentence may contain multiple types): primary = authors' own observations/data from this study, cited_observation = any citation or reference to other work, personal_communication = heard about but no citable evidence, unpublished_data = described as unpublished",
+            "items": {
+              "type": "string",
+              "enum": ["primary", "cited_observation", "personal_communication", "unpublished_data"],
+              "description": "An observation type present in this record"
+            }
+          },
+          "Cited_Observations": {
+            "type": "array",
+            "description": "Array of citation references found in the supporting sentences for this host-pathogen interaction. Include citations as they appear in the document (e.g., 'Smith et al., 2020', '[15]', or other inline citation formats). Only include citations that provide evidence for this specific interaction.",
+            "items": {
+              "type": "string",
+              "description": "Individual citation reference from the document"
+            }
           }
         }
       }

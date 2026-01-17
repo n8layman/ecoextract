@@ -100,6 +100,26 @@ process_documents <- function(pdf_path,
   schema_src <- detect_config_source(schema_file, "schema.json", "extdata")
   extraction_src <- detect_config_source(extraction_prompt_file, "extraction_prompt.md", "prompts")
 
+  # Parse schema to extract and validate fields
+  schema_list <- jsonlite::fromJSON(schema_src$path, simplifyVector = FALSE)
+  record_schema <- schema_list$properties$records$items
+  required_fields <- record_schema[["required"]]
+  unique_fields <- record_schema[["x-unique-fields"]]
+
+  # Validate custom schema has required x-unique-fields for deduplication
+  if (schema_src$source != "package") {
+    if (is.null(unique_fields) || length(unique_fields) == 0) {
+      stop(
+        "Custom schema is missing 'x-unique-fields' array.\n",
+        "This field specifies which fields define record uniqueness for deduplication.\n",
+        "Add to your schema at properties > records > items:\n\n",
+        '  "x-unique-fields": ["field1", "field2"]\n\n',
+        "See README section on Schema Requirements for details."
+      )
+    }
+  }
+
+  # Report configuration
   if (schema_src$source == "package" && extraction_src$source == "package") {
     cat("Using package default schema and extraction prompt\n")
     cat("  Run init_ecoextract() to customize for your domain\n\n")
@@ -111,6 +131,8 @@ process_documents <- function(pdf_path,
     if (extraction_src$source != "package") {
       cat("  Extraction prompt:", extraction_src$source, "-", extraction_src$path, "\n")
     }
+    cat("  Required fields:", paste(required_fields, collapse = ", "), "\n")
+    cat("  Deduplication key:", paste(unique_fields, collapse = " + "), "\n")
     cat("\n")
   }
 
