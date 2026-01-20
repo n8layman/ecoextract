@@ -457,8 +457,11 @@ export_db <- function(document_id = NULL,
       doc_cols_present <- intersect(doc_cols_ordered, names(result))
 
       # Get all records columns (in database order - user controls this via schema)
-      all_doc_cols <- c(doc_cols_ordered, "file_hash", "file_size", "upload_timestamp",
-                        "ocr_images", "extraction_reasoning", "refinement_reasoning")
+      # Note: document_content must be in all_doc_cols even when include_ocr = FALSE
+      # to prevent it from appearing in record_cols
+      all_doc_cols <- c(doc_cols_ordered, "document_content", "file_hash", "file_size",
+                        "upload_timestamp", "ocr_images", "extraction_reasoning",
+                        "refinement_reasoning")
       record_cols <- setdiff(names(result), all_doc_cols)
 
       # Final order: document columns (logical order) + records columns (database order)
