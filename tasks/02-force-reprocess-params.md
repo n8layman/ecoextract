@@ -79,8 +79,8 @@ if (is_forced(force_reprocess_extraction, doc_id)) {
 
 ## Testing
 
-- [ ] `force_reprocess_ocr = NULL` uses normal skip logic
-- [ ] `force_reprocess_ocr = TRUE` forces all documents
-- [ ] `force_reprocess_ocr = c(5L, 12L)` forces only those document_ids
-- [ ] Same tests for metadata and extraction
-- [ ] Invalid values (e.g., `"yes"`) throw error
+- [x] `force_reprocess_ocr = NULL` uses normal skip logic
+- [x] `force_reprocess_ocr = TRUE` forces all documents
+- [x] `force_reprocess_ocr = c(5L, 12L)` forces only those document_ids
+- [x] Same tests for metadata and extraction
+- [x] Invalid values (e.g., `"yes"`) throw error

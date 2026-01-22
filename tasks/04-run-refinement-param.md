@@ -53,8 +53,8 @@ Refinement is opt-in. If `run_refinement` is set, run it. No status checking nee
 
 ## Testing
 
-- [ ] `run_refinement = NULL` skips all refinement
-- [ ] `run_refinement = TRUE` refines all documents with records
-- [ ] `run_refinement = c(5L, 12L)` refines only those document_ids
-- [ ] Documents with no records are skipped even when `run_refinement = TRUE`
-- [ ] Invalid values throw error
+- [x] `run_refinement = NULL` skips all refinement
+- [x] `run_refinement = TRUE` refines all documents with records
+- [x] `run_refinement = c(5L, 12L)` refines only those document_ids
+- [x] Documents with no records are skipped even when `run_refinement = TRUE`
+- [x] Invalid values throw error

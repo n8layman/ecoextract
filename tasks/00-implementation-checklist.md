@@ -8,25 +8,25 @@ This checklist tracks the implementation of skip and cascade logic for the docum
 
 ### Phase 1: Foundation
 
-- [ ] **Task 1: Create `is_forced()` helper** - [02-force-reprocess-params.md](02-force-reprocess-params.md)
-- [ ] **Task 2: Create `should_run_step()` helper** - [06-status-first-skip.md](06-status-first-skip.md)
+- [x] **Task 1: Create `is_forced()` helper** - [02-force-reprocess-params.md](02-force-reprocess-params.md)
+- [x] **Task 2: Create `should_run_step()` helper** - [06-status-first-skip.md](06-status-first-skip.md)
 
 ### Phase 2: Parameter Updates
 
-- [ ] **Task 3: Update `force_reprocess_*` parameters** - [02-force-reprocess-params.md](02-force-reprocess-params.md)
-- [ ] **Task 4: Update `run_refinement` parameter** - [04-run-refinement-param.md](04-run-refinement-param.md)
+- [x] **Task 3: Update `force_reprocess_*` parameters** - [02-force-reprocess-params.md](02-force-reprocess-params.md)
+- [x] **Task 4: Update `run_refinement` parameter** - [04-run-refinement-param.md](04-run-refinement-param.md)
 
 ### Phase 3: Wire Up Skip Logic
 
-- [ ] **Task 5: Implement skip logic and cascade** - [03-extraction-skip-logic.md](03-extraction-skip-logic.md), [05-cascade-tracking.md](05-cascade-tracking.md)
+- [x] **Task 5: Implement skip logic and cascade** - [03-extraction-skip-logic.md](03-extraction-skip-logic.md), [05-cascade-tracking.md](05-cascade-tracking.md)
 
 ### Phase 4: Testing
 
-- [ ] Test `is_forced()` with NULL, TRUE, integer vector
-- [ ] Test `should_run_step()` with status/data_exists combinations
-- [ ] Test desync detection
-- [ ] Test cascade via status nullification
-- [ ] Test `run_refinement` with NULL, TRUE, integer vector
+- [x] Test `is_forced()` with NULL, TRUE, integer vector
+- [x] Test `should_run_step()` with status/data_exists combinations
+- [x] Test desync detection
+- [x] Test cascade via status nullification
+- [x] Test `run_refinement` with NULL, TRUE, integer vector
 
 ## Core Design
 

@@ -60,7 +60,7 @@ Extraction uses deduplication - it won't add duplicate records. Old records rema
 
 ## Testing
 
-- [ ] OCR run nullifies `metadata_status`
-- [ ] Metadata run nullifies `extraction_status`
-- [ ] Extraction run does NOT nullify anything
-- [ ] Full cascade: force OCR → metadata runs → extraction runs
+- [x] OCR run nullifies `metadata_status`
+- [x] Metadata run nullifies `extraction_status`
+- [x] Extraction run does NOT nullify anything
+- [x] Full cascade: force OCR → metadata runs → extraction runs

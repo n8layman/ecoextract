@@ -32,8 +32,8 @@ if (run_extraction && should_run_step(extraction_status, NULL)) {
 
 ## Testing
 
-- [ ] Document with `extraction_status = "completed"` is skipped
-- [ ] Document with `extraction_status = NULL` runs extraction
-- [ ] Document with `extraction_status = "error"` runs extraction
-- [ ] Document with 0 records but `extraction_status = "completed"` is still skipped
-- [ ] Cascade: metadata runs → extraction_status nullified → extraction runs
+- [x] Document with `extraction_status = "completed"` is skipped
+- [x] Document with `extraction_status = NULL` runs extraction
+- [x] Document with `extraction_status = "error"` runs extraction
+- [x] Document with 0 records but `extraction_status = "completed"` is still skipped
+- [x] Cascade: metadata runs → extraction_status nullified → extraction runs

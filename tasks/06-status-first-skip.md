@@ -72,8 +72,8 @@ records_exist <- DBI::dbGetQuery(
 
 ## Testing
 
-- [ ] `status = NULL` -> runs
-- [ ] `status = "completed"` with `data_exists = TRUE` -> skips
-- [ ] `status = "completed"` with `data_exists = FALSE` -> runs (desync)
-- [ ] `status = "completed"` with `data_exists = NULL` -> skips (no desync check)
-- [ ] `status = "error"` -> runs
+- [x] `status = NULL` -> runs
+- [x] `status = "completed"` with `data_exists = TRUE` -> skips
+- [x] `status = "completed"` with `data_exists = FALSE` -> runs (desync)
+- [x] `status = "completed"` with `data_exists = NULL` -> skips (no desync check)
+- [x] `status = "error"` -> runs
