@@ -10,13 +10,14 @@ process_single_document(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  force_reprocess_ocr = FALSE,
-  force_reprocess_metadata = FALSE,
+  force_reprocess_ocr = NULL,
+  force_reprocess_metadata = NULL,
+  force_reprocess_extraction = NULL,
   run_extraction = TRUE,
-  run_refinement = FALSE,
+  run_refinement = NULL,
   min_similarity = 0.9,
   embedding_provider = "openai",
-  similarity_method = "embedding"
+  similarity_method = "jaccard"
 )
 }
 \arguments{
@@ -30,19 +31,21 @@ process_single_document(
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
-\item{force_reprocess_ocr}{If TRUE, re-run OCR and delete all data (default: FALSE)}
+\item{force_reprocess_ocr}{NULL, TRUE, or integer vector of document_ids to force OCR}
 
-\item{force_reprocess_metadata}{If TRUE, re-run metadata extraction (default: FALSE)}
+\item{force_reprocess_metadata}{NULL, TRUE, or integer vector of document_ids to force metadata}
+
+\item{force_reprocess_extraction}{NULL, TRUE, or integer vector of document_ids to force extraction}
 
 \item{run_extraction}{If TRUE, run extraction step (default: TRUE)}
 
-\item{run_refinement}{If TRUE, run refinement step (default: FALSE)}
+\item{run_refinement}{NULL, TRUE, or integer vector of document_ids to run refinement}
 
 \item{min_similarity}{Minimum cosine similarity for deduplication (default: 0.9)}
 
 \item{embedding_provider}{Provider for embeddings (default: "openai")}
 
-\item{similarity_method}{Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")}
+\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")}
 }
 \value{
 List with processing result

@@ -8,14 +8,13 @@ extract_records(
   document_id = NA,
   db_conn = NA,
   document_content = NA,
-  force_reprocess = FALSE,
   extraction_prompt_file = NULL,
   extraction_context_file = NULL,
   schema_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
   min_similarity = 0.9,
   embedding_provider = "openai",
-  similarity_method = "embedding",
+  similarity_method = "jaccard",
   ...
 )
 }
@@ -25,8 +24,6 @@ extract_records(
 \item{db_conn}{Optional path to interaction database}
 
 \item{document_content}{OCR-processed markdown content}
-
-\item{force_reprocess}{If TRUE, re-run extraction even if records already exist (default: FALSE)}
 
 \item{extraction_prompt_file}{Path to custom extraction prompt file (optional)}
 
@@ -40,7 +37,7 @@ extract_records(
 
 \item{embedding_provider}{Provider for embeddings when using embedding method (default: "mistral")}
 
-\item{similarity_method}{Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")}
+\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")}
 
 \item{...}{Additional arguments passed to extraction}
 }
@@ -50,5 +47,9 @@ List with extraction results
 \description{
 Extract structured ecological interaction data from OCR-processed documents
 Extract records from markdown text
+}
+\details{
+Skip logic is handled by the workflow - this function always runs when called.
+Uses deduplication to avoid creating duplicate records.
 }
 \keyword{internal}

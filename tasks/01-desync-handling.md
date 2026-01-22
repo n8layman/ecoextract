@@ -1,8 +1,8 @@
-# Task: Desync Handling (OCR and Metadata only)
+# Task: Desync Handling
 
 ## Overview
 
-Add detection and handling for status/data mismatches in OCR and Metadata steps.
+Desync detection is built into `should_run_step()` via the `data_exists` parameter.
 
 ## What is Desync?
 
@@ -11,63 +11,30 @@ A "desync" occurs when `status == "completed"` but the expected data is missing 
 - Manual data deletion
 - Bugs causing partial writes
 
-## Affected Steps
+## How It Works
 
-| Step     | Data Check                                                                 |
-| -------- | -------------------------------------------------------------------------- |
-| OCR      | `document_content IS NOT NULL AND document_content != ''`                  |
-| Metadata | `title IS NOT NULL OR first_author_lastname IS NOT NULL OR publication_year IS NOT NULL` |
+`should_run_step(status, data_exists)` returns TRUE (run the step) if:
+- `status` is NULL or not "completed", OR
+- `status == "completed"` but `data_exists == FALSE`
 
-**Not applicable to:**
-- Extraction (status-only check; zero records is valid)
-- Refinement (opt-in only, no status-based skip logic)
+## Data Existence Checks
 
-## Implementation
-
-### Behavior
-
-If `status == "completed"` but data is missing:
-1. Set status to `"Error: Status was completed but no data found in DB"`
-2. Re-run the step (treat as if status was NULL)
-
-### Where to Implement
-
-In `should_run_step()` helper function (to be created in `R/workflow.R` or `R/utils.R`):
+| Step | `data_exists` Check |
+| ---- | ------------------- |
+| OCR | `document_content` not NULL/empty |
+| Metadata | ALL of `title`, `author`, `year` exist |
+| Extraction | `NULL` (no check - zero records is valid) |
 
 ```r
-should_run_step <- function(status, data_exists, force_param, document_id, upstream_ran) {
-  if (is_forced(force_param, document_id) || upstream_ran) {
-    return(TRUE)
-  }
-  if (is.null(status) || status != "completed") {
-    return(TRUE)
-  }
-  if (status == "completed" && !data_exists) {
-    # Desync detected - will need to update status in DB
-    return(TRUE)
-  }
-  return(FALSE)  # status == "completed" AND data exists -> skip
-}
-```
+ocr_data_exists <- !is.null(doc$document_content) && nchar(doc$document_content) > 0
 
-### Status Update
-
-When desync is detected, update the document's status column before re-running:
-
-```r
-if (status == "completed" && !data_exists) {
-  update_document_status(
-    conn,
-    document_id,
-    status_column,
-    "Error: Status was completed but no data found in DB"
-  )
-}
+metadata_data_exists <- !is.null(doc$title) &&
+                        !is.null(doc$first_author_lastname) &&
+                        !is.null(doc$publication_year)
 ```
 
 ## Testing
 
-- [ ] Test OCR desync: Set `ocr_status = "completed"` but `document_content = NULL`
-- [ ] Test Metadata desync: Set `metadata_status = "completed"` but all ID fields NULL
-- [ ] Verify error status is written before re-run
-- [ ] Verify step re-runs after desync detection
+- [ ] OCR desync: `ocr_status = "completed"` but `document_content = NULL` → re-runs
+- [ ] Metadata desync: `metadata_status = "completed"` but `title = NULL` → re-runs
+- [ ] Extraction: `extraction_status = "completed"` with 0 records → skips (valid state)

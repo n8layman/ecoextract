@@ -1,91 +1,66 @@
-# Task: Add Cascade Tracking
+# Task: Cascade via Status Nullification
 
 ## Overview
 
-When an upstream step runs, downstream steps should re-run. Track which steps ran and use that to trigger cascade.
+Cascade is handled by nullifying the immediate downstream status when a step runs. No tracking flags needed.
 
 ## Cascade Rules
 
-| If This Runs | These Become Stale |
-| ------------ | ------------------ |
-| OCR          | Metadata, Extraction |
-| Metadata     | Extraction         |
-| Extraction   | (nothing)          |
-| Refinement   | (nothing)          |
+| When This Runs | Nullify This |
+| -------------- | ------------ |
+| OCR | `metadata_status` |
+| Metadata | `extraction_status` |
+| Extraction | (nothing) |
 
 ## Implementation
 
-### 1. Add tracking flags in `process_single_document()`
-
 ```r
-# Track what actually ran (for cascade)
-ocr_ran <- FALSE
-metadata_ran <- FALSE
-# Note: extraction_ran not needed - extraction doesn't cascade to anything
-```
-
-### 2. Set flags when steps run
-
-```r
-# Step 1: OCR
-if (should_run_step(ocr_status, ocr_data_exists, force_reprocess_ocr, document_id, FALSE)) {
+# OCR
+if (should_run_step(ocr_status, ocr_data_exists)) {
   run_ocr(...)
-  ocr_ran <- TRUE
+  set_status(conn, doc_id, "metadata_status", NULL)  # cascade
 }
 
-# Step 2: Metadata
-if (should_run_step(metadata_status, metadata_data_exists, force_reprocess_metadata, document_id, ocr_ran)) {
+# Metadata
+if (should_run_step(metadata_status, metadata_data_exists)) {
   extract_metadata(...)
-  metadata_ran <- TRUE
+  set_status(conn, doc_id, "extraction_status", NULL)  # cascade
 }
 
-# Step 3: Extraction
-if (run_extraction &&
-    should_run_step_status_only(extraction_status, force_reprocess_extraction, document_id, metadata_ran)) {
+# Extraction
+if (run_extraction && should_run_step(extraction_status, NULL)) {
   extract_records(...)
+  # No cascade - extraction doesn't delete records, just adds new ones
+}
+
+# Refinement - opt-in only
+if (is_forced(run_refinement, doc_id) && records_exist) {
+  refine_records(...)
 }
 ```
 
-### 3. Pass `upstream_ran` to skip logic helpers
+## How Cascade Propagates
 
-The `should_run_step()` and `should_run_step_status_only()` helpers accept an `upstream_ran` parameter. When `TRUE`, the step runs regardless of status.
+Example: `force_reprocess_ocr = TRUE` for doc_id 5
 
-## Status Nullification
+1. At workflow start: `ocr_status` set to NULL
+2. OCR runs (status was NULL) → sets `metadata_status` to NULL
+3. Metadata runs (status was NULL) → sets `extraction_status` to NULL
+4. Extraction runs (status was NULL)
 
-When forcing a step via `force_reprocess_*`, also nullify downstream status columns to ensure cascade:
+Each step nullifies only its immediate downstream. Cascade propagates naturally.
 
-| Force Parameter              | Sets to NULL                           |
-| ---------------------------- | -------------------------------------- |
-| `force_reprocess_ocr`        | `metadata_status`, `extraction_status` |
-| `force_reprocess_metadata`   | `extraction_status`                    |
-| `force_reprocess_extraction` | (nothing)                              |
+## Why Not Delete Records on Extraction Re-run?
 
-### Implementation
-
-At the start of processing (or before each document), if force is set:
-
-```r
-if (is_forced(force_reprocess_ocr, document_id)) {
-  # Nullify downstream statuses
-  update_document_status(conn, document_id, "metadata_status", NULL)
-  update_document_status(conn, document_id, "extraction_status", NULL)
-}
-
-if (is_forced(force_reprocess_metadata, document_id)) {
-  update_document_status(conn, document_id, "extraction_status", NULL)
-}
-```
+Extraction uses deduplication - it won't add duplicate records. Old records remain (potentially stale from old OCR), new records get added. Deleting records is destructive and should be a human decision.
 
 ## Files to Modify
 
-- `R/workflow.R`: `process_single_document()`
+- `R/workflow.R`: Add status nullification after each step runs
 
 ## Testing
 
-- [ ] OCR re-run triggers metadata re-run
-- [ ] OCR re-run triggers extraction re-run
-- [ ] Metadata re-run triggers extraction re-run
-- [ ] Extraction re-run does NOT trigger refinement (refinement is opt-in)
-- [ ] `force_reprocess_ocr` nullifies metadata and extraction statuses
-- [ ] `force_reprocess_metadata` nullifies extraction status only
-- [ ] Cascade only affects forced document_ids when using integer vector
+- [ ] OCR run nullifies `metadata_status`
+- [ ] Metadata run nullifies `extraction_status`
+- [ ] Extraction run does NOT nullify anything
+- [ ] Full cascade: force OCR → metadata runs → extraction runs

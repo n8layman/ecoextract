@@ -3,31 +3,33 @@
 #' Extract structured ecological interaction data from OCR-processed documents
 
 #' Extract records from markdown text
+#'
+#' Skip logic is handled by the workflow - this function always runs when called.
+#' Uses deduplication to avoid creating duplicate records.
+#'
 #' @param document_id Optional document ID for context
 #' @param db_conn Optional path to interaction database
 #' @param document_content OCR-processed markdown content
-#' @param force_reprocess If TRUE, re-run extraction even if records already exist (default: FALSE)
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
 #' @param extraction_context_file Path to custom extraction context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "mistral")
-#' @param similarity_method Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")
+#' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @keywords internal
 extract_records <- function(document_id = NA,
                                  db_conn = NA,
                                  document_content = NA,
-                                 force_reprocess = FALSE,
                                  extraction_prompt_file = NULL,
                                  extraction_context_file = NULL,
                                  schema_file = NULL,
                                  model = "anthropic/claude-sonnet-4-5",
                                  min_similarity = 0.9,
                                  embedding_provider = "openai",
-                                 similarity_method = "embedding",
+                                 similarity_method = "jaccard",
                                  ...) {
 
   # Document content must be available either through the db or provided
@@ -129,7 +131,8 @@ extract_records <- function(document_id = NA,
           schema_list = schema_list,
           min_similarity = min_similarity,
           embedding_provider = embedding_provider,
-          similarity_method = similarity_method
+          similarity_method = similarity_method,
+          model = model
         )
 
         # Save only unique records

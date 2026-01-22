@@ -2,24 +2,24 @@
 
 ## Overview
 
-Change all `force_reprocess_*` parameters from boolean to support `NULL`/`TRUE`/integer vector.
+Change `force_reprocess_*` parameters from boolean to NULL/TRUE/integer vector. Add `is_forced()` helper.
 
 ## Current State
 
-| Parameter                  | Current Type | Location           |
-| -------------------------- | ------------ | ------------------ |
-| `force_reprocess_ocr`      | logical      | `process_documents()` |
-| `force_reprocess_metadata` | logical      | `process_documents()` |
-| `force_reprocess` (extraction) | logical  | `extract_records()` (unused) |
+| Parameter | Current Type | Location |
+| --------- | ------------ | -------- |
+| `force_reprocess_ocr` | logical | `process_documents()` |
+| `force_reprocess_metadata` | logical | `process_documents()` |
+| `force_reprocess` (extraction) | logical | `extract_records()` (unused) |
 
 **Missing**: `force_reprocess_extraction` parameter in `process_documents()`
 
 ## Proposed Behavior
 
-| Value            | Behavior                                           |
-| ---------------- | -------------------------------------------------- |
-| `NULL` (default) | No forcing, use normal skip logic                  |
-| `TRUE`           | Force reprocess ALL documents                      |
+| Value | Behavior |
+| ----- | -------- |
+| `NULL` (default) | No forcing, use normal skip logic |
+| `TRUE` | Force reprocess ALL documents |
 | `integer vector` | Force reprocess only these specific `document_id`s |
 
 ## Implementation
@@ -27,10 +27,6 @@ Change all `force_reprocess_*` parameters from boolean to support `NULL`/`TRUE`/
 ### 1. Add `is_forced()` helper
 
 ```r
-#' Check if a document should be forced to reprocess
-#' @param force_param NULL, TRUE, or integer vector of document_ids
-#' @param document_id The document ID to check
-#' @return logical
 is_forced <- function(force_param, document_id) {
   if (is.null(force_param)) return(FALSE)
   if (isTRUE(force_param)) return(TRUE)
@@ -51,9 +47,7 @@ process_documents <- function(
 )
 ```
 
-### 3. Update parameter validation
-
-Add validation that force_reprocess params are NULL, TRUE, or integer vector:
+### 3. Add parameter validation
 
 ```r
 validate_force_param <- function(param, param_name) {
@@ -63,14 +57,25 @@ validate_force_param <- function(param, param_name) {
 }
 ```
 
-### 4. Pass parameters to `process_single_document()`
+### 4. Nullify statuses at workflow start
 
-Ensure force parameters are passed down and used in skip logic.
+```r
+# Before processing each document
+if (is_forced(force_reprocess_ocr, doc_id)) {
+  set_status(conn, doc_id, "ocr_status", NULL)
+}
+if (is_forced(force_reprocess_metadata, doc_id)) {
+  set_status(conn, doc_id, "metadata_status", NULL)
+}
+if (is_forced(force_reprocess_extraction, doc_id)) {
+  set_status(conn, doc_id, "extraction_status", NULL)
+}
+```
 
 ## Files to Modify
 
-- `R/workflow.R`: `process_documents()`, `process_single_document()`
-- `R/extraction.R`: Remove unused `force_reprocess` param or update to use it
+- `R/workflow.R`: Add `is_forced()`, update params, add status nullification
+- `R/extraction.R`: Remove unused `force_reprocess` param
 
 ## Testing
 

@@ -614,3 +614,76 @@ test_that("jaccard method: partial field match does not create duplicate", {
   expect_equal(result$duplicates_found, 0)
   expect_equal(nrow(result$unique_records), 1)
 })
+
+# LLM method tests (requires ANTHROPIC_API_KEY)
+test_that("llm method: detects semantic duplicates", {
+  skip_if_not(nzchar(Sys.getenv("ANTHROPIC_API_KEY")), "ANTHROPIC_API_KEY not set")
+
+  schema_list <- list(
+    properties = list(
+      records = list(
+        items = list(
+          "x-unique-fields" = c("species", "disease"),
+          properties = list(
+            species = list(type = "string"),
+            disease = list(type = "string")
+          )
+        )
+      )
+    )
+  )
+
+  existing_records <- tibble::tibble(
+    species = c("Myotis lucifugus", "Eptesicus fuscus"),
+    disease = c("White-nose syndrome", "Rabies")
+  )
+
+  # New records: one semantic duplicate (same meaning), one unique
+  new_records <- tibble::tibble(
+    species = c("Little brown bat", "Lasiurus borealis"),
+    disease = c("WNS", "Histoplasmosis")
+  )
+
+  result <- deduplicate_records(
+    new_records = new_records,
+    existing_records = existing_records,
+    schema_list = schema_list,
+    similarity_method = "llm",
+    model = "anthropic/claude-sonnet-4-5"
+  )
+
+  # First record should be detected as duplicate (semantic match)
+  # Second record is unique
+  expect_equal(result$duplicates_found, 1)
+  expect_equal(nrow(result$unique_records), 1)
+  expect_equal(result$unique_records$species[1], "Lasiurus borealis")
+})
+
+test_that("llm_deduplicate standalone function works", {
+  skip_if_not(nzchar(Sys.getenv("ANTHROPIC_API_KEY")), "ANTHROPIC_API_KEY not set")
+
+  existing_records <- tibble::tibble(
+    name = c("John Smith", "Jane Doe"),
+    city = c("New York", "Los Angeles")
+  )
+
+  new_records <- tibble::tibble(
+    name = c("J. Smith", "Bob Wilson"),
+    city = c("NYC", "Chicago")
+  )
+
+  key_fields <- c("name", "city")
+
+  unique_indices <- llm_deduplicate(
+    new_records = new_records,
+    existing_records = existing_records,
+    key_fields = key_fields,
+    model = "anthropic/claude-sonnet-4-5"
+  )
+
+  # First record should be detected as duplicate (J. Smith/NYC = John Smith/New York)
+  # Second record is unique
+  expect_true(is.integer(unique_indices))
+  expect_equal(length(unique_indices), 1)
+  expect_equal(unique_indices[1], 2L)
+})

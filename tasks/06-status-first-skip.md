@@ -1,85 +1,79 @@
-# Task: Update OCR/Metadata to Status-First Skip Logic
+# Task: Create `should_run_step()` Helper
 
 ## Overview
 
-Change OCR and Metadata from data-first to status-first skip logic.
+Create a simple `should_run_step()` function for skip logic. Used by OCR, Metadata, and Extraction only. Refinement is opt-in and doesn't use this.
 
-## Current State
-
-### OCR (`R/ocr.R`)
-- **Data-first**: Checks if `document_content` exists
-- Runs if content is missing, regardless of status
-
-### Metadata (`R/metadata.R`)
-- **Data-first**: Checks if `title`, `first_author_lastname`, or `publication_year` exist
-- Runs if all are missing, regardless of status
-
-## Proposed Behavior
-
-### Status-First Check
-
-1. First check `status == "completed"`
-2. If completed, verify data exists (desync check)
-3. If desync detected, set error status and re-run
-4. If status not completed, run the step
-
-## Implementation
-
-### `should_run_step()` helper
+## Function Design
 
 ```r
-should_run_step <- function(status, data_exists, force_param, document_id, upstream_ran) {
-  # Forced or cascaded - always run
-  if (is_forced(force_param, document_id) || upstream_ran) {
-    return(TRUE)
-  }
+#' Determine if a processing step should run
+#' @param status Current status value for this step
+#' @param data_exists Logical or NULL. If logical, checks for desync.
+#'   Pass NULL to skip desync check (e.g., for Extraction where zero records is valid).
+#' @return logical - TRUE if step should run, FALSE to skip
+should_run_step <- function(status, data_exists) {
+  # Status not completed - needs to run
+  if (is.null(status) || status != "completed") return(TRUE)
 
-  # Status not completed - run
-  if (is.null(status) || status != "completed") {
-    return(TRUE)
-  }
+  # Desync check - status says completed but data is missing
+  if (!is.null(data_exists) && !data_exists) return(TRUE)
 
-  # Status completed but data missing (desync) - run
-  if (status == "completed" && !data_exists) {
-    return(TRUE)
-  }
-
-  # Status completed and data exists - skip
+  # Status completed and data exists (or no check needed) - skip
   return(FALSE)
 }
 ```
 
-### Data existence checks
+## Usage
 
 ```r
 # OCR
-ocr_data_exists <- !is.null(doc$document_content) &&
-                   nchar(doc$document_content) > 0
+if (should_run_step(ocr_status, ocr_data_exists)) {
+  run_ocr(...)
+  set_status(conn, doc_id, "metadata_status", NULL)  # cascade
+}
 
 # Metadata
-metadata_data_exists <- !is.null(doc$title) ||
-                        !is.null(doc$first_author_lastname) ||
-                        !is.null(doc$publication_year)
+if (should_run_step(metadata_status, metadata_data_exists)) {
+  extract_metadata(...)
+  set_status(conn, doc_id, "extraction_status", NULL)  # cascade
+}
+
+# Extraction - no desync check (zero records valid)
+if (run_extraction && should_run_step(extraction_status, NULL)) {
+  extract_records(...)
+}
+
+# Refinement - opt-in only, doesn't use should_run_step()
+if (is_forced(run_refinement, doc_id) && records_exist) {
+  refine_records(...)
+}
 ```
 
-## Why Status-First?
+## Data Existence Checks
 
-- **Consistency**: All steps use status as primary indicator
-- **Explicit state**: Status column clearly shows step completion
-- **Desync detection**: Can catch and log data/status mismatches
-- **Simpler logic**: Check one column first, then verify if needed
+```r
+ocr_data_exists <- !is.null(doc$document_content) && nchar(doc$document_content) > 0
+
+metadata_data_exists <- !is.null(doc$title) &&
+                        !is.null(doc$first_author_lastname) &&
+                        !is.null(doc$publication_year)
+
+records_exist <- DBI::dbGetQuery(
+  conn,
+  "SELECT COUNT(*) > 0 FROM records WHERE document_id = ?",
+  list(doc_id)
+)[[1]]
+```
 
 ## Files to Modify
 
-- `R/workflow.R`: Update skip logic in `process_single_document()`
-- `R/ocr.R`: May need to remove internal skip logic (let workflow handle it)
-- `R/metadata.R`: May need to remove internal skip logic (let workflow handle it)
+- `R/workflow.R`: Add `should_run_step()`
 
 ## Testing
 
-- [ ] OCR with `ocr_status = "completed"` and content present -> skipped
-- [ ] OCR with `ocr_status = NULL` -> runs
-- [ ] OCR with `ocr_status = "completed"` but no content -> desync handled
-- [ ] Same tests for Metadata
-- [ ] Force parameters override status check
-- [ ] Upstream cascade overrides status check
+- [ ] `status = NULL` -> runs
+- [ ] `status = "completed"` with `data_exists = TRUE` -> skips
+- [ ] `status = "completed"` with `data_exists = FALSE` -> runs (desync)
+- [ ] `status = "completed"` with `data_exists = NULL` -> skips (no desync check)
+- [ ] `status = "error"` -> runs
