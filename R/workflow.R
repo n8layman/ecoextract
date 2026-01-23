@@ -64,7 +64,7 @@ validate_force_param <- function(param, param_name) {
 #'   to refine only specific documents.
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "openai")
-#' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")
+#' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
 #' @return Tibble with processing results
 #' @export
 #'
@@ -123,7 +123,7 @@ process_documents <- function(pdf_path,
                              run_refinement = NULL,
                              min_similarity = 0.9,
                              embedding_provider = "openai",
-                             similarity_method = "jaccard") {
+                             similarity_method = "llm") {
 
   # Validate force parameters
  validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
@@ -313,7 +313,7 @@ process_documents <- function(pdf_path,
 #' @param run_refinement NULL, TRUE, or integer vector of document_ids to run refinement
 #' @param min_similarity Minimum cosine similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings (default: "openai")
-#' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")
+#' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
 #' @return List with processing result
 #' @keywords internal
 process_single_document <- function(pdf_file,
@@ -328,7 +328,7 @@ process_single_document <- function(pdf_file,
                                     run_refinement = NULL,
                                     min_similarity = 0.9,
                                     embedding_provider = "openai",
-                                    similarity_method = "jaccard") {
+                                    similarity_method = "llm") {
 
   # Log header
   message(strrep("=", 70))

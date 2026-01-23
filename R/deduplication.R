@@ -168,7 +168,7 @@ New records:
 #' @param schema_list Parsed JSON schema (list) containing required fields
 #' @param min_similarity Minimum cosine similarity to consider a duplicate (default: 0.9)
 #' @param embedding_provider Provider for embeddings (default: "mistral")
-#' @param similarity_method Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "jaccard")
+#' @param similarity_method Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "llm")
 #' @param model LLM model for llm method (default: "anthropic/claude-sonnet-4-5")
 #' @return List with deduplicated records and metadata
 #' @keywords internal
@@ -177,7 +177,7 @@ deduplicate_records <- function(new_records,
                                 schema_list,
                                 min_similarity = 0.9,
                                 embedding_provider = "mistral",
-                                similarity_method = "jaccard",
+                                similarity_method = "llm",
                                 model = "anthropic/claude-sonnet-4-5") {
 
   # Extract unique fields from schema for deduplication

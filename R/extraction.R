@@ -16,7 +16,7 @@
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "mistral")
-#' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")
+#' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @keywords internal
@@ -29,7 +29,7 @@ extract_records <- function(document_id = NA,
                                  model = "anthropic/claude-sonnet-4-5",
                                  min_similarity = 0.9,
                                  embedding_provider = "openai",
-                                 similarity_method = "jaccard",
+                                 similarity_method = "llm",
                                  ...) {
 
   # Document content must be available either through the db or provided

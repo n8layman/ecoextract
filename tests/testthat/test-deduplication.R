@@ -361,7 +361,8 @@ test_that("field-by-field: only compares populated fields in both records", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.95,
-    embedding_provider = "openai"
+    embedding_provider = "openai",
+    similarity_method = "jaccard"
   )
 
   # Should be duplicate - only scientific_name compared (both populated)
@@ -406,7 +407,8 @@ test_that("field-by-field: exact match on all populated fields is duplicate", {
     existing_records = existing_records,
     schema_list = schema_list,
     min_similarity = 0.95,
-    embedding_provider = "openai"
+    embedding_provider = "openai",
+    similarity_method = "jaccard"
   )
 
   # All 3 fields match exactly → duplicate
