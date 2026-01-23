@@ -2221,6 +2221,7 @@
       ],
       "Suggests": [
         "knitr",
+        "pdftools",
         "rmarkdown"
       ],
       "VignetteBuilder": "knitr",
@@ -2230,7 +2231,7 @@
       "RemoteUsername": "n8layman",
       "RemoteRepo": "ohseer",
       "RemoteRef": "main",
-      "RemoteSha": "ec20b9c2d56dbacffdc3f02dabc2b77380959ef5",
+      "RemoteSha": "4438b4e0dcb778129f7ac83654041e97a6941d72",
       "RemoteHost": "api.github.com"
     },
     "openssl": {
