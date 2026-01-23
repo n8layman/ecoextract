@@ -10,7 +10,8 @@ deduplicate_records(
   schema_list,
   min_similarity = 0.9,
   embedding_provider = "mistral",
-  similarity_method = "embedding"
+  similarity_method = "jaccard",
+  model = "anthropic/claude-sonnet-4-5"
 )
 }
 \arguments{
@@ -24,7 +25,9 @@ deduplicate_records(
 
 \item{embedding_provider}{Provider for embeddings (default: "mistral")}
 
-\item{similarity_method}{Method for similarity calculation: "embedding" or "jaccard" (default: "embedding")}
+\item{similarity_method}{Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "jaccard")}
+
+\item{model}{LLM model for llm method (default: "anthropic/claude-sonnet-4-5")}
 }
 \value{
 List with deduplicated records and metadata

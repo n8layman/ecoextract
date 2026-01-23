@@ -107,6 +107,56 @@ jaccard_similarity <- function(str1, str2, n = 3) {
   intersection / union
 }
 
+#' LLM-based deduplication
+#'
+#' Compare new records against existing records using an LLM.
+#' Returns indices of new records that are NOT duplicates.
+#' This is a standalone function with no dependencies on other ecoextract code.
+#'
+#' @param new_records Dataframe of new records
+#' @param existing_records Dataframe of existing records
+#' @param key_fields Character vector of column names to compare
+#' @param model LLM model (default: "anthropic/claude-sonnet-4-5")
+#' @return Integer vector of 1-based indices of unique new records
+#' @keywords internal
+llm_deduplicate <- function(new_records, existing_records, key_fields,
+                            model = "anthropic/claude-sonnet-4-5") {
+  # Format as JSON (only key fields)
+  new_json <- jsonlite::toJSON(new_records[, key_fields, drop = FALSE], auto_unbox = TRUE)
+  existing_json <- jsonlite::toJSON(existing_records[, key_fields, drop = FALSE], auto_unbox = TRUE)
+
+  # Load prompt
+  prompt_path <- system.file("prompts", "deduplication_prompt.md", package = "ecoextract")
+  prompt <- paste(readLines(prompt_path, warn = FALSE), collapse = "\n")
+
+  # Build context
+  context <- glue::glue("
+Key fields: {paste(key_fields, collapse = ', ')}
+
+Existing records:
+{existing_json}
+
+New records:
+{new_json}
+")
+
+  # Schema using ellmer native types
+  schema <- ellmer::type_object(
+    unique_indices = ellmer::type_array(items = ellmer::type_integer())
+  )
+
+  # Call LLM
+  chat <- ellmer::chat(name = model, system_prompt = prompt, echo = "none")
+  result <- chat$chat_structured(context, type = schema)
+
+  # Return indices (default to all if empty)
+  indices <- result$unique_indices
+  if (is.null(indices) || length(indices) == 0) {
+    return(seq_len(nrow(new_records)))
+  }
+  as.integer(indices)
+}
+
 #' Deduplicate records using semantic similarity
 #'
 #' Compares new records against existing records using embeddings
@@ -118,7 +168,8 @@ jaccard_similarity <- function(str1, str2, n = 3) {
 #' @param schema_list Parsed JSON schema (list) containing required fields
 #' @param min_similarity Minimum cosine similarity to consider a duplicate (default: 0.9)
 #' @param embedding_provider Provider for embeddings (default: "mistral")
-#' @param similarity_method Method for similarity calculation: "embedding" or "jaccard" (default: "embedding")
+#' @param similarity_method Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "llm")
+#' @param model LLM model for llm method (default: "anthropic/claude-sonnet-4-5")
 #' @return List with deduplicated records and metadata
 #' @keywords internal
 deduplicate_records <- function(new_records,
@@ -126,7 +177,8 @@ deduplicate_records <- function(new_records,
                                 schema_list,
                                 min_similarity = 0.9,
                                 embedding_provider = "mistral",
-                                similarity_method = "embedding") {
+                                similarity_method = "llm",
+                                model = "anthropic/claude-sonnet-4-5") {
 
   # Extract unique fields from schema for deduplication
   # Navigate to the record items schema (schema_list is the full schema)
@@ -181,22 +233,39 @@ deduplicate_records <- function(new_records,
   message(glue::glue("Using field-by-field comparison with key fields: {paste(key_fields, collapse = ', ')}"))
   message(glue::glue("Similarity method: {similarity_method}"))
 
-  # Convert provider string to function call (only needed for embedding method)
-  provider_fn <- NULL
-  if (similarity_method == "embedding") {
-    provider_fn <- switch(embedding_provider,
-      "mistral" = tidyllm::mistral,
-      "openai" = tidyllm::openai,
-      "voyage" = tidyllm::voyage,
-      stop("Unsupported embedding provider: ", embedding_provider)
-    )
-  }
+  # LLM method: single API call for all comparisons
 
-  # Process each new record
-  unique_indices <- c()
-  duplicates_found <- 0
+  if (similarity_method == "llm") {
+    unique_indices <- llm_deduplicate(new_records, existing_records, key_fields, model)
+    duplicates_found <- nrow(new_records) - length(unique_indices)
 
-  for (i in seq_len(nrow(new_records))) {
+    # Log results
+    for (i in seq_len(nrow(new_records))) {
+      if (i %in% unique_indices) {
+        message(glue::glue("  Record {i}: Unique (no matching existing record)"))
+      } else {
+        message(glue::glue("  Record {i}: Duplicate (identified by LLM)"))
+      }
+    }
+  } else {
+    # Jaccard/embedding methods: field-by-field comparison
+
+    # Convert provider string to function call (only needed for embedding method)
+    provider_fn <- NULL
+    if (similarity_method == "embedding") {
+      provider_fn <- switch(embedding_provider,
+        "mistral" = tidyllm::mistral,
+        "openai" = tidyllm::openai,
+        "voyage" = tidyllm::voyage,
+        stop("Unsupported embedding provider: ", embedding_provider)
+      )
+    }
+
+    # Process each new record
+    unique_indices <- c()
+    duplicates_found <- 0
+
+    for (i in seq_len(nrow(new_records))) {
     new_record <- new_records[i, ]
     is_duplicate <- FALSE
 
@@ -261,6 +330,7 @@ deduplicate_records <- function(new_records,
       message(glue::glue("  Record {i}: Unique (no matching existing record)"))
     }
   }
+  }  # End else (jaccard/embedding methods)
 
   # Return unique records
   unique_records <- if (length(unique_indices) > 0) {

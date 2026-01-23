@@ -6,18 +6,15 @@
 #'
 #' This is a schema-agnostic step that extracts universal publication metadata
 #' regardless of the domain-specific extraction schema used in later steps.
-#'
-#' When force_reprocess=TRUE, overwrites ALL metadata fields with fresh extraction.
+#' Skip logic is handled by the workflow - this function always runs when called.
 #'
 #' @param document_id Document ID in database
 #' @param db_conn Database connection
-#' @param force_reprocess If TRUE, re-run and overwrite all metadata fields (default: FALSE)
+#' @param force_reprocess Ignored (kept for backward compatibility). Skip logic handled by workflow.
 #' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")
-#' @return List with status ("completed"/"skipped"/<error message>)
+#' @return List with status ("completed"/<error message>) and document_id
 #' @keywords internal
-extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, model = "anthropic/claude-sonnet-4-5") {
-
-  status <- "skipped"
+extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model = "anthropic/claude-sonnet-4-5") {
 
   # Handle database connection - accept either connection object or path
   if (!inherits(db_conn, "DBIConnection")) {
@@ -31,41 +28,19 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
-  # Check if metadata already exists
-  existing_metadata <- DBI::dbGetQuery(db_conn,
+  # Get document from database
+  doc <- DBI::dbGetQuery(db_conn,
     "SELECT * FROM documents WHERE document_id = ?",
     params = list(document_id))
 
-  # Helper function to check if a value is missing (NULL, NA, or empty)
-  is_missing <- function(x) {
-    is.null(x) ||
-      (is.atomic(x) && length(x) == 1 && is.na(x)) ||
-      (is.atomic(x) && length(x) == 0)
-  }
+  # Run metadata extraction
+  status <- tryCatch({
+    # Read document content from database
+    document_content <- doc$document_content
 
-  # Check if we should run metadata extraction
-  # Use isTRUE() for safer logical evaluation with potential NAs
-  should_run <- isTRUE(force_reprocess) ||
-                nrow(existing_metadata) == 0 ||
-                (nrow(existing_metadata) > 0 && (
-                  is_missing(existing_metadata$title[1]) ||
-                  is_missing(existing_metadata$first_author_lastname[1]) ||
-                  is_missing(existing_metadata$publication_year[1])
-                ))
-
-  if (!should_run) {
-    message("Metadata already exists for document ", document_id,
-            ", skipping (force_reprocess=FALSE)")
-    # Keep status = "skipped"
-  } else {
-    # Run metadata extraction
-    status <- tryCatch({
-      # Read document content from database
-      document_content <- existing_metadata$document_content
-
-      if (is.na(document_content) || is.null(document_content)) {
-        "Metadata extraction failed: No document content found in database"
-      } else {
+    if (is.na(document_content) || is.null(document_content)) {
+      "Metadata extraction failed: No document content found in database"
+    } else {
 
     message("Extracting publication metadata...")
 
@@ -160,13 +135,11 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = FALSE, mode
       message(glue::glue("  publisher: {rlang::`%||%`(pub_metadata$publisher, '<empty>')}"))
       message(glue::glue("  references: {if(!is.null(pub_metadata$bibliography)) length(pub_metadata$bibliography) else 0} citations"))
 
-
-        "completed"
-      }
-    }, error = function(e) {
-      paste("Metadata extraction failed:", e$message)
-    })
-  }
+      "completed"
+    }
+  }, error = function(e) {
+    paste("Metadata extraction failed:", e$message)
+  })
 
   return(list(status = status, document_id = document_id))
 }

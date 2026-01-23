@@ -7,7 +7,7 @@
 extract_metadata(
   document_id,
   db_conn,
-  force_reprocess = FALSE,
+  force_reprocess = TRUE,
   model = "anthropic/claude-sonnet-4-5"
 )
 }
@@ -16,12 +16,12 @@ extract_metadata(
 
 \item{db_conn}{Database connection}
 
-\item{force_reprocess}{If TRUE, re-run and overwrite all metadata fields (default: FALSE)}
+\item{force_reprocess}{Ignored (kept for backward compatibility). Skip logic handled by workflow.}
 
 \item{model}{LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")}
 }
 \value{
-List with status ("completed"/"skipped"/<error message>)
+List with status ("completed"/<error message>) and document_id
 }
 \description{
 Extracts publication metadata from OCR-processed scientific documents:
@@ -31,7 +31,6 @@ Extracts publication metadata from OCR-processed scientific documents:
 \details{
 This is a schema-agnostic step that extracts universal publication metadata
 regardless of the domain-specific extraction schema used in later steps.
-
-When force_reprocess=TRUE, overwrites ALL metadata fields with fresh extraction.
+Skip logic is handled by the workflow - this function always runs when called.
 }
 \keyword{internal}

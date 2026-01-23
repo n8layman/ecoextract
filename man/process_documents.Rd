@@ -10,13 +10,14 @@ process_documents(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  force_reprocess_ocr = FALSE,
-  force_reprocess_metadata = FALSE,
+  force_reprocess_ocr = NULL,
+  force_reprocess_metadata = NULL,
+  force_reprocess_extraction = NULL,
   run_extraction = TRUE,
-  run_refinement = FALSE,
+  run_refinement = NULL,
   min_similarity = 0.9,
   embedding_provider = "openai",
-  similarity_method = "embedding"
+  similarity_method = "jaccard"
 )
 }
 \arguments{
@@ -32,19 +33,26 @@ If a connection is provided, tables must already exist (use \code{init_ecoextrac
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
-\item{force_reprocess_ocr}{If TRUE, re-run OCR and delete all data for documents (OCR, metadata, records, status, reasoning). User will be warned. Default FALSE - skips if OCR already done.}
+\item{force_reprocess_ocr}{Controls OCR reprocessing. NULL (default) uses normal skip logic,
+TRUE forces all documents, or an integer vector of document_ids to force specific documents.}
 
-\item{force_reprocess_metadata}{If TRUE, re-run metadata extraction and overwrite all metadata fields. Default FALSE - skips if metadata already exists.}
+\item{force_reprocess_metadata}{Controls metadata reprocessing. NULL (default) uses normal skip logic,
+TRUE forces all documents, or an integer vector of document_ids to force specific documents.}
+
+\item{force_reprocess_extraction}{Controls extraction reprocessing. NULL (default) uses normal skip logic,
+TRUE forces all documents, or an integer vector of document_ids to force specific documents.}
 
 \item{run_extraction}{If TRUE, run extraction step to find new records. Default TRUE.}
 
-\item{run_refinement}{If TRUE, run refinement step to enhance existing records. Default FALSE.}
+\item{run_refinement}{Controls refinement step. NULL (default) skips refinement,
+TRUE runs on all documents with records, or an integer vector of document_ids
+to refine only specific documents.}
 
 \item{min_similarity}{Minimum similarity for deduplication (default: 0.9)}
 
 \item{embedding_provider}{Provider for embeddings when using embedding method (default: "openai")}
 
-\item{similarity_method}{Method for deduplication similarity: "embedding" or "jaccard" (default: "embedding")}
+\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")}
 }
 \value{
 Tibble with processing results
@@ -72,10 +80,13 @@ init_ecoextract_database(con)
 process_documents("pdfs/", db_conn = con)
 dbDisconnect(con)
 
-# Force re-run OCR (WARNING: deletes ALL data for documents - OCR, metadata, records)
+# Force re-run OCR for all documents (cascades to metadata and extraction)
 process_documents("pdfs/", force_reprocess_ocr = TRUE)
 
-# Force re-run metadata only (overwrites metadata fields, keeps records)
+# Force re-run OCR for specific documents only
+process_documents("pdfs/", force_reprocess_ocr = c(5L, 12L))
+
+# Force re-run metadata only (cascades to extraction)
 process_documents("pdfs/", force_reprocess_metadata = TRUE)
 
 # With custom schema and prompts
@@ -83,8 +94,11 @@ process_documents("pdfs/", "interactions.db",
                   schema_file = "ecoextract/schema.json",
                   extraction_prompt_file = "ecoextract/extraction_prompt.md")
 
-# With refinement (opt-in)
+# With refinement for all documents
 process_documents("pdfs/", run_refinement = TRUE)
+
+# Refinement for specific documents only
+process_documents("pdfs/", run_refinement = c(5L, 12L))
 
 # Skip extraction, refinement only on existing records
 process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)

@@ -2,25 +2,22 @@
 % Please edit documentation in R/ocr.R
 \name{ocr_document}
 \alias{ocr_document}
-\title{OCR Document and Save to Database (Atomic)}
+\title{OCR Document and Save to Database}
 \usage{
-ocr_document(pdf_file, db_conn, force_reprocess = FALSE)
+ocr_document(pdf_file, db_conn, force_reprocess = TRUE)
 }
 \arguments{
 \item{pdf_file}{Path to PDF file}
 
 \item{db_conn}{Database connection}
 
-\item{force_reprocess}{If TRUE, re-run OCR even if document_content already exists (default: FALSE)}
+\item{force_reprocess}{Ignored (kept for backward compatibility). Skip logic handled by workflow.}
 }
 \value{
-List with status ("completed"/"skipped"/<error message>) and document_id
+List with status ("completed"/<error message>) and document_id
 }
 \description{
-Performs OCR on PDF and saves document to database
-}
-\details{
-When force_reprocess=TRUE, overwrites existing document_content.
-Note: Caller is responsible for cascade deletion of metadata/records.
+Performs OCR on PDF and saves document to database.
+Skip logic is handled by the workflow - this function always runs OCR when called.
 }
 \keyword{internal}

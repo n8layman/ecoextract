@@ -107,17 +107,19 @@ test_that("extraction rediscovers physically deleted records", {
     info = sprintf("Should have fewer records after deletion (%d -> %d)",
                    initial_count, after_delete_count))
 
-  # Re-run pipeline (will skip OCR/metadata, run extraction)
+  # Re-run pipeline - force extraction to rediscover deleted records
+  # (OCR/metadata will skip, extraction forced to re-run)
   # Use Jaccard similarity to avoid API rate limits during testing
   result2 <- process_documents(
     test_pdf,
     db_conn = db_path,
     schema_file = schema_file,
     extraction_prompt_file = prompt_file,
-    similarity_method = "jaccard"
+    similarity_method = "jaccard",
+    force_reprocess_extraction = TRUE
   )
 
-  # Check that early steps were skipped, but extraction ran
+  # Check that early steps were skipped, but extraction ran (forced)
   expect_equal(result2$ocr_status[1], "skipped")
   expect_equal(result2$metadata_status[1], "skipped")
   expect_equal(result2$extraction_status[1], "completed")
