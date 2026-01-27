@@ -3,6 +3,7 @@
 Structured ecological data extraction and refinement from scientific literature.
 
 **Package Links:**
+
 - [ecoextract on GitHub](https://github.com/n8layman/ecoextract)
 - [ohseer on GitHub](https://github.com/n8layman/ohseer) (OCR dependency)
 
@@ -108,7 +109,7 @@ Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
 
 ### Using Different LLM Providers
 
-By default, ecoextract uses `anthropic/claude-sonnet-4-20250514` for data extraction and refinement. If you have an Anthropic API key set up, no additional configuration is needed.
+By default, ecoextract uses `anthropic/claude-sonnet-4-5` for data extraction, metadata, and refinement. If you have an Anthropic API key set up, no additional configuration is needed.
 
 To use a different LLM provider, pass the `model` parameter:
 
@@ -116,13 +117,13 @@ To use a different LLM provider, pass the `model` parameter:
 # Default (Anthropic Claude) - no model parameter needed
 results <- process_documents(
   pdf_path = "path/to/pdfs/",
-  db_conn = "ecological_records.sqlite"
+  db_conn = "ecoextract_records.db"
 )
 
 # Use a different model (experimental - not fully tested)
 results <- process_documents(
   pdf_path = "path/to/pdfs/",
-  db_conn = "ecological_records.sqlite",
+  db_conn = "ecoextract_records.db",
   model = "openai/gpt-4"
 )
 ```
@@ -134,12 +135,12 @@ library(ecoextract)
 
 # Process all PDFs in a folder through complete 4-step workflow:
 # 1. OCR (extract text from PDF)
-# 2. Document Audit (extract metadata + review OCR quality)
+# 2. Metadata (extract publication metadata)
 # 3. Extraction (extract domain-specific records)
-# 4. Refinement (refine and validate records)
+# 4. Refinement (refine and validate records, opt-in)
 results <- process_documents(
   pdf_path = "path/to/pdfs/",
-  db_conn = "ecological_records.sqlite"
+  db_conn = "ecoextract_records.db"
 )
 
 print(results)
@@ -147,26 +148,86 @@ print(results)
 # Process a single PDF
 results <- process_documents(
   pdf_path = "paper.pdf",
-  db_conn = "ecological_records.sqlite"
+  db_conn = "ecoextract_records.db"
 )
 
 # Use custom schema and extraction prompt
 results <- process_documents(
   pdf_path = "path/to/pdfs/",
-  db_conn = "ecological_records.sqlite",
+  db_conn = "ecoextract_records.db",
   schema_file = "custom_schema.json",
   extraction_prompt_file = "custom_extraction_prompt.md"
 )
 
-# Force reprocess existing documents
+# Run with refinement enabled
 results <- process_documents(
   pdf_path = "path/to/pdfs/",
-  db_conn = "ecological_records.sqlite",
-  force_reprocess = TRUE
+  db_conn = "ecoextract_records.db",
+  run_refinement = TRUE
+)
+
+# Force reprocess all documents from OCR onward
+results <- process_documents(
+  pdf_path = "path/to/pdfs/",
+  db_conn = "ecoextract_records.db",
+  force_reprocess_ocr = TRUE
+)
+
+# Force reprocess specific documents only
+results <- process_documents(
+  pdf_path = "path/to/pdfs/",
+  db_conn = "ecoextract_records.db",
+  force_reprocess_extraction = c(5L, 12L)
 )
 ```
 
 For advanced use cases requiring individual step processing, see the package documentation.
+
+## Skip and Cascade Logic
+
+By default, `process_documents()` skips steps that have already completed successfully. Each step checks its status in the database and verifies that output data exists before skipping.
+
+When a step is re-run (forced or due to missing data), downstream steps are automatically invalidated:
+
+| If This Re-runs | These Become Stale       |
+| --------------- | ------------------------ |
+| OCR             | Metadata, Extraction     |
+| Metadata        | Extraction               |
+| Extraction      | (nothing)                |
+| Refinement      | (nothing, opt-in only)   |
+
+### Force Reprocess Parameters
+
+Each `force_reprocess_*` parameter accepts three values:
+
+- `NULL` (default) -- use normal skip logic
+- `TRUE` -- force reprocess all documents
+- Integer vector (e.g., `c(5L, 12L)`) -- force reprocess specific document IDs
+
+The `run_refinement` parameter works the same way: `NULL` skips refinement, `TRUE` runs on all documents with records, or an integer vector targets specific documents.
+
+See [SKIP_LOGIC.md](SKIP_LOGIC.md) for full details.
+
+## Deduplication
+
+During extraction, records are deduplicated against existing records in the database to prevent duplicates. Three similarity methods are available:
+
+- **`"llm"`** (default) -- Uses Claude to semantically compare records. Most accurate but uses API calls.
+- **`"embedding"`** -- Cosine similarity on text embeddings. Requires an embedding provider (default: OpenAI).
+- **`"jaccard"`** -- Fast n-gram based comparison. No API calls needed.
+
+Configure via `process_documents()`:
+
+```r
+# Default: LLM-based deduplication
+results <- process_documents("pdfs/", similarity_method = "llm")
+
+# Embedding-based with custom threshold
+results <- process_documents("pdfs/", similarity_method = "embedding", min_similarity = 0.85)
+
+# Fast local deduplication
+results <- process_documents("pdfs/", similarity_method = "jaccard", min_similarity = 0.9)
+```
 
 ## Custom Schemas
 
@@ -188,6 +249,7 @@ init_ecoextract()
 ```
 
 Now edit the files in `ecoextract/` to customize for your domain:
+
 1. **Read `SCHEMA_GUIDE.md`** to understand the required schema format
 2. Edit `schema.json` to define your data structure
 3. Edit `extraction_prompt.md` to describe what to extract
@@ -195,6 +257,7 @@ Now edit the files in `ecoextract/` to customize for your domain:
 The package will automatically detect and use these files when you run `process_documents()`.
 
 **Priority order for loading configs:**
+
 1. Explicit file path passed to function (e.g., `schema_file = "path/to/schema.json"`)
 2. Project `ecoextract/` directory (e.g., `ecoextract/schema.json`)
 3. Working directory with `ecoextract_` prefix (e.g., `ecoextract_schema.json`)
@@ -235,7 +298,7 @@ Your schema MUST follow this structure:
 1. Top-level must have a `records` property (array of objects)
 2. Each field should have a `type` and `description` (description helps the LLM understand what to extract)
 3. Use JSON Schema draft-07 format
-4. Record IDs are auto-generated from publication metadata (extracted in document_audit step)
+4. Record IDs are auto-generated from publication metadata (extracted in the metadata step)
 
 See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete example.
 
@@ -243,23 +306,21 @@ See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete exampl
 
 ### Workflow
 
-- `process_documents()` - Complete 4-step workflow (OCR → Audit → Extract → Refine)
-- `ocr_document()` - Step 1: Extract text from PDF
-- `audit_document()` - Step 2: Extract metadata + review OCR quality
-- `extract_records()` - Step 3: Extract domain-specific records
-- `refine_records()` - Step 4: Refine and validate records
+- `process_documents()` - Complete 4-step workflow (OCR -> Metadata -> Extract -> Refine)
 
-### Database Operations
+### Database Setup
 
 - `init_ecoextract_database()` - Initialize database with schema
-- `get_document_content()` - Get OCR text from database
-- `get_ocr_audit()` - Get OCR audit from database
-- `get_records()` - Get extracted records from database
+- `init_ecoextract()` - Create project config directory with template schema and prompts
 
-### Custom Configuration
+### Data Access
 
-- Schema files in `inst/extdata/`: `schema.json`, `document_audit_schema.json`
-- Prompt files in `inst/prompts/`: extraction and document audit prompts
+- `get_documents()` - Query documents and their metadata from database
+- `get_records()` - Query extracted records from database
+- `get_ocr_markdown()` - Get OCR markdown text for a document
+- `get_ocr_html_preview()` - Render OCR output with embedded images as HTML
+- `get_db_stats()` - Get document and record counts from database
+- `export_db()` - Export records with metadata to tibble or CSV file
 
 ## Testing
 
@@ -284,32 +345,40 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on testing and developme
 
 ## File Structure
 
-```
+```text
 ecoextract/
 ├── R/
-│   ├── workflow.R          # Main process_documents() workflow
+│   ├── workflow.R          # Main process_documents() workflow + skip/cascade logic
 │   ├── ocr.R               # OCR processing
-│   ├── document_audit.R    # Metadata extraction & OCR quality review
+│   ├── metadata.R          # Publication metadata extraction
 │   ├── extraction.R        # Data extraction functions
 │   ├── refinement.R        # Data refinement functions
+│   ├── deduplication.R     # Record deduplication (LLM, embedding, Jaccard)
 │   ├── database.R          # Database operations
-│   ├── schema.R            # Schema validation
+│   ├── getters.R           # Data access functions (get_*, export_db)
+│   ├── config_loader.R     # Configuration file loading + init_ecoextract()
 │   ├── prompts.R           # Prompt loading
-│   ├── getters.R           # Getter functions for DB
-│   ├── config_loader.R     # Configuration file loading
-│   └── utils.R             # Utilities
+│   ├── utils.R             # Utilities
+│   ├── config.R            # Package configuration
+│   └── ecoextract-package.R # Package metadata
 ├── inst/
 │   ├── extdata/            # Schema files
 │   │   ├── schema.json
-│   │   └── document_audit_schema.json
+│   │   └── metadata_schema.json
 │   └── prompts/            # System prompts
 │       ├── extraction_prompt.md
 │       ├── extraction_context.md
-│       ├── document_audit_prompt.md
-│       └── document_audit_context.md
+│       ├── metadata_prompt.md
+│       ├── metadata_context.md
+│       ├── refinement_prompt.md
+│       ├── refinement_context.md
+│       └── deduplication_prompt.md
 ├── tests/testthat/         # Tests
+├── vignettes/              # Package vignettes
 ├── DESCRIPTION
 ├── NAMESPACE
+├── SKIP_LOGIC.md           # Skip/cascade logic documentation
+├── CONTRIBUTING.md         # Development guide
 └── README.md
 ```
 
@@ -323,8 +392,9 @@ ecoextract/
 - `DBI` & `RSQLite` - Database operations
 - `jsonlite` - JSON handling
 - `glue` - String interpolation
-- `stringr` - String manipulation
+- `stringr` & `stringi` - String manipulation
 - `digest` - Hashing
+- `tidyllm` - LLM deduplication
 
 ### External APIs
 
