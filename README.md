@@ -229,6 +229,14 @@ results <- process_documents(
   db_conn = "records.db",
   workers = 4
 )
+
+# With logging for troubleshooting
+results <- process_documents(
+  pdf_path = "papers/",
+  db_conn = "records.db",
+  workers = 4,
+  log = TRUE  # Creates ecoextract_YYYYMMDD_HHMMSS.log
+)
 ```
 
 **Notes:**
@@ -238,6 +246,7 @@ results <- process_documents(
 - Progress is shown as documents complete: `[1/10] paper.pdf completed`
 - Crash-resilient: completed documents are saved immediately to the database
 - Resume by re-running -- skip logic will detect completed documents
+- Use `log = TRUE` to capture detailed output for troubleshooting
 
 ## Deduplication
 
