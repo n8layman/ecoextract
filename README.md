@@ -235,7 +235,7 @@ results <- process_documents(
 
 - Requires `db_conn` to be a file path (not a connection object)
 - Each worker opens its own database connection (SQLite WAL mode enabled)
-- Progress is shown as documents complete: `[12/50] Completed: 11 | Errors: 1`
+- Progress is shown as documents complete: `[1/10] paper.pdf completed`
 - Crash-resilient: completed documents are saved immediately to the database
 - Resume by re-running -- skip logic will detect completed documents
 
