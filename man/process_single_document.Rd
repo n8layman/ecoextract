@@ -17,7 +17,7 @@ process_single_document(
   run_refinement = NULL,
   min_similarity = 0.9,
   embedding_provider = "openai",
-  similarity_method = "jaccard"
+  similarity_method = "llm"
 )
 }
 \arguments{
@@ -45,7 +45,7 @@ process_single_document(
 
 \item{embedding_provider}{Provider for embeddings (default: "openai")}
 
-\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")}
+\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")}
 }
 \value{
 List with processing result
@@ -53,4 +53,3 @@ List with processing result
 \description{
 Process Single Document Through Complete Pipeline
 }
-\keyword{internal}

@@ -14,7 +14,7 @@ extract_records(
   model = "anthropic/claude-sonnet-4-5",
   min_similarity = 0.9,
   embedding_provider = "openai",
-  similarity_method = "jaccard",
+  similarity_method = "llm",
   ...
 )
 }
@@ -37,7 +37,7 @@ extract_records(
 
 \item{embedding_provider}{Provider for embeddings when using embedding method (default: "mistral")}
 
-\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")}
+\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")}
 
 \item{...}{Additional arguments passed to extraction}
 }

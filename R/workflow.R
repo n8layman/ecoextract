@@ -65,6 +65,9 @@ validate_force_param <- function(param, param_name) {
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
+#' @param recursive If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.
+#' @param workers Number of parallel workers. NULL (default) or 1 for sequential processing.
+#'   Values > 1 require the crew package and db_conn must be a file path (not a connection object).
 #' @return Tibble with processing results
 #' @export
 #'
@@ -110,6 +113,12 @@ validate_force_param <- function(param, param_name) {
 #'
 #' # Skip extraction, refinement only on existing records
 #' process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
+#'
+#' # Search for PDFs in all subdirectories
+#' process_documents("research_papers/", recursive = TRUE)
+#'
+#' # Process in parallel with 4 workers (requires crew package)
+#' process_documents("pdfs/", workers = 4)
 #' }
 process_documents <- function(pdf_path,
                              db_conn = "ecoextract_records.db",
@@ -123,13 +132,33 @@ process_documents <- function(pdf_path,
                              run_refinement = NULL,
                              min_similarity = 0.9,
                              embedding_provider = "openai",
-                             similarity_method = "llm") {
+                             similarity_method = "llm",
+                             recursive = FALSE,
+                             workers = NULL) {
 
   # Validate force parameters
- validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
- validate_force_param(force_reprocess_metadata, "force_reprocess_metadata")
- validate_force_param(force_reprocess_extraction, "force_reprocess_extraction")
- validate_force_param(run_refinement, "run_refinement")
+  validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
+  validate_force_param(force_reprocess_metadata, "force_reprocess_metadata")
+  validate_force_param(force_reprocess_extraction, "force_reprocess_extraction")
+  validate_force_param(run_refinement, "run_refinement")
+
+  # Validate workers parameter
+  use_parallel <- FALSE
+  if (!is.null(workers)) {
+    if (!is.numeric(workers) || length(workers) != 1 || workers < 1) {
+      stop("workers must be NULL or a positive integer")
+    }
+    workers <- as.integer(workers)
+    if (workers > 1) {
+      if (!requireNamespace("crew", quietly = TRUE)) {
+        stop("Package 'crew' required for parallel processing. Install with: install.packages('crew')")
+      }
+      if (inherits(db_conn, "DBIConnection")) {
+        stop("Parallel processing requires db_conn to be a file path, not a connection object")
+      }
+      use_parallel <- TRUE
+    }
+  }
 
   # Determine if processing single file, multiple files, or directory
   if (length(pdf_path) > 1) {
@@ -143,11 +172,21 @@ process_documents <- function(pdf_path,
   } else if (file.exists(pdf_path)) {
     if (dir.exists(pdf_path)) {
       # Process directory
-      pdf_files <- list.files(pdf_path, pattern = "\\.pdf$", full.names = TRUE, ignore.case = TRUE)
+      pdf_files <- list.files(pdf_path, pattern = "\\.pdf$", full.names = TRUE,
+                              ignore.case = TRUE, recursive = recursive)
       if (length(pdf_files) == 0) {
-        stop("No PDF files found in directory: ", pdf_path)
+        if (recursive) {
+          stop("No PDF files found in directory or subdirectories: ", pdf_path)
+        } else {
+          stop("No PDF files found in directory: ", pdf_path,
+               "\n  Use recursive = TRUE to search subdirectories")
+        }
       }
-      cat("Found", length(pdf_files), "PDF files to process\n\n")
+      if (recursive) {
+        cat("Found", length(pdf_files), "PDF files to process (including subdirectories)\n\n")
+      } else {
+        cat("Found", length(pdf_files), "PDF files to process\n\n")
+      }
     } else if (grepl("\\.pdf$", pdf_path, ignore.case = TRUE)) {
       # Single file
       pdf_files <- pdf_path
@@ -198,41 +237,129 @@ process_documents <- function(pdf_path,
     cat("\n")
   }
 
- # Handle database connection - accept either connection object or path
+  # Handle database connection
+  # For parallel: keep as path, workers connect individually
+  # For sequential: connect here and pass connection
+  db_path <- NULL
   if (!inherits(db_conn, "DBIConnection")) {
-    # Path string - initialize if needed, then connect
+    db_path <- db_conn
+    # Initialize DB if needed
     if (!file.exists(db_conn)) {
       cat("Initializing new database:", db_conn, "\n")
       init_ecoextract_database(db_conn, schema_file = schema_src$path)
     }
-    db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
-    configure_sqlite_connection(db_conn)
-    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+    if (!use_parallel) {
+      # Sequential mode: connect now
+      db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+      configure_sqlite_connection(db_conn)
+      on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+    }
   }
 
   # Track timing
   start_time <- Sys.time()
 
-  # Process each PDF and collect results
+  # Process documents
   results_list <- list()
 
-  for (pdf_file in pdf_files) {
-    result <- process_single_document(
-      pdf_file = pdf_file,
-      db_conn = db_conn,
-      schema_file = schema_src$path,
-      extraction_prompt_file = extraction_prompt_file,
-      refinement_prompt_file = refinement_prompt_file,
-      force_reprocess_ocr = force_reprocess_ocr,
-      force_reprocess_metadata = force_reprocess_metadata,
-      force_reprocess_extraction = force_reprocess_extraction,
-      run_extraction = run_extraction,
-      run_refinement = run_refinement,
-      min_similarity = min_similarity,
-      embedding_provider = embedding_provider,
-      similarity_method = similarity_method
+  if (use_parallel) {
+    # Parallel processing with crew
+    cat("Starting parallel processing with", workers, "workers\n\n")
+
+    controller <- crew::crew_controller_local(
+      workers = workers,
+      seconds_idle = 60
     )
-    results_list[[length(results_list) + 1]] <- result
+    controller$start()
+    on.exit(controller$terminate(), add = TRUE)
+
+    # Push tasks for each PDF
+    for (i in seq_along(pdf_files)) {
+      controller$push(
+        command = ecoextract::process_single_document(
+          pdf_file = pdf_file,
+          db_conn = db_path,
+          schema_file = schema_file,
+          extraction_prompt_file = extraction_prompt_file,
+          refinement_prompt_file = refinement_prompt_file,
+          force_reprocess_ocr = force_reprocess_ocr,
+          force_reprocess_metadata = force_reprocess_metadata,
+          force_reprocess_extraction = force_reprocess_extraction,
+          run_extraction = run_extraction,
+          run_refinement = run_refinement,
+          min_similarity = min_similarity,
+          embedding_provider = embedding_provider,
+          similarity_method = similarity_method
+        ),
+        data = list(
+          pdf_file = pdf_files[i],
+          db_path = db_path,
+          schema_file = schema_src$path,
+          extraction_prompt_file = extraction_prompt_file,
+          refinement_prompt_file = refinement_prompt_file,
+          force_reprocess_ocr = force_reprocess_ocr,
+          force_reprocess_metadata = force_reprocess_metadata,
+          force_reprocess_extraction = force_reprocess_extraction,
+          run_extraction = run_extraction,
+          run_refinement = run_refinement,
+          min_similarity = min_similarity,
+          embedding_provider = embedding_provider,
+          similarity_method = similarity_method
+        ),
+        name = basename(pdf_files[i])
+      )
+    }
+
+    # Collect results with progress
+    completed <- 0
+    errors <- 0
+    total <- length(pdf_files)
+
+    while (completed < total) {
+      result <- controller$pop()
+      if (!is.null(result)) {
+        completed <- completed + 1
+        if (!is.null(result$error)) {
+          errors <- errors + 1
+          results_list[[completed]] <- list(
+            filename = result$name,
+            document_id = NA,
+            ocr_status = paste("Error:", result$error),
+            metadata_status = "skipped",
+            extraction_status = "skipped",
+            refinement_status = "skipped",
+            records_extracted = 0
+          )
+        } else {
+          results_list[[completed]] <- result$result
+        }
+        cat(sprintf("\r[%d/%d] Completed: %d | Errors: %d    ",
+                    completed, total, completed - errors, errors))
+      }
+      Sys.sleep(0.1)
+    }
+    cat("\n")
+
+  } else {
+    # Sequential processing
+    for (pdf_file in pdf_files) {
+      result <- process_single_document(
+        pdf_file = pdf_file,
+        db_conn = db_conn,
+        schema_file = schema_src$path,
+        extraction_prompt_file = extraction_prompt_file,
+        refinement_prompt_file = refinement_prompt_file,
+        force_reprocess_ocr = force_reprocess_ocr,
+        force_reprocess_metadata = force_reprocess_metadata,
+        force_reprocess_extraction = force_reprocess_extraction,
+        run_extraction = run_extraction,
+        run_refinement = run_refinement,
+        min_similarity = min_similarity,
+        embedding_provider = embedding_provider,
+        similarity_method = similarity_method
+      )
+      results_list[[length(results_list) + 1]] <- result
+    }
   }
 
   end_time <- Sys.time()
@@ -315,7 +442,7 @@ process_documents <- function(pdf_path,
 #' @param embedding_provider Provider for embeddings (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
 #' @return List with processing result
-#' @keywords internal
+#' @export
 process_single_document <- function(pdf_file,
                                     db_conn,
                                     schema_file = NULL,

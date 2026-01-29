@@ -17,7 +17,9 @@ process_documents(
   run_refinement = NULL,
   min_similarity = 0.9,
   embedding_provider = "openai",
-  similarity_method = "jaccard"
+  similarity_method = "llm",
+  recursive = FALSE,
+  workers = NULL
 )
 }
 \arguments{
@@ -52,7 +54,12 @@ to refine only specific documents.}
 
 \item{embedding_provider}{Provider for embeddings when using embedding method (default: "openai")}
 
-\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "jaccard")}
+\item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")}
+
+\item{recursive}{If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.}
+
+\item{workers}{Number of parallel workers. NULL (default) or 1 for sequential processing.
+Values > 1 require the crew package and db_conn must be a file path (not a connection object).}
 }
 \value{
 Tibble with processing results
@@ -102,5 +109,11 @@ process_documents("pdfs/", run_refinement = c(5L, 12L))
 
 # Skip extraction, refinement only on existing records
 process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
+
+# Search for PDFs in all subdirectories
+process_documents("research_papers/", recursive = TRUE)
+
+# Process in parallel with 4 workers (requires crew package)
+process_documents("pdfs/", workers = 4)
 }
 }

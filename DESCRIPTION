@@ -27,6 +27,7 @@ Imports:
     tibble,
     tidyllm
 Suggests:
+    crew,
     devtools,
     knitr,
     rmarkdown,
