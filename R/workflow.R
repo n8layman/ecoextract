@@ -296,23 +296,48 @@ process_documents <- function(pdf_path,
     on.exit(controller$terminate(), add = TRUE)
 
     # Push tasks for each PDF
+    # When logging, capture all message() output from the worker
     for (i in seq_along(pdf_files)) {
       controller$push(
-        command = ecoextract::process_single_document(
-          pdf_file = pdf_file,
-          db_conn = db_path,
-          schema_file = schema_file,
-          extraction_prompt_file = extraction_prompt_file,
-          refinement_prompt_file = refinement_prompt_file,
-          force_reprocess_ocr = force_reprocess_ocr,
-          force_reprocess_metadata = force_reprocess_metadata,
-          force_reprocess_extraction = force_reprocess_extraction,
-          run_extraction = run_extraction,
-          run_refinement = run_refinement,
-          min_similarity = min_similarity,
-          embedding_provider = embedding_provider,
-          similarity_method = similarity_method
-        ),
+        command = {
+          # Capture message() output if logging enabled
+          if (capture_output) {
+            output <- utils::capture.output({
+              result <- ecoextract::process_single_document(
+                pdf_file = pdf_file,
+                db_conn = db_path,
+                schema_file = schema_file,
+                extraction_prompt_file = extraction_prompt_file,
+                refinement_prompt_file = refinement_prompt_file,
+                force_reprocess_ocr = force_reprocess_ocr,
+                force_reprocess_metadata = force_reprocess_metadata,
+                force_reprocess_extraction = force_reprocess_extraction,
+                run_extraction = run_extraction,
+                run_refinement = run_refinement,
+                min_similarity = min_similarity,
+                embedding_provider = embedding_provider,
+                similarity_method = similarity_method
+              )
+            }, type = "message")
+            list(result = result, output = output)
+          } else {
+            ecoextract::process_single_document(
+              pdf_file = pdf_file,
+              db_conn = db_path,
+              schema_file = schema_file,
+              extraction_prompt_file = extraction_prompt_file,
+              refinement_prompt_file = refinement_prompt_file,
+              force_reprocess_ocr = force_reprocess_ocr,
+              force_reprocess_metadata = force_reprocess_metadata,
+              force_reprocess_extraction = force_reprocess_extraction,
+              run_extraction = run_extraction,
+              run_refinement = run_refinement,
+              min_similarity = min_similarity,
+              embedding_provider = embedding_provider,
+              similarity_method = similarity_method
+            )
+          }
+        },
         data = list(
           pdf_file = pdf_files[i],
           db_path = db_path,
@@ -326,7 +351,8 @@ process_documents <- function(pdf_path,
           run_refinement = run_refinement,
           min_similarity = min_similarity,
           embedding_provider = embedding_provider,
-          similarity_method = similarity_method
+          similarity_method = similarity_method,
+          capture_output = !is.null(log_file)
         ),
         name = basename(pdf_files[i])
       )
@@ -354,8 +380,10 @@ process_documents <- function(pdf_path,
             refinement_status = "skipped",
             records_extracted = 0
           )
-          cat(sprintf("[%d/%d] %s errored: %s\n",
-                      completed, total, result$name, result$error))
+          # Console output for error
+          cat(sprintf("[%d/%d] %s\n", completed, total, result$name))
+          cat(sprintf("Status: ERROR\n"))
+          cat(sprintf("  Error: %s\n\n", result$error))
 
           # Log error details
           if (!is.null(log_file)) {
@@ -370,21 +398,44 @@ process_documents <- function(pdf_path,
             cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
           }
         } else {
-          results_list[[completed]] <- result$result
-          cat(sprintf("[%d/%d] %s completed\n",
-                      completed, total, result$name))
-
-          # Log success details
-          if (!is.null(log_file)) {
+          # Extract result - handle both logging and non-logging formats
+          if (!is.null(log_file) && is.list(result$result) && "output" %in% names(result$result)) {
+            # Logging enabled: result contains {result, output}
+            worker_output <- result$result$output
+            r <- result$result$result
+          } else {
+            # No logging: result is the status list directly
+            worker_output <- NULL
             r <- result$result
+          }
+          results_list[[completed]] <- r
+
+          # Console output with status details
+          cat(sprintf("[%d/%d] %s\n", completed, total, result$name))
+          cat("Status: COMPLETED\n")
+          cat(sprintf("  OCR: %s\n", r$ocr_status))
+          cat(sprintf("  Metadata: %s\n", r$metadata_status))
+          cat(sprintf("  Extraction: %s\n", r$extraction_status))
+          cat(sprintf("  Refinement: %s\n", r$refinement_status))
+          cat(sprintf("  Records: %d\n\n", r$records_extracted))
+
+          # Log full workflow output if available
+          if (!is.null(log_file)) {
             cat(sprintf("\n[%s] [%d/%d] %s\n", timestamp, completed, total, result$name),
                 file = log_file, append = TRUE)
-            cat("Status: COMPLETED\n", file = log_file, append = TRUE)
-            cat(sprintf("  OCR: %s\n", r$ocr_status), file = log_file, append = TRUE)
-            cat(sprintf("  Metadata: %s\n", r$metadata_status), file = log_file, append = TRUE)
-            cat(sprintf("  Extraction: %s\n", r$extraction_status), file = log_file, append = TRUE)
-            cat(sprintf("  Refinement: %s\n", r$refinement_status), file = log_file, append = TRUE)
-            cat(sprintf("  Records: %d\n", r$records_extracted), file = log_file, append = TRUE)
+            cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
+            if (!is.null(worker_output) && length(worker_output) > 0) {
+              # Write full captured workflow output
+              cat(worker_output, file = log_file, append = TRUE, sep = "\n")
+            } else {
+              # Fallback to summary if no captured output
+              cat("Status: COMPLETED\n", file = log_file, append = TRUE)
+              cat(sprintf("  OCR: %s\n", r$ocr_status), file = log_file, append = TRUE)
+              cat(sprintf("  Metadata: %s\n", r$metadata_status), file = log_file, append = TRUE)
+              cat(sprintf("  Extraction: %s\n", r$extraction_status), file = log_file, append = TRUE)
+              cat(sprintf("  Refinement: %s\n", r$refinement_status), file = log_file, append = TRUE)
+              cat(sprintf("  Records: %d\n", r$records_extracted), file = log_file, append = TRUE)
+            }
             cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
           }
         }
