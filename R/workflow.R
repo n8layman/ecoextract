@@ -68,6 +68,9 @@ validate_force_param <- function(param, param_name) {
 #' @param recursive If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.
 #' @param workers Number of parallel workers. NULL (default) or 1 for sequential processing.
 #'   Values > 1 require the crew package and db_conn must be a file path (not a connection object).
+#' @param log If TRUE and using parallel processing (workers > 1), write detailed output
+#'   to an auto-generated log file (e.g., ecoextract_20240129_143052.log). Default FALSE.
+#'   Ignored for sequential processing. Useful for troubleshooting errors.
 #' @return Tibble with processing results
 #' @export
 #'
@@ -119,6 +122,9 @@ validate_force_param <- function(param, param_name) {
 #'
 #' # Process in parallel with 4 workers (requires crew package)
 #' process_documents("pdfs/", workers = 4)
+#'
+#' # Parallel with logging for troubleshooting
+#' process_documents("pdfs/", workers = 4, log = TRUE)
 #' }
 process_documents <- function(pdf_path,
                              db_conn = "ecoextract_records.db",
@@ -134,7 +140,8 @@ process_documents <- function(pdf_path,
                              embedding_provider = "openai",
                              similarity_method = "llm",
                              recursive = FALSE,
-                             workers = NULL) {
+                             workers = NULL,
+                             log = FALSE) {
 
   # Validate force parameters
   validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
@@ -266,6 +273,21 @@ process_documents <- function(pdf_path,
     # Parallel processing with crew
     cat("Starting parallel processing with", workers, "workers\n\n")
 
+    # Initialize log file if logging enabled
+    log_file <- NULL
+    if (isTRUE(log)) {
+      log_file <- sprintf("ecoextract_%s.log", format(Sys.time(), "%Y%m%d_%H%M%S"))
+      cat("Logging to:", log_file, "\n\n")
+      writeLines(c(
+        sprintf("EcoExtract Parallel Processing Log"),
+        sprintf("Started: %s", Sys.time()),
+        sprintf("Workers: %d", workers),
+        sprintf("PDFs: %d", length(pdf_files)),
+        strrep("=", 70),
+        ""
+      ), log_file)
+    }
+
     controller <- crew::crew_controller_local(
       workers = workers,
       seconds_idle = 60
@@ -319,6 +341,8 @@ process_documents <- function(pdf_path,
       result <- controller$pop()
       if (!is.null(result)) {
         completed <- completed + 1
+        timestamp <- format(Sys.time(), "%H:%M:%S")
+
         if (!is.null(result$error)) {
           errors <- errors + 1
           results_list[[completed]] <- list(
@@ -332,13 +356,47 @@ process_documents <- function(pdf_path,
           )
           cat(sprintf("[%d/%d] %s errored: %s\n",
                       completed, total, result$name, result$error))
+
+          # Log error details
+          if (!is.null(log_file)) {
+            cat(sprintf("\n[%s] [%d/%d] %s\n", timestamp, completed, total, result$name),
+                file = log_file, append = TRUE)
+            cat("Status: ERROR\n", file = log_file, append = TRUE)
+            cat(sprintf("Error: %s\n", result$error), file = log_file, append = TRUE)
+            if (!is.null(result$trace)) {
+              cat("Traceback:\n", file = log_file, append = TRUE)
+              cat(result$trace, file = log_file, append = TRUE, sep = "\n")
+            }
+            cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
+          }
         } else {
           results_list[[completed]] <- result$result
           cat(sprintf("[%d/%d] %s completed\n",
                       completed, total, result$name))
+
+          # Log success details
+          if (!is.null(log_file)) {
+            r <- result$result
+            cat(sprintf("\n[%s] [%d/%d] %s\n", timestamp, completed, total, result$name),
+                file = log_file, append = TRUE)
+            cat("Status: COMPLETED\n", file = log_file, append = TRUE)
+            cat(sprintf("  OCR: %s\n", r$ocr_status), file = log_file, append = TRUE)
+            cat(sprintf("  Metadata: %s\n", r$metadata_status), file = log_file, append = TRUE)
+            cat(sprintf("  Extraction: %s\n", r$extraction_status), file = log_file, append = TRUE)
+            cat(sprintf("  Refinement: %s\n", r$refinement_status), file = log_file, append = TRUE)
+            cat(sprintf("  Records: %d\n", r$records_extracted), file = log_file, append = TRUE)
+            cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
+          }
         }
       }
       Sys.sleep(0.1)
+    }
+
+    # Write log summary
+    if (!is.null(log_file)) {
+      cat(sprintf("\n%s\nCompleted: %s\nTotal: %d | Success: %d | Errors: %d\n",
+                  strrep("=", 70), Sys.time(), total, total - errors, errors),
+          file = log_file, append = TRUE)
     }
 
   } else {

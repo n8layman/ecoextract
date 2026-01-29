@@ -19,7 +19,8 @@ process_documents(
   embedding_provider = "openai",
   similarity_method = "llm",
   recursive = FALSE,
-  workers = NULL
+  workers = NULL,
+  log = FALSE
 )
 }
 \arguments{
@@ -60,6 +61,10 @@ to refine only specific documents.}
 
 \item{workers}{Number of parallel workers. NULL (default) or 1 for sequential processing.
 Values > 1 require the crew package and db_conn must be a file path (not a connection object).}
+
+\item{log}{If TRUE and using parallel processing (workers > 1), write detailed output
+to an auto-generated log file (e.g., ecoextract_20240129_143052.log). Default FALSE.
+Ignored for sequential processing. Useful for troubleshooting errors.}
 }
 \value{
 Tibble with processing results
@@ -115,5 +120,8 @@ process_documents("research_papers/", recursive = TRUE)
 
 # Process in parallel with 4 workers (requires crew package)
 process_documents("pdfs/", workers = 4)
+
+# Parallel with logging for troubleshooting
+process_documents("pdfs/", workers = 4, log = TRUE)
 }
 }
