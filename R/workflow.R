@@ -330,15 +330,16 @@ process_documents <- function(pdf_path,
             refinement_status = "skipped",
             records_extracted = 0
           )
+          cat(sprintf("[%d/%d] %s errored: %s\n",
+                      completed, total, result$name, result$error))
         } else {
           results_list[[completed]] <- result$result
+          cat(sprintf("[%d/%d] %s completed\n",
+                      completed, total, result$name))
         }
-        cat(sprintf("\r[%d/%d] Completed: %d | Errors: %d    ",
-                    completed, total, completed - errors, errors))
       }
       Sys.sleep(0.1)
     }
-    cat("\n")
 
   } else {
     # Sequential processing
