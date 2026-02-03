@@ -54,6 +54,8 @@ rsconnect/
 plan.md
 *.sqlite
 *.db
+*.db-wal
+*.db-shm
 *.log
 
 **/.DS_Store

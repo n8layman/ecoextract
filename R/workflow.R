@@ -288,6 +288,9 @@ process_documents <- function(pdf_path,
       ), log_file)
     }
 
+    # Capture all environment variables to pass to workers
+    parent_env <- Sys.getenv()
+
     controller <- crew::crew_controller_local(
       workers = workers,
       seconds_idle = 60
@@ -300,25 +303,35 @@ process_documents <- function(pdf_path,
     for (i in seq_along(pdf_files)) {
       controller$push(
         command = {
+          # Restore parent environment variables in worker
+          do.call(Sys.setenv, as.list(parent_env))
+
           # Capture message() output if logging enabled
           if (capture_output) {
-            output <- utils::capture.output({
-              result <- ecoextract::process_single_document(
-                pdf_file = pdf_file,
-                db_conn = db_path,
-                schema_file = schema_file,
-                extraction_prompt_file = extraction_prompt_file,
-                refinement_prompt_file = refinement_prompt_file,
-                force_reprocess_ocr = force_reprocess_ocr,
-                force_reprocess_metadata = force_reprocess_metadata,
-                force_reprocess_extraction = force_reprocess_extraction,
-                run_extraction = run_extraction,
-                run_refinement = run_refinement,
-                min_similarity = min_similarity,
-                embedding_provider = embedding_provider,
-                similarity_method = similarity_method
-              )
-            }, type = "message")
+            output <- character(0)
+            result <- tryCatch({
+              output <- utils::capture.output({
+                res <- ecoextract::process_single_document(
+                  pdf_file = pdf_file,
+                  db_conn = db_path,
+                  schema_file = schema_file,
+                  extraction_prompt_file = extraction_prompt_file,
+                  refinement_prompt_file = refinement_prompt_file,
+                  force_reprocess_ocr = force_reprocess_ocr,
+                  force_reprocess_metadata = force_reprocess_metadata,
+                  force_reprocess_extraction = force_reprocess_extraction,
+                  run_extraction = run_extraction,
+                  run_refinement = run_refinement,
+                  min_similarity = min_similarity,
+                  embedding_provider = embedding_provider,
+                  similarity_method = similarity_method
+                )
+              }, type = "message")
+              res
+            }, error = function(e) {
+              # Re-throw with captured output attached
+              stop(paste0(conditionMessage(e), "\n\nCaptured output:\n", paste(output, collapse = "\n")))
+            })
             list(result = result, output = output)
           } else {
             ecoextract::process_single_document(
@@ -352,7 +365,8 @@ process_documents <- function(pdf_path,
           min_similarity = min_similarity,
           embedding_provider = embedding_provider,
           similarity_method = similarity_method,
-          capture_output = !is.null(log_file)
+          capture_output = !is.null(log_file),
+          parent_env = parent_env
         ),
         name = basename(pdf_files[i])
       )
@@ -369,12 +383,24 @@ process_documents <- function(pdf_path,
         completed <- completed + 1
         timestamp <- format(Sys.time(), "%H:%M:%S")
 
-        if (!is.null(result$error)) {
+        # Check status - crew returns "success", "error", "crash", or "cancel"
+        task_failed <- result$status != "success"
+        error_msg <- if (task_failed) {
+          if (!is.na(result$error) && nzchar(result$error)) {
+            result$error
+          } else if (result$status == "crash") {
+            "Worker crashed unexpectedly"
+          } else {
+            paste("Task failed with status:", result$status)
+          }
+        } else NULL
+
+        if (task_failed) {
           errors <- errors + 1
           results_list[[completed]] <- list(
             filename = result$name,
             document_id = NA,
-            ocr_status = paste("Error:", result$error),
+            ocr_status = paste("Error:", error_msg),
             metadata_status = "skipped",
             extraction_status = "skipped",
             refinement_status = "skipped",
@@ -382,31 +408,34 @@ process_documents <- function(pdf_path,
           )
           # Console output for error
           cat(sprintf("[%d/%d] %s\n", completed, total, result$name))
-          cat(sprintf("Status: ERROR\n"))
-          cat(sprintf("  Error: %s\n\n", result$error))
+          cat(sprintf("Status: %s\n", toupper(result$status)))
+          cat(sprintf("  Error: %s\n\n", error_msg))
 
           # Log error details
           if (!is.null(log_file)) {
             cat(sprintf("\n[%s] [%d/%d] %s\n", timestamp, completed, total, result$name),
                 file = log_file, append = TRUE)
-            cat("Status: ERROR\n", file = log_file, append = TRUE)
-            cat(sprintf("Error: %s\n", result$error), file = log_file, append = TRUE)
-            if (!is.null(result$trace)) {
+            cat(sprintf("Status: %s\n", toupper(result$status)), file = log_file, append = TRUE)
+            cat(sprintf("Error: %s\n", error_msg), file = log_file, append = TRUE)
+            if (!is.na(result$trace) && nzchar(result$trace)) {
               cat("Traceback:\n", file = log_file, append = TRUE)
               cat(result$trace, file = log_file, append = TRUE, sep = "\n")
             }
             cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
           }
         } else {
+          # crew returns a tibble, result$result is a list column - extract first element
+          raw_result <- result$result[[1]]
+
           # Extract result - handle both logging and non-logging formats
-          if (!is.null(log_file) && is.list(result$result) && "output" %in% names(result$result)) {
+          if (!is.null(log_file) && is.list(raw_result) && "output" %in% names(raw_result)) {
             # Logging enabled: result contains {result, output}
-            worker_output <- result$result$output
-            r <- result$result$result
+            worker_output <- raw_result$output
+            r <- raw_result$result
           } else {
             # No logging: result is the status list directly
             worker_output <- NULL
-            r <- result$result
+            r <- raw_result
           }
           results_list[[completed]] <- r
 
@@ -476,7 +505,7 @@ process_documents <- function(pdf_path,
 
   # Convert results to tibble
   results_tibble <- tibble::tibble(
-    filename = sapply(results_list, function(x) x$filename),
+    filename = sapply(results_list, function(x) x$file_name %||% x$filename),
     document_id = sapply(results_list, function(x) rlang::`%||%`(x$document_id, NA)),
     ocr_status = sapply(results_list, function(x) x$ocr_status),
     metadata_status = sapply(results_list, function(x) x$metadata_status),
