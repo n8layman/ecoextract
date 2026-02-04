@@ -65,6 +65,12 @@ validate_force_param <- function(param, param_name) {
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
+#' @param recursive If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.
+#' @param workers Number of parallel workers. NULL (default) or 1 for sequential processing.
+#'   Values > 1 require the crew package and db_conn must be a file path (not a connection object).
+#' @param log If TRUE and using parallel processing (workers > 1), write detailed output
+#'   to an auto-generated log file (e.g., ecoextract_20240129_143052.log). Default FALSE.
+#'   Ignored for sequential processing. Useful for troubleshooting errors.
 #' @return Tibble with processing results
 #' @export
 #'
@@ -110,6 +116,15 @@ validate_force_param <- function(param, param_name) {
 #'
 #' # Skip extraction, refinement only on existing records
 #' process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
+#'
+#' # Search for PDFs in all subdirectories
+#' process_documents("research_papers/", recursive = TRUE)
+#'
+#' # Process in parallel with 4 workers (requires crew package)
+#' process_documents("pdfs/", workers = 4)
+#'
+#' # Parallel with logging for troubleshooting
+#' process_documents("pdfs/", workers = 4, log = TRUE)
 #' }
 process_documents <- function(pdf_path,
                              db_conn = "ecoextract_records.db",
@@ -123,13 +138,34 @@ process_documents <- function(pdf_path,
                              run_refinement = NULL,
                              min_similarity = 0.9,
                              embedding_provider = "openai",
-                             similarity_method = "llm") {
+                             similarity_method = "llm",
+                             recursive = FALSE,
+                             workers = NULL,
+                             log = FALSE) {
 
   # Validate force parameters
- validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
- validate_force_param(force_reprocess_metadata, "force_reprocess_metadata")
- validate_force_param(force_reprocess_extraction, "force_reprocess_extraction")
- validate_force_param(run_refinement, "run_refinement")
+  validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
+  validate_force_param(force_reprocess_metadata, "force_reprocess_metadata")
+  validate_force_param(force_reprocess_extraction, "force_reprocess_extraction")
+  validate_force_param(run_refinement, "run_refinement")
+
+  # Validate workers parameter
+  use_parallel <- FALSE
+  if (!is.null(workers)) {
+    if (!is.numeric(workers) || length(workers) != 1 || workers < 1) {
+      stop("workers must be NULL or a positive integer")
+    }
+    workers <- as.integer(workers)
+    if (workers > 1) {
+      if (!requireNamespace("crew", quietly = TRUE)) {
+        stop("Package 'crew' required for parallel processing. Install with: install.packages('crew')")
+      }
+      if (inherits(db_conn, "DBIConnection")) {
+        stop("Parallel processing requires db_conn to be a file path, not a connection object")
+      }
+      use_parallel <- TRUE
+    }
+  }
 
   # Determine if processing single file, multiple files, or directory
   if (length(pdf_path) > 1) {
@@ -143,11 +179,21 @@ process_documents <- function(pdf_path,
   } else if (file.exists(pdf_path)) {
     if (dir.exists(pdf_path)) {
       # Process directory
-      pdf_files <- list.files(pdf_path, pattern = "\\.pdf$", full.names = TRUE, ignore.case = TRUE)
+      pdf_files <- list.files(pdf_path, pattern = "\\.pdf$", full.names = TRUE,
+                              ignore.case = TRUE, recursive = recursive)
       if (length(pdf_files) == 0) {
-        stop("No PDF files found in directory: ", pdf_path)
+        if (recursive) {
+          stop("No PDF files found in directory or subdirectories: ", pdf_path)
+        } else {
+          stop("No PDF files found in directory: ", pdf_path,
+               "\n  Use recursive = TRUE to search subdirectories")
+        }
       }
-      cat("Found", length(pdf_files), "PDF files to process\n\n")
+      if (recursive) {
+        cat("Found", length(pdf_files), "PDF files to process (including subdirectories)\n\n")
+      } else {
+        cat("Found", length(pdf_files), "PDF files to process\n\n")
+      }
     } else if (grepl("\\.pdf$", pdf_path, ignore.case = TRUE)) {
       # Single file
       pdf_files <- pdf_path
@@ -198,48 +244,268 @@ process_documents <- function(pdf_path,
     cat("\n")
   }
 
- # Handle database connection - accept either connection object or path
+  # Handle database connection
+  # For parallel: keep as path, workers connect individually
+  # For sequential: connect here and pass connection
+  db_path <- NULL
   if (!inherits(db_conn, "DBIConnection")) {
-    # Path string - initialize if needed, then connect
+    db_path <- db_conn
+    # Initialize DB if needed
     if (!file.exists(db_conn)) {
       cat("Initializing new database:", db_conn, "\n")
       init_ecoextract_database(db_conn, schema_file = schema_src$path)
     }
-    db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
-    configure_sqlite_connection(db_conn)
-    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+    if (!use_parallel) {
+      # Sequential mode: connect now
+      db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+      configure_sqlite_connection(db_conn)
+      on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+    }
   }
 
   # Track timing
   start_time <- Sys.time()
 
-  # Process each PDF and collect results
+  # Process documents
   results_list <- list()
 
-  for (pdf_file in pdf_files) {
-    result <- process_single_document(
-      pdf_file = pdf_file,
-      db_conn = db_conn,
-      schema_file = schema_src$path,
-      extraction_prompt_file = extraction_prompt_file,
-      refinement_prompt_file = refinement_prompt_file,
-      force_reprocess_ocr = force_reprocess_ocr,
-      force_reprocess_metadata = force_reprocess_metadata,
-      force_reprocess_extraction = force_reprocess_extraction,
-      run_extraction = run_extraction,
-      run_refinement = run_refinement,
-      min_similarity = min_similarity,
-      embedding_provider = embedding_provider,
-      similarity_method = similarity_method
+  if (use_parallel) {
+    # Parallel processing with crew
+    cat("Starting parallel processing with", workers, "workers\n\n")
+
+    # Initialize log file if logging enabled
+    log_file <- NULL
+    if (isTRUE(log)) {
+      log_file <- sprintf("ecoextract_%s.log", format(Sys.time(), "%Y%m%d_%H%M%S"))
+      cat("Logging to:", log_file, "\n\n")
+      writeLines(c(
+        sprintf("EcoExtract Parallel Processing Log"),
+        sprintf("Started: %s", Sys.time()),
+        sprintf("Workers: %d", workers),
+        sprintf("PDFs: %d", length(pdf_files)),
+        strrep("=", 70),
+        ""
+      ), log_file)
+    }
+
+    # Capture all environment variables to pass to workers
+    parent_env <- Sys.getenv()
+
+    controller <- crew::crew_controller_local(
+      workers = workers,
+      seconds_idle = 60
     )
-    results_list[[length(results_list) + 1]] <- result
+    controller$start()
+    on.exit(controller$terminate(), add = TRUE)
+
+    # Push tasks for each PDF
+    # When logging, capture all message() output from the worker
+    for (i in seq_along(pdf_files)) {
+      controller$push(
+        command = {
+          # Restore parent environment variables in worker
+          do.call(Sys.setenv, as.list(parent_env))
+
+          # Capture message() output if logging enabled
+          if (capture_output) {
+            output <- character(0)
+            result <- tryCatch({
+              output <- utils::capture.output({
+                res <- ecoextract::process_single_document(
+                  pdf_file = pdf_file,
+                  db_conn = db_path,
+                  schema_file = schema_file,
+                  extraction_prompt_file = extraction_prompt_file,
+                  refinement_prompt_file = refinement_prompt_file,
+                  force_reprocess_ocr = force_reprocess_ocr,
+                  force_reprocess_metadata = force_reprocess_metadata,
+                  force_reprocess_extraction = force_reprocess_extraction,
+                  run_extraction = run_extraction,
+                  run_refinement = run_refinement,
+                  min_similarity = min_similarity,
+                  embedding_provider = embedding_provider,
+                  similarity_method = similarity_method
+                )
+              }, type = "message")
+              res
+            }, error = function(e) {
+              # Re-throw with captured output attached
+              stop(paste0(conditionMessage(e), "\n\nCaptured output:\n", paste(output, collapse = "\n")))
+            })
+            list(result = result, output = output)
+          } else {
+            ecoextract::process_single_document(
+              pdf_file = pdf_file,
+              db_conn = db_path,
+              schema_file = schema_file,
+              extraction_prompt_file = extraction_prompt_file,
+              refinement_prompt_file = refinement_prompt_file,
+              force_reprocess_ocr = force_reprocess_ocr,
+              force_reprocess_metadata = force_reprocess_metadata,
+              force_reprocess_extraction = force_reprocess_extraction,
+              run_extraction = run_extraction,
+              run_refinement = run_refinement,
+              min_similarity = min_similarity,
+              embedding_provider = embedding_provider,
+              similarity_method = similarity_method
+            )
+          }
+        },
+        data = list(
+          pdf_file = pdf_files[i],
+          db_path = db_path,
+          schema_file = schema_src$path,
+          extraction_prompt_file = extraction_prompt_file,
+          refinement_prompt_file = refinement_prompt_file,
+          force_reprocess_ocr = force_reprocess_ocr,
+          force_reprocess_metadata = force_reprocess_metadata,
+          force_reprocess_extraction = force_reprocess_extraction,
+          run_extraction = run_extraction,
+          run_refinement = run_refinement,
+          min_similarity = min_similarity,
+          embedding_provider = embedding_provider,
+          similarity_method = similarity_method,
+          capture_output = !is.null(log_file),
+          parent_env = parent_env
+        ),
+        name = basename(pdf_files[i])
+      )
+    }
+
+    # Collect results with progress
+    completed <- 0
+    errors <- 0
+    total <- length(pdf_files)
+
+    while (completed < total) {
+      result <- controller$pop()
+      if (!is.null(result)) {
+        completed <- completed + 1
+        timestamp <- format(Sys.time(), "%H:%M:%S")
+
+        # Check status - crew returns "success", "error", "crash", or "cancel"
+        task_failed <- result$status != "success"
+        error_msg <- if (task_failed) {
+          if (!is.na(result$error) && nzchar(result$error)) {
+            result$error
+          } else if (result$status == "crash") {
+            "Worker crashed unexpectedly"
+          } else {
+            paste("Task failed with status:", result$status)
+          }
+        } else NULL
+
+        if (task_failed) {
+          errors <- errors + 1
+          results_list[[completed]] <- list(
+            filename = result$name,
+            document_id = NA,
+            ocr_status = paste("Error:", error_msg),
+            metadata_status = "skipped",
+            extraction_status = "skipped",
+            refinement_status = "skipped",
+            records_extracted = 0
+          )
+          # Console output for error
+          cat(sprintf("[%d/%d] %s\n", completed, total, result$name))
+          cat(sprintf("Status: %s\n", toupper(result$status)))
+          cat(sprintf("  Error: %s\n\n", error_msg))
+
+          # Log error details
+          if (!is.null(log_file)) {
+            cat(sprintf("\n[%s] [%d/%d] %s\n", timestamp, completed, total, result$name),
+                file = log_file, append = TRUE)
+            cat(sprintf("Status: %s\n", toupper(result$status)), file = log_file, append = TRUE)
+            cat(sprintf("Error: %s\n", error_msg), file = log_file, append = TRUE)
+            if (!is.na(result$trace) && nzchar(result$trace)) {
+              cat("Traceback:\n", file = log_file, append = TRUE)
+              cat(result$trace, file = log_file, append = TRUE, sep = "\n")
+            }
+            cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
+          }
+        } else {
+          # crew returns a tibble, result$result is a list column - extract first element
+          raw_result <- result$result[[1]]
+
+          # Extract result - handle both logging and non-logging formats
+          if (!is.null(log_file) && is.list(raw_result) && "output" %in% names(raw_result)) {
+            # Logging enabled: result contains {result, output}
+            worker_output <- raw_result$output
+            r <- raw_result$result
+          } else {
+            # No logging: result is the status list directly
+            worker_output <- NULL
+            r <- raw_result
+          }
+          results_list[[completed]] <- r
+
+          # Console output with status details
+          cat(sprintf("[%d/%d] %s\n", completed, total, result$name))
+          cat("Status: COMPLETED\n")
+          cat(sprintf("  OCR: %s\n", r$ocr_status))
+          cat(sprintf("  Metadata: %s\n", r$metadata_status))
+          cat(sprintf("  Extraction: %s\n", r$extraction_status))
+          cat(sprintf("  Refinement: %s\n", r$refinement_status))
+          cat(sprintf("  Records: %d\n\n", r$records_extracted))
+
+          # Log full workflow output if available
+          if (!is.null(log_file)) {
+            cat(sprintf("\n[%s] [%d/%d] %s\n", timestamp, completed, total, result$name),
+                file = log_file, append = TRUE)
+            cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
+            if (!is.null(worker_output) && length(worker_output) > 0) {
+              # Write full captured workflow output
+              cat(worker_output, file = log_file, append = TRUE, sep = "\n")
+            } else {
+              # Fallback to summary if no captured output
+              cat("Status: COMPLETED\n", file = log_file, append = TRUE)
+              cat(sprintf("  OCR: %s\n", r$ocr_status), file = log_file, append = TRUE)
+              cat(sprintf("  Metadata: %s\n", r$metadata_status), file = log_file, append = TRUE)
+              cat(sprintf("  Extraction: %s\n", r$extraction_status), file = log_file, append = TRUE)
+              cat(sprintf("  Refinement: %s\n", r$refinement_status), file = log_file, append = TRUE)
+              cat(sprintf("  Records: %d\n", r$records_extracted), file = log_file, append = TRUE)
+            }
+            cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
+          }
+        }
+      }
+      Sys.sleep(0.1)
+    }
+
+    # Write log summary
+    if (!is.null(log_file)) {
+      cat(sprintf("\n%s\nCompleted: %s\nTotal: %d | Success: %d | Errors: %d\n",
+                  strrep("=", 70), Sys.time(), total, total - errors, errors),
+          file = log_file, append = TRUE)
+    }
+
+  } else {
+    # Sequential processing
+    for (pdf_file in pdf_files) {
+      result <- process_single_document(
+        pdf_file = pdf_file,
+        db_conn = db_conn,
+        schema_file = schema_src$path,
+        extraction_prompt_file = extraction_prompt_file,
+        refinement_prompt_file = refinement_prompt_file,
+        force_reprocess_ocr = force_reprocess_ocr,
+        force_reprocess_metadata = force_reprocess_metadata,
+        force_reprocess_extraction = force_reprocess_extraction,
+        run_extraction = run_extraction,
+        run_refinement = run_refinement,
+        min_similarity = min_similarity,
+        embedding_provider = embedding_provider,
+        similarity_method = similarity_method
+      )
+      results_list[[length(results_list) + 1]] <- result
+    }
   }
 
   end_time <- Sys.time()
 
   # Convert results to tibble
   results_tibble <- tibble::tibble(
-    filename = sapply(results_list, function(x) x$filename),
+    filename = sapply(results_list, function(x) x$file_name %||% x$filename),
     document_id = sapply(results_list, function(x) rlang::`%||%`(x$document_id, NA)),
     ocr_status = sapply(results_list, function(x) x$ocr_status),
     metadata_status = sapply(results_list, function(x) x$metadata_status),
@@ -315,7 +581,7 @@ process_documents <- function(pdf_path,
 #' @param embedding_provider Provider for embeddings (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
 #' @return List with processing result
-#' @keywords internal
+#' @export
 process_single_document <- function(pdf_file,
                                     db_conn,
                                     schema_file = NULL,

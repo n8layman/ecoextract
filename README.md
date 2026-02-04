@@ -179,6 +179,13 @@ results <- process_documents(
   db_conn = "ecoextract_records.db",
   force_reprocess_extraction = c(5L, 12L)
 )
+
+# Search for PDFs in all subdirectories
+results <- process_documents(
+  pdf_path = "research_papers/",
+  db_conn = "ecoextract_records.db",
+  recursive = TRUE
+)
 ```
 
 For advanced use cases requiring individual step processing, see the package documentation.
@@ -207,6 +214,39 @@ Each `force_reprocess_*` parameter accepts three values:
 The `run_refinement` parameter works the same way: `NULL` skips refinement, `TRUE` runs on all documents with records, or an integer vector targets specific documents.
 
 See [SKIP_LOGIC.md](SKIP_LOGIC.md) for full details.
+
+## Parallel Processing
+
+Process multiple documents in parallel using the `crew` package:
+
+```r
+# Install crew (optional dependency)
+install.packages("crew")
+
+# Process with 4 parallel workers
+results <- process_documents(
+  pdf_path = "papers/",
+  db_conn = "records.db",
+  workers = 4
+)
+
+# With logging for troubleshooting
+results <- process_documents(
+  pdf_path = "papers/",
+  db_conn = "records.db",
+  workers = 4,
+  log = TRUE  # Creates ecoextract_YYYYMMDD_HHMMSS.log
+)
+```
+
+**Notes:**
+
+- Requires `db_conn` to be a file path (not a connection object)
+- Each worker opens its own database connection (SQLite WAL mode enabled)
+- Progress is shown as documents complete: `[1/10] paper.pdf completed`
+- Crash-resilient: completed documents are saved immediately to the database
+- Resume by re-running -- skip logic will detect completed documents
+- Use `log = TRUE` to capture detailed output for troubleshooting
 
 ## Deduplication
 
