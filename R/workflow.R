@@ -1,3 +1,6 @@
+# Variables passed via crew's data argument to worker processes
+utils::globalVariables("capture_output")
+
 #' Check if a document should be forced to reprocess
 #'
 #' @param force_param NULL, TRUE, or integer vector of document_ids

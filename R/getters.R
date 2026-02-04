@@ -499,3 +499,238 @@ export_db <- function(document_id = NULL,
   })
 }
 
+#' Diff Records Between Original and Edited Versions
+#'
+#' Compares two record dataframes and categorizes changes by record_id.
+#'
+#' @param original_df Original records dataframe (before edits)
+#' @param records_df Edited records dataframe (after edits)
+#' @return List with: $modified (record_ids), $added (dataframe), $deleted (record_ids)
+#' @keywords internal
+diff_records <- function(original_df, records_df) {
+  # Metadata columns to exclude from comparison
+
+  metadata_cols <- c(
+    "id", "document_id", "record_id", "extraction_timestamp",
+    "llm_model_version", "prompt_hash", "fields_changed_count",
+    "flagged_for_review", "review_reason", "human_edited",
+    "rejected", "deleted_by_user"
+  )
+
+  orig_ids <- original_df$record_id
+
+orig_ids <- orig_ids[!is.na(orig_ids)]
+  new_ids <- records_df$record_id
+  new_ids <- new_ids[!is.na(new_ids)]
+
+  added_ids <- setdiff(new_ids, orig_ids)
+  deleted_ids <- setdiff(orig_ids, new_ids)
+  common_ids <- intersect(orig_ids, new_ids)
+
+  # Check which common records have schema field changes
+  schema_cols <- setdiff(names(original_df), metadata_cols)
+  schema_cols <- intersect(schema_cols, names(records_df))
+
+  modified_ids <- character(0)
+  for (rid in common_ids) {
+    orig_row <- original_df[original_df$record_id == rid, schema_cols, drop = FALSE]
+    new_row <- records_df[records_df$record_id == rid, schema_cols, drop = FALSE]
+
+    # Compare values (handle NA equality)
+    changed <- !mapply(function(a, b) {
+      identical(as.character(a), as.character(b))
+    }, orig_row, new_row)
+
+    if (any(changed)) {
+      modified_ids <- c(modified_ids, rid)
+    }
+  }
+
+  list(
+    modified = modified_ids,
+    added = records_df[records_df$record_id %in% added_ids, , drop = FALSE],
+    deleted = deleted_ids
+  )
+}
+
+#' Save Document After Human Review
+#'
+#' Updates document metadata with review timestamp and saves modified records,
+#' marking changed rows as human_edited. Designed for Shiny app review workflows.
+#'
+#' @param document_id Document ID to update
+#' @param records_df Updated records dataframe (from Shiny editor)
+#' @param original_df Original records dataframe (before edits, for diff). If NULL,
+#'   only updates reviewed_at timestamp without modifying records.
+#' @param db_conn Database connection or path to SQLite database file
+#' @param ... Additional metadata fields to update on the document
+#' @return Invisibly returns the document_id
+#' @export
+#' @examples
+#' \dontrun{
+#' # In Shiny app "Accept" button handler
+#' save_document(
+#'   document_id = input$document_select,
+#'   records_df = edited_records(),
+#'   original_df = original_records(),
+#'   db_conn = db_path
+#' )
+#' }
+save_document <- function(document_id, records_df, original_df = NULL,
+                          db_conn = "ecoextract_records.db", ...) {
+  # Handle database connection
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
+    close_on_exit <- TRUE
+  }
+
+  if (close_on_exit) {
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
+  # Validate document exists
+  existing <- DBI::dbGetQuery(con,
+    "SELECT document_id FROM documents WHERE document_id = ?",
+    params = list(document_id))
+  if (nrow(existing) == 0) {
+    stop("Document ID ", document_id, " not found")
+  }
+
+  # Begin transaction
+  DBI::dbBegin(con)
+  tryCatch({
+    # Update document metadata with reviewed_at + any ... args
+    dots <- list(...)
+    reviewed_at <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+
+    if (length(dots) > 0) {
+      # Build dynamic UPDATE for additional fields
+      field_names <- names(dots)
+      set_clause <- paste0(field_names, " = ?", collapse = ", ")
+      query <- paste0("UPDATE documents SET reviewed_at = ?, ", set_clause,
+                      " WHERE document_id = ?")
+      params <- c(list(reviewed_at), unname(dots), list(document_id))
+    } else {
+      query <- "UPDATE documents SET reviewed_at = ? WHERE document_id = ?"
+      params <- list(reviewed_at, document_id)
+    }
+    DBI::dbExecute(con, query, params = params)
+
+    # If original_df provided, diff and update records
+    if (!is.null(original_df) && nrow(original_df) > 0) {
+      changes <- diff_records(original_df, records_df)
+
+      # Handle deleted records
+      if (length(changes$deleted) > 0) {
+        placeholders <- paste(rep("?", length(changes$deleted)), collapse = ", ")
+        DBI::dbExecute(con,
+          paste0("UPDATE records SET deleted_by_user = 1 WHERE document_id = ? AND record_id IN (", placeholders, ")"),
+          params = c(list(document_id), as.list(changes$deleted)))
+      }
+
+      # Handle modified records
+      if (length(changes$modified) > 0) {
+        # Get schema columns (non-metadata)
+        metadata_cols <- c(
+          "id", "document_id", "record_id", "extraction_timestamp",
+          "llm_model_version", "prompt_hash", "fields_changed_count",
+          "flagged_for_review", "review_reason", "human_edited",
+          "rejected", "deleted_by_user"
+        )
+        schema_cols <- setdiff(names(records_df), metadata_cols)
+
+        for (rid in changes$modified) {
+          new_row <- records_df[records_df$record_id == rid, , drop = FALSE]
+          set_parts <- paste0(schema_cols, " = ?", collapse = ", ")
+          query <- paste0("UPDATE records SET ", set_parts,
+                          ", human_edited = 1 WHERE document_id = ? AND record_id = ?")
+
+          # Build params - convert list columns to JSON
+          params <- lapply(schema_cols, function(col) {
+            val <- new_row[[col]]
+            if (is.list(val)) {
+              jsonlite::toJSON(val[[1]], auto_unbox = TRUE)
+            } else {
+              val
+            }
+          })
+          params <- c(params, list(document_id, rid))
+          DBI::dbExecute(con, query, params = params)
+        }
+      }
+
+      # Handle added records
+      if (nrow(changes$added) > 0) {
+        # Get existing record metadata for the document
+        doc_meta <- DBI::dbGetQuery(con,
+          "SELECT first_author_lastname, publication_year FROM documents WHERE document_id = ?",
+          params = list(document_id))
+
+        # Get max sequence number for this document
+        max_seq <- DBI::dbGetQuery(con,
+          "SELECT COUNT(*) as n FROM records WHERE document_id = ?",
+          params = list(document_id))$n
+
+        for (i in seq_len(nrow(changes$added))) {
+          new_row <- changes$added[i, , drop = FALSE]
+
+          # Generate record_id if missing
+          if (is.na(new_row$record_id) || new_row$record_id == "") {
+            new_row$record_id <- generate_record_id(
+              doc_meta$first_author_lastname %||% "Unknown",
+              doc_meta$publication_year %||% format(Sys.Date(), "%Y"),
+              max_seq + i
+            )
+          }
+
+          # Prepare insert
+          metadata_cols <- c(
+            "id", "extraction_timestamp", "llm_model_version", "prompt_hash",
+            "fields_changed_count", "flagged_for_review", "review_reason",
+            "rejected", "deleted_by_user"
+          )
+          insert_cols <- setdiff(names(new_row), metadata_cols)
+          insert_cols <- c(insert_cols, "document_id", "human_edited", "extraction_timestamp",
+                           "llm_model_version", "prompt_hash")
+
+          placeholders <- paste(rep("?", length(insert_cols)), collapse = ", ")
+          query <- paste0("INSERT INTO records (", paste(insert_cols, collapse = ", "),
+                          ") VALUES (", placeholders, ")")
+
+          # Build params
+          params <- lapply(setdiff(insert_cols, c("document_id", "human_edited",
+                                                   "extraction_timestamp", "llm_model_version",
+                                                   "prompt_hash")), function(col) {
+            val <- new_row[[col]]
+            if (is.list(val)) {
+              jsonlite::toJSON(val[[1]], auto_unbox = TRUE)
+            } else {
+              val
+            }
+          })
+          params <- c(params, list(
+            document_id,
+            1L,  # human_edited = TRUE
+            reviewed_at,  # extraction_timestamp
+            "human_review",  # llm_model_version
+            "human_review"   # prompt_hash
+          ))
+
+          DBI::dbExecute(con, query, params = params)
+        }
+      }
+    }
+
+    DBI::dbCommit(con)
+  }, error = function(e) {
+    DBI::dbRollback(con)
+    stop("Error saving document: ", e$message)
+  })
+
+  invisible(document_id)
+}
+
