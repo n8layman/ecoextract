@@ -133,10 +133,9 @@ test_that("save_document marks modified records as human_edited", {
 
   # Modify a record
   edited <- original
-  schema_cols <- setdiff(names(edited), c("record_id", "id", "document_id",
+  schema_cols <- setdiff(names(edited), c("record_id", "document_id",
     "extraction_timestamp", "llm_model_version", "prompt_hash",
-    "fields_changed_count", "flagged_for_review", "review_reason",
-    "human_edited", "rejected", "deleted_by_user"))
+    "fields_changed_count", "human_edited", "deleted_by_user"))
   if (length(schema_cols) > 0) {
     edited[[schema_cols[1]]][1] <- "EDITED_VALUE"
   }
@@ -144,9 +143,9 @@ test_that("save_document marks modified records as human_edited", {
   # Save with changes
   save_document(doc_id, edited, original, db_path)
 
-  # Verify human_edited flag
+  # Verify human_edited timestamp is set
   saved <- get_records(doc_id, db_path)
-  expect_equal(saved$human_edited[1], 1L)
+  expect_false(is.na(saved$human_edited[1]))
 })
 
 test_that("save_document marks deleted records as deleted_by_user", {
@@ -170,12 +169,12 @@ test_that("save_document marks deleted records as deleted_by_user", {
   # Save with deletion
   save_document(doc_id, edited, original, db_path)
 
-  # Verify deleted_by_user flag
+  # Verify deleted_by_user timestamp is set
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   withr::defer(DBI::dbDisconnect(con))
   saved <- DBI::dbReadTable(con, "records")
   deleted_record <- saved[saved$record_id == deleted_id, ]
-  expect_equal(deleted_record$deleted_by_user, 1L)
+  expect_false(is.na(deleted_record$deleted_by_user))
 })
 
 test_that("save_document without original_df only updates reviewed_at", {
@@ -199,7 +198,7 @@ test_that("save_document without original_df only updates reviewed_at", {
   doc <- get_documents(doc_id, db_path)
   expect_false(is.na(doc$reviewed_at))
 
-  # Verify records unchanged (human_edited should still be 0 or FALSE)
+  # Verify records unchanged (human_edited should still be NULL/NA)
   saved <- get_records(doc_id, db_path)
-  expect_true(all(saved$human_edited %in% c(0L, FALSE, NA)))
+  expect_true(all(is.na(saved$human_edited)))
 })

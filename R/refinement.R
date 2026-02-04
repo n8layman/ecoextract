@@ -22,35 +22,41 @@ refine_records <- function(db_conn = NULL, document_id,
   records_count <- 0
 
   tryCatch({
+    # Validate db_conn
+    if (!inherits(db_conn, "DBIConnection")) {
+      stop(paste("db_conn is not a DBIConnection, got:", class(db_conn)))
+    }
+
     # Read document content from database (atomic - starts with DB)
     markdown_text <- get_document_content(document_id, db_conn)
 
     # Read existing records from database
     existing_records <- get_existing_records(document_id, db_conn)
 
-    # Filter out human-edited and rejected records
-    # We need to be careful here. We filter these out the LLM may just find them again but sligthly different
-    # Filter out records that should not be refined
-    # - human_edited: User manually edited, don't touch
-    # - rejected: User rejected this record
-    # - deleted_by_user: User flagged for deletion, don't re-extract or refine
+    # Check if we got valid records (get_existing_records returns NA on error)
+    if (!is.data.frame(existing_records)) {
+      stop("Failed to retrieve existing records from database")
+    }
+
+    # Filter out protected records that should not be refined
+    # - human_edited: User manually edited (timestamp), don't touch
+    # - deleted_by_user: User flagged for deletion (timestamp), don't re-extract or refine
     if (nrow(existing_records) > 0) {
-      # Handle NA values in protection columns (treat NA as FALSE)
-      is_human_edited <- !is.na(existing_records$human_edited) & existing_records$human_edited
-      is_rejected <- !is.na(existing_records$rejected) & existing_records$rejected
+      # Check for non-NULL timestamps (NULL/NA means not edited/deleted)
+      is_human_edited <- !is.na(existing_records$human_edited)
       is_deleted <- if ("deleted_by_user" %in% names(existing_records)) {
-        !is.na(existing_records$deleted_by_user) & existing_records$deleted_by_user
+        !is.na(existing_records$deleted_by_user)
       } else {
         rep(FALSE, nrow(existing_records))
       }
 
-      protected_count <- sum(is_human_edited | is_rejected | is_deleted)
+      protected_count <- sum(is_human_edited | is_deleted)
       if (protected_count > 0) {
-        message(glue::glue("Skipping {protected_count} protected records (human_edited, rejected, or deleted_by_user)"))
+        message(glue::glue("Skipping {protected_count} protected records (human_edited or deleted_by_user)"))
       }
 
-      # Keep only records that are NOT human_edited, NOT rejected, and NOT deleted
-      existing_records <- existing_records[!is_human_edited & !is_rejected & !is_deleted, ]
+      # Keep only records that are NOT human_edited and NOT deleted
+      existing_records <- existing_records[!is_human_edited & !is_deleted, ]
     }
 
     # Skip refinement if no records to refine (refinement only enhances, doesn't create)
@@ -379,10 +385,9 @@ calculate_fields_changed <- function(original_record, refined_record) {
   if (is.data.frame(refined_record)) refined_record <- as.list(refined_record[1,])
 
   # Exclude metadata fields from comparison
-  metadata_fields <- c("id", "document_id", "record_id", "extraction_timestamp",
+  metadata_fields <- c("document_id", "record_id", "extraction_timestamp",
                        "llm_model_version", "prompt_hash", "fields_changed_count",
-                       "flagged_for_review", "review_reason", "human_edited",
-                       "rejected", "deleted_by_user")
+                       "human_edited", "deleted_by_user")
 
   # Get schema fields (all fields except metadata)
   all_fields <- unique(c(names(original_record), names(refined_record)))

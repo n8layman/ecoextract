@@ -415,7 +415,7 @@ export_db <- function(document_id = NULL,
 
     # Get column names to build explicit SELECT
     doc_cols <- DBI::dbListFields(con, "documents")
-    rec_cols <- setdiff(DBI::dbListFields(con, "records"), c("id", "document_id"))
+    rec_cols <- setdiff(DBI::dbListFields(con, "records"), "document_id")
 
     # Build explicit column list with aliases
     select_list <- c(
@@ -476,9 +476,8 @@ export_db <- function(document_id = NULL,
     if (simple && nrow(result) > 0) {
       # Remove processing metadata columns
       metadata_cols <- c(
-        "id", "extraction_timestamp", "llm_model_version", "prompt_hash",
-        "fields_changed_count", "flagged_for_review", "review_reason",
-        "human_edited", "rejected", "deleted_by_user"
+        "extraction_timestamp", "llm_model_version", "prompt_hash",
+        "fields_changed_count", "human_edited", "deleted_by_user"
       )
       result <- result |>
         dplyr::select(-dplyr::any_of(metadata_cols))
@@ -511,10 +510,9 @@ diff_records <- function(original_df, records_df) {
   # Metadata columns to exclude from comparison
 
   metadata_cols <- c(
-    "id", "document_id", "record_id", "extraction_timestamp",
+    "document_id", "record_id", "extraction_timestamp",
     "llm_model_version", "prompt_hash", "fields_changed_count",
-    "flagged_for_review", "review_reason", "human_edited",
-    "rejected", "deleted_by_user"
+    "human_edited", "deleted_by_user"
   )
 
   orig_ids <- original_df$record_id
@@ -628,18 +626,17 @@ save_document <- function(document_id, records_df, original_df = NULL,
       if (length(changes$deleted) > 0) {
         placeholders <- paste(rep("?", length(changes$deleted)), collapse = ", ")
         DBI::dbExecute(con,
-          paste0("UPDATE records SET deleted_by_user = 1 WHERE document_id = ? AND record_id IN (", placeholders, ")"),
-          params = c(list(document_id), as.list(changes$deleted)))
+          paste0("UPDATE records SET deleted_by_user = ? WHERE document_id = ? AND record_id IN (", placeholders, ")"),
+          params = c(list(reviewed_at, document_id), as.list(changes$deleted)))
       }
 
       # Handle modified records
       if (length(changes$modified) > 0) {
         # Get schema columns (non-metadata)
         metadata_cols <- c(
-          "id", "document_id", "record_id", "extraction_timestamp",
+          "document_id", "record_id", "extraction_timestamp",
           "llm_model_version", "prompt_hash", "fields_changed_count",
-          "flagged_for_review", "review_reason", "human_edited",
-          "rejected", "deleted_by_user"
+          "human_edited", "deleted_by_user"
         )
         schema_cols <- setdiff(names(records_df), metadata_cols)
 
@@ -647,7 +644,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
           new_row <- records_df[records_df$record_id == rid, , drop = FALSE]
           set_parts <- paste0(schema_cols, " = ?", collapse = ", ")
           query <- paste0("UPDATE records SET ", set_parts,
-                          ", human_edited = 1 WHERE document_id = ? AND record_id = ?")
+                          ", human_edited = ? WHERE document_id = ? AND record_id = ?")
 
           # Build params - convert list columns to JSON
           params <- lapply(schema_cols, function(col) {
@@ -658,7 +655,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
               val
             }
           })
-          params <- c(params, list(document_id, rid))
+          params <- c(params, list(reviewed_at, document_id, rid))
           DBI::dbExecute(con, query, params = params)
         }
       }
@@ -689,9 +686,8 @@ save_document <- function(document_id, records_df, original_df = NULL,
 
           # Prepare insert
           metadata_cols <- c(
-            "id", "extraction_timestamp", "llm_model_version", "prompt_hash",
-            "fields_changed_count", "flagged_for_review", "review_reason",
-            "rejected", "deleted_by_user"
+            "extraction_timestamp", "llm_model_version", "prompt_hash",
+            "fields_changed_count", "deleted_by_user"
           )
           insert_cols <- setdiff(names(new_row), metadata_cols)
           insert_cols <- c(insert_cols, "document_id", "human_edited", "extraction_timestamp",
@@ -714,7 +710,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
           })
           params <- c(params, list(
             document_id,
-            1L,  # human_edited = TRUE
+            reviewed_at,  # human_edited timestamp
             reviewed_at,  # extraction_timestamp
             "human_review",  # llm_model_version
             "human_review"   # prompt_hash

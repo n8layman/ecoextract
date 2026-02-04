@@ -183,7 +183,6 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     schema_columns <- get_record_columns_sql(schema_json_list)
     record_table_sql <- paste0("
       CREATE TABLE IF NOT EXISTS records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
         document_id INTEGER NOT NULL,
         record_id TEXT NOT NULL,
         ", schema_columns, "
@@ -193,13 +192,10 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         llm_model_version TEXT NOT NULL,
         prompt_hash TEXT NOT NULL,
         fields_changed_count INTEGER DEFAULT 0,
-        flagged_for_review BOOLEAN DEFAULT FALSE,
-        review_reason TEXT,
-        human_edited BOOLEAN DEFAULT FALSE,
-        rejected BOOLEAN DEFAULT FALSE,
-        deleted_by_user BOOLEAN DEFAULT FALSE,
+        human_edited TEXT,  -- NULL = not edited, timestamp = when edited
+        deleted_by_user TEXT,  -- NULL = not deleted, timestamp = when deleted
 
-        UNIQUE(document_id, record_id),
+        PRIMARY KEY (document_id, record_id),
         FOREIGN KEY (document_id) REFERENCES documents (document_id)
       )
     ")
@@ -227,28 +223,13 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
 }
 
 #' Get record table column definitions as SQL
-#' @param schema_json_list Optional parsed JSON schema to generate columns from
+#' @param schema_json_list Parsed JSON schema to generate columns from
 #' @return Character string with column definitions
-get_record_columns_sql <- function(schema_json_list = NULL) {
-  if (!is.null(schema_json_list)) {
-    # Generate columns dynamically from JSON schema
-    return(paste0(generate_columns_from_json_schema(schema_json_list), ","))
+get_record_columns_sql <- function(schema_json_list) {
+  if (is.null(schema_json_list)) {
+    stop("schema_json_list is required - no schema provided")
   }
-
-  # Fallback to basic schema if no schema provided
-  "
-    bat_species_scientific_name TEXT,
-    bat_species_common_name TEXT,
-    interacting_organism_scientific_name TEXT,
-    interacting_organism_common_name TEXT,
-    interaction_type TEXT,
-    interaction_start_date TEXT,
-    interaction_end_date TEXT,
-    location TEXT,
-    all_supporting_source_sentences TEXT,  -- JSON array
-    page_number INTEGER,
-    publication_year INTEGER,
-  "
+  paste0(generate_columns_from_json_schema(schema_json_list), ",")
 }
 
 #' Save or reprocess a document in the EcoExtract database
@@ -595,26 +576,8 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     interactions_clean[[col]] <- result
   }
 
-  # Convert metadata fields we add (not schema-specific)
-  # SQLite stores BOOLEAN as INTEGER (0/1), so convert logical to integer
-  if ("flagged_for_review" %in% names(interactions_clean)) {
-    col_data <- interactions_clean$flagged_for_review
-    if (!is.null(col_data) && length(col_data) > 0 && is.logical(col_data)) {
-      interactions_clean$flagged_for_review <- as.integer(col_data)
-    }
-  }
-  if ("human_edited" %in% names(interactions_clean)) {
-    col_data <- interactions_clean$human_edited
-    if (!is.null(col_data) && length(col_data) > 0 && is.logical(col_data)) {
-      interactions_clean$human_edited <- as.integer(col_data)
-    }
-  }
-  if ("rejected" %in% names(interactions_clean)) {
-    col_data <- interactions_clean$rejected
-    if (!is.null(col_data) && length(col_data) > 0 && is.logical(col_data)) {
-      interactions_clean$rejected <- as.integer(col_data)
-    }
-  }
+  # human_edited and deleted_by_user are timestamps (NULL = not edited/deleted)
+  # Ensure they're NA/NULL for new records from extraction
 
   # ellmer handles schema-defined types (integers, strings, etc.) correctly
   # SQLite will auto-coerce types as needed when inserting
@@ -637,32 +600,28 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       for (i in 1:nrow(interactions_clean)) {
         row <- interactions_clean[i, ]
 
-        # Check if this record_id exists for this document
-        existing <- DBI::dbGetQuery(con,
-          "SELECT id FROM records WHERE document_id = ? AND record_id = ?",
-          params = list(row$document_id, row$record_id))
+        # Update existing record (only if not human_edited and not rejected)
+        cols_to_update <- setdiff(names(row), c("document_id", "record_id"))
+        set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
 
-        if (nrow(existing) > 0) {
-          # Update existing record (only if not human_edited and not rejected)
-          cols_to_update <- setdiff(names(row), c("id"))
-          set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
+        update_sql <- paste0(
+          "UPDATE records SET ", set_clause,
+          " WHERE document_id = ? AND record_id = ? AND human_edited IS NULL AND deleted_by_user IS NULL"
+        )
 
-          update_sql <- paste0(
-            "UPDATE records SET ", set_clause,
-            " WHERE id = ? AND human_edited = 0 AND rejected = 0"
-          )
+        params <- unname(c(as.list(row[cols_to_update]), list(row$document_id, row$record_id)))
+        rows_affected <- DBI::dbExecute(con, update_sql, params = params)
 
-          params <- unname(c(as.list(row[cols_to_update]), list(existing$id[1])))
-          rows_affected <- DBI::dbExecute(con, update_sql, params = params)
+        if (rows_affected > 0) {
           updated_count <- updated_count + rows_affected
         } else {
-          # Record doesn't exist - skip (refinement should never insert)
+          # Record doesn't exist or is protected - skip
           skipped_count <- skipped_count + 1
         }
       }
 
       if (skipped_count > 0) {
-        message(glue::glue("Skipped {skipped_count} records (not found in database)"))
+        message(glue::glue("Skipped {skipped_count} records (not found or protected)"))
       }
     }
     DBI::dbCommit(con)
