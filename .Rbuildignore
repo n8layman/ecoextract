@@ -15,3 +15,12 @@
 ^ecoextract_records\.db-shm$
 ^ecoextract_records\.db-wal$
 ^todo\.md$
+^scripts$
+^tasks$
+^SKIP_LOGIC\.md$
+^test\.sqlite$
+^test_parallel\.db$
+^test_parallel\.db-shm$
+^test_parallel\.db-wal$
+^test_serial\.db$
+^.*\.log$

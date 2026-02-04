@@ -167,7 +167,10 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         refinement_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Refinement failed: <msg>'
 
         -- Extraction summary
-        records_extracted INTEGER DEFAULT 0  -- Total number of records extracted from this document
+        records_extracted INTEGER DEFAULT 0,  -- Total number of records extracted from this document
+
+        -- Human review tracking
+        reviewed_at TEXT  -- Timestamp when document was human-reviewed (NULL = not reviewed)
       )
     ")
 
