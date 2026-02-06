@@ -12,9 +12,10 @@ diff_records(original_df, records_df)
 \item{records_df}{Edited records dataframe (after edits)}
 }
 \value{
-List with: $modified (record_ids), $added (dataframe), $deleted (record_ids)
+List with: $modified (ids), $added (dataframe), $deleted (ids)
 }
 \description{
-Compares two record dataframes and categorizes changes by record_id.
+Compares two record dataframes and categorizes changes by id (surrogate key).
+Uses id for stable identification since record_id is a mutable business identifier.
 }
 \keyword{internal}

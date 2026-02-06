@@ -180,9 +180,11 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     schema_json_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
 
     # Create records table with dynamic schema
+    # Uses surrogate key (id) as primary key; record_id is a mutable business identifier
     schema_columns <- get_record_columns_sql(schema_json_list)
     record_table_sql <- paste0("
       CREATE TABLE IF NOT EXISTS records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         document_id INTEGER NOT NULL,
         record_id TEXT NOT NULL,
         ", schema_columns, "
@@ -195,7 +197,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         human_edited TEXT,  -- NULL = not edited, timestamp = when edited
         deleted_by_user TEXT,  -- NULL = not deleted, timestamp = when deleted
 
-        PRIMARY KEY (document_id, record_id),
+        UNIQUE (document_id, record_id),
         FOREIGN KEY (document_id) REFERENCES documents (document_id)
       )
     ")
@@ -594,6 +596,11 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       DBI::dbWriteTable(con, "records", interactions_clean, append = TRUE, row.names = FALSE)
     } else if (mode == "update") {
       # Update mode: Only update existing records (for refinement)
+      # Requires id column for stable identification
+      if (!"id" %in% names(interactions_clean) || all(is.na(interactions_clean$id))) {
+        stop("UPDATE mode requires id column with valid values")
+      }
+
       updated_count <- 0
       skipped_count <- 0
 
@@ -601,15 +608,15 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
         row <- interactions_clean[i, ]
 
         # Update existing record (only if not human_edited and not rejected)
-        cols_to_update <- setdiff(names(row), c("document_id", "record_id"))
+        cols_to_update <- setdiff(names(row), c("id", "document_id", "record_id"))
         set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
 
         update_sql <- paste0(
           "UPDATE records SET ", set_clause,
-          " WHERE document_id = ? AND record_id = ? AND human_edited IS NULL AND deleted_by_user IS NULL"
+          " WHERE id = ? AND human_edited IS NULL AND deleted_by_user IS NULL"
         )
+        params <- unname(c(as.list(row[cols_to_update]), list(row$id)))
 
-        params <- unname(c(as.list(row[cols_to_update]), list(row$document_id, row$record_id)))
         rows_affected <- DBI::dbExecute(con, update_sql, params = params)
 
         if (rows_affected > 0) {

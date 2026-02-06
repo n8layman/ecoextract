@@ -500,25 +500,24 @@ export_db <- function(document_id = NULL,
 
 #' Diff Records Between Original and Edited Versions
 #'
-#' Compares two record dataframes and categorizes changes by record_id.
+#' Compares two record dataframes and categorizes changes by id (surrogate key).
+#' Uses id for stable identification since record_id is a mutable business identifier.
 #'
 #' @param original_df Original records dataframe (before edits)
 #' @param records_df Edited records dataframe (after edits)
-#' @return List with: $modified (record_ids), $added (dataframe), $deleted (record_ids)
+#' @return List with: $modified (ids), $added (dataframe), $deleted (ids)
 #' @keywords internal
 diff_records <- function(original_df, records_df) {
   # Metadata columns to exclude from comparison
-
   metadata_cols <- c(
-    "document_id", "record_id", "extraction_timestamp",
+    "id", "document_id", "record_id", "extraction_timestamp",
     "llm_model_version", "prompt_hash", "fields_changed_count",
     "human_edited", "deleted_by_user"
   )
 
-  orig_ids <- original_df$record_id
-
-orig_ids <- orig_ids[!is.na(orig_ids)]
-  new_ids <- records_df$record_id
+  orig_ids <- original_df$id
+  orig_ids <- orig_ids[!is.na(orig_ids)]
+  new_ids <- records_df$id
   new_ids <- new_ids[!is.na(new_ids)]
 
   added_ids <- setdiff(new_ids, orig_ids)
@@ -529,10 +528,10 @@ orig_ids <- orig_ids[!is.na(orig_ids)]
   schema_cols <- setdiff(names(original_df), metadata_cols)
   schema_cols <- intersect(schema_cols, names(records_df))
 
-  modified_ids <- character(0)
+  modified_ids <- integer(0)
   for (rid in common_ids) {
-    orig_row <- original_df[original_df$record_id == rid, schema_cols, drop = FALSE]
-    new_row <- records_df[records_df$record_id == rid, schema_cols, drop = FALSE]
+    orig_row <- original_df[original_df$id == rid, schema_cols, drop = FALSE]
+    new_row <- records_df[records_df$id == rid, schema_cols, drop = FALSE]
 
     # Compare values (handle NA equality)
     changed <- !mapply(function(a, b) {
@@ -544,9 +543,12 @@ orig_ids <- orig_ids[!is.na(orig_ids)]
     }
   }
 
+  # For added records, id will be NA (new records don't have an id yet)
+  added_rows <- records_df[is.na(records_df$id), , drop = FALSE]
+
   list(
     modified = modified_ids,
-    added = records_df[records_df$record_id %in% added_ids, , drop = FALSE],
+    added = added_rows,
     deleted = deleted_ids
   )
 }
@@ -622,29 +624,29 @@ save_document <- function(document_id, records_df, original_df = NULL,
     if (!is.null(original_df) && nrow(original_df) > 0) {
       changes <- diff_records(original_df, records_df)
 
-      # Handle deleted records
+      # Handle deleted records (use id for stable identification)
       if (length(changes$deleted) > 0) {
         placeholders <- paste(rep("?", length(changes$deleted)), collapse = ", ")
         DBI::dbExecute(con,
-          paste0("UPDATE records SET deleted_by_user = ? WHERE document_id = ? AND record_id IN (", placeholders, ")"),
-          params = c(list(reviewed_at, document_id), as.list(changes$deleted)))
+          paste0("UPDATE records SET deleted_by_user = ? WHERE id IN (", placeholders, ")"),
+          params = c(list(reviewed_at), as.list(changes$deleted)))
       }
 
-      # Handle modified records
+      # Handle modified records (use id for stable identification)
       if (length(changes$modified) > 0) {
-        # Get schema columns (non-metadata)
+        # Get schema columns (non-metadata) - include record_id since it may change
         metadata_cols <- c(
-          "document_id", "record_id", "extraction_timestamp",
+          "id", "document_id", "extraction_timestamp",
           "llm_model_version", "prompt_hash", "fields_changed_count",
           "human_edited", "deleted_by_user"
         )
         schema_cols <- setdiff(names(records_df), metadata_cols)
 
         for (rid in changes$modified) {
-          new_row <- records_df[records_df$record_id == rid, , drop = FALSE]
+          new_row <- records_df[records_df$id == rid, , drop = FALSE]
           set_parts <- paste0(schema_cols, " = ?", collapse = ", ")
           query <- paste0("UPDATE records SET ", set_parts,
-                          ", human_edited = ? WHERE document_id = ? AND record_id = ?")
+                          ", human_edited = ? WHERE id = ?")
 
           # Build params - convert list columns to JSON
           params <- lapply(schema_cols, function(col) {
@@ -655,7 +657,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
               val
             }
           })
-          params <- c(params, list(reviewed_at, document_id, rid))
+          params <- c(params, list(reviewed_at, rid))
           DBI::dbExecute(con, query, params = params)
         }
       }

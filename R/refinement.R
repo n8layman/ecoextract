@@ -338,36 +338,34 @@ merge_refinements <- function(original_records, refined_records) {
   return(updated_records)
 }
 
-#' Verify and restore record_ids from LLM refinement
+#' Restore id and record_id from existing records after LLM refinement
 #' @param refined_records Dataframe of records from LLM refinement
-#' @param existing_records Dataframe of existing records from database
-#' @return Dataframe with record_ids verified (LLM should have preserved them)
+#' @param existing_records Dataframe of existing records from database (must include id)
+#' @return Dataframe with id restored via join on record_id
 #' @keywords internal
 match_and_restore_record_ids <- function(refined_records, existing_records) {
-  # LLM should have preserved record_id from the input
-  # Just verify the field exists - no complex matching needed
-
   if (!"record_id" %in% names(refined_records)) {
-    # If somehow record_id is missing, this is a problem
-    warning("Refined records missing record_id field - refinement may have failed to preserve IDs")
-    refined_records$record_id <- NA_character_
+    stop("Refined records missing record_id field - refinement failed to preserve IDs")
   }
 
-  # Count how many records have valid record_ids (preserved from existing)
-  valid_pattern <- "^[A-Za-z]+[0-9]+-o[0-9]+$"
-  has_valid_id <- !is.na(refined_records$record_id) & grepl(valid_pattern, refined_records$record_id)
-
-  preserved_count <- sum(has_valid_id)
-  new_count <- sum(!has_valid_id)
-
-  if (preserved_count > 0 && new_count > 0) {
-    cat("Record IDs: ", preserved_count, " preserved, ", new_count, " new\n", sep = "")
-  } else if (preserved_count > 0) {
-    cat("Record IDs: All ", preserved_count, " preserved from existing records\n", sep = "")
-  } else if (new_count > 0) {
-    cat("Record IDs: All ", new_count, " are new records (will be generated)\n", sep = "")
+  if (!"id" %in% names(existing_records)) {
+    stop("existing_records must include id column")
   }
 
+  # Join to restore id from existing records
+  refined_records <- refined_records |>
+    dplyr::left_join(
+      existing_records |> dplyr::select(record_id, id),
+      by = "record_id"
+    )
+
+  # Verify all records got an id (refinement should only return existing records)
+  missing_id <- sum(is.na(refined_records$id))
+  if (missing_id > 0) {
+    stop(glue::glue("Refinement returned {missing_id} records with unmatched record_id"))
+  }
+
+  message(glue::glue("Restored id for {nrow(refined_records)} refined records"))
   return(refined_records)
 }
 
