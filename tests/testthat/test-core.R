@@ -133,9 +133,9 @@ test_that("save_document marks modified records as human_edited", {
 
   # Modify a record
   edited <- original
-  schema_cols <- setdiff(names(edited), c("record_id", "document_id",
+  schema_cols <- setdiff(names(edited), c("id", "record_id", "document_id",
     "extraction_timestamp", "llm_model_version", "prompt_hash",
-    "fields_changed_count", "human_edited", "deleted_by_user"))
+    "fields_changed_count", "human_edited", "deleted_by_user", "added_by_user"))
   if (length(schema_cols) > 0) {
     edited[[schema_cols[1]]][1] <- "EDITED_VALUE"
   }
@@ -198,7 +198,152 @@ test_that("save_document without original_df only updates reviewed_at", {
   doc <- get_documents(doc_id, db_path)
   expect_false(is.na(doc$reviewed_at))
 
-  # Verify records unchanged (human_edited should still be NULL/NA)
+  # Verify records unchanged (human_edited should be FALSE - no edits in record_edits table)
   saved <- get_records(doc_id, db_path)
-  expect_true(all(is.na(saved$human_edited)))
+  expect_true(all(!saved$human_edited))
+})
+
+# Accuracy Tracking -------------------------------------------------------------
+
+test_that("database initialization creates record_edits table", {
+  db_path <- local_test_db()
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  tables <- DBI::dbListTables(con)
+  expect_true("record_edits" %in% tables)
+
+  # Verify table structure
+  cols <- DBI::dbListFields(con, "record_edits")
+  expect_true("record_id" %in% cols)
+  expect_true("column_name" %in% cols)
+  expect_true("original_value" %in% cols)
+  expect_true("edited_at" %in% cols)
+})
+
+test_that("save_document populates record_edits for modified columns", {
+  db_path <- local_test_db()
+
+  # Setup
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+
+  records <- sample_records()
+  save_records_to_db(db_path, doc_id, records, list())
+
+  # Fetch back from DB
+  original <- get_records(doc_id, db_path)
+
+  # Modify a record
+  edited <- original
+  schema_cols <- setdiff(names(edited), c("id", "record_id", "document_id",
+    "extraction_timestamp", "llm_model_version", "prompt_hash",
+    "fields_changed_count", "human_edited", "deleted_by_user", "added_by_user"))
+
+  if (length(schema_cols) > 0) {
+    edited[[schema_cols[1]]][1] <- "MODIFIED_VALUE"
+  }
+
+  # Save with changes
+  save_document(doc_id, edited, original, db_path)
+
+  # Verify record_edits has entry
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  edits <- DBI::dbReadTable(con, "record_edits")
+  expect_true(nrow(edits) > 0)
+  expect_equal(edits$column_name[1], schema_cols[1])
+  expect_false(is.na(edits$original_value[1]))
+  expect_false(is.na(edits$edited_at[1]))
+})
+
+test_that("save_document sets added_by_user for new records", {
+  db_path <- local_test_db()
+
+  # Setup
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+
+  records <- sample_records()
+  save_records_to_db(db_path, doc_id, records, list())
+
+  # Fetch back from DB
+  original <- get_records(doc_id, db_path)
+
+  # Add a new record (id = NA means new)
+  # Create a copy of first row with NA id to signal it's new
+  new_record <- original[1, , drop = FALSE]
+  new_record$id <- NA
+  new_record$record_id <- NA
+  edited <- rbind(original, new_record)
+
+  # Save with new record
+  save_document(doc_id, edited, original, db_path)
+
+  # Verify added_by_user is set for new record
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  all_records <- DBI::dbReadTable(con, "records")
+  added_records <- all_records[all_records$added_by_user == 1, ]
+  expect_true(nrow(added_records) > 0)
+})
+
+test_that("calculate_accuracy returns correct structure", {
+  db_path <- local_test_db()
+
+  result <- calculate_accuracy(db_path)
+
+  # Should return list with expected fields
+  expect_type(result, "list")
+
+  # Raw counts
+  expect_true("verified_documents" %in% names(result))
+  expect_true("verified_records" %in% names(result))
+  expect_true("model_extracted" %in% names(result))
+  expect_true("human_added" %in% names(result))
+  expect_true("deleted" %in% names(result))
+  expect_true("edited" %in% names(result))
+  expect_true("correct" %in% names(result))
+  expect_true("column_edits" %in% names(result))
+
+  # Derived rates
+  expect_true("precision" %in% names(result))
+  expect_true("recall" %in% names(result))
+  expect_true("f1_score" %in% names(result))
+  expect_true("column_accuracy" %in% names(result))
+})
+
+test_that("calculate_accuracy computes metrics from verified documents", {
+  db_path <- local_test_db()
+
+  # Setup: create document with records
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+
+  records <- sample_records()
+  save_records_to_db(db_path, doc_id, records, list())
+
+  # Before review, should have 0 verified
+  result_before <- calculate_accuracy(db_path)
+  expect_equal(result_before$verified_documents, 0)
+
+  # Mark as reviewed
+  original <- get_records(doc_id, db_path)
+  save_document(doc_id, original, original, db_path)
+
+  # After review, should have verified records
+  result_after <- calculate_accuracy(db_path)
+  expect_equal(result_after$verified_documents, 1)
+  expect_equal(result_after$verified_records, nrow(records))
+  expect_equal(result_after$model_extracted, nrow(records))
+  expect_equal(result_after$deleted, 0)
+  expect_equal(result_after$human_added, 0)
+  expect_equal(result_after$edited, 0)
+  expect_equal(result_after$correct, nrow(records))
 })
