@@ -39,11 +39,11 @@ refine_records <- function(db_conn = NULL, document_id,
     }
 
     # Filter out protected records that should not be refined
-    # - human_edited: User manually edited (timestamp), don't touch
+    # - human_edited: User manually edited (derived from record_edits table), don't touch
     # - deleted_by_user: User flagged for deletion (timestamp), don't re-extract or refine
     if (nrow(existing_records) > 0) {
-      # Check for non-NULL timestamps (NULL/NA means not edited/deleted)
-      is_human_edited <- !is.na(existing_records$human_edited)
+      # human_edited is a derived boolean column (TRUE/FALSE)
+      is_human_edited <- existing_records$human_edited
       is_deleted <- if ("deleted_by_user" %in% names(existing_records)) {
         !is.na(existing_records$deleted_by_user)
       } else {

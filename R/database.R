@@ -151,6 +151,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         issn TEXT,
         publisher TEXT,
         bibliography TEXT,  -- JSON array of bibliography citations
+        language TEXT,      -- ISO 639-1 two-letter language code (e.g., 'en', 'es', 'fr')
 
         -- Content storage
         document_content TEXT,  -- OCR markdown results
@@ -194,8 +195,8 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         llm_model_version TEXT NOT NULL,
         prompt_hash TEXT NOT NULL,
         fields_changed_count INTEGER DEFAULT 0,
-        human_edited TEXT,  -- NULL = not edited, timestamp = when edited
         deleted_by_user TEXT,  -- NULL = not deleted, timestamp = when deleted
+        added_by_user INTEGER DEFAULT 0,  -- 1 if row added by human reviewer (error of omission)
 
         UNIQUE (document_id, record_id),
         FOREIGN KEY (document_id) REFERENCES documents (document_id)
@@ -203,10 +204,26 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     ")
     DBI::dbExecute(con, record_table_sql)
 
+    # Create record_edits audit table for tracking column-level changes
+    DBI::dbExecute(con, "
+      CREATE TABLE IF NOT EXISTS record_edits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        record_id INTEGER NOT NULL,
+        column_name TEXT NOT NULL,
+        original_value TEXT,
+        edited_at TEXT NOT NULL,
+        FOREIGN KEY (record_id) REFERENCES records (id)
+      )
+    ")
+
     # Create indexes for performance
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_documents_hash ON documents (file_hash)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_document ON records (document_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_record ON records (record_id)")
+    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_record_edits_record ON record_edits (record_id)")
+
+    # Run migrations for existing databases
+    migrate_database(con)
 
     if (is.character(db_conn)) {
       cat("EcoExtract database initialized:", db_conn, "\n")
@@ -222,6 +239,40 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
       DBI::dbDisconnect(con)
     }
   })
+}
+
+#' Migrate database schema for existing databases
+#'
+#' Adds new columns and tables required by schema updates.
+#' Safe to run multiple times - only adds missing elements.
+#'
+#' @param con Database connection
+#' @return NULL (invisibly)
+#' @keywords internal
+migrate_database <- function(con) {
+  # Check for record_edits table
+  tables <- DBI::dbListTables(con)
+  if (!"record_edits" %in% tables) {
+    DBI::dbExecute(con, "
+      CREATE TABLE IF NOT EXISTS record_edits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        record_id INTEGER NOT NULL,
+        column_name TEXT NOT NULL,
+        original_value TEXT,
+        edited_at TEXT NOT NULL,
+        FOREIGN KEY (record_id) REFERENCES records (id)
+      )
+    ")
+    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_record_edits_record ON record_edits (record_id)")
+  }
+
+  # Check for added_by_user column in records table
+  records_info <- DBI::dbGetQuery(con, "PRAGMA table_info(records)")
+  if (!"added_by_user" %in% records_info$name) {
+    DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN added_by_user INTEGER DEFAULT 0")
+  }
+
+  invisible(NULL)
 }
 
 #' Get record table column definitions as SQL
@@ -368,7 +419,8 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
   # Define all possible metadata columns
   meta_keys <- c(
     "title", "first_author_lastname", "authors", "publication_year",
-    "doi", "journal", "volume", "issue", "pages", "issn", "publisher", "bibliography"
+    "doi", "journal", "volume", "issue", "pages", "issn", "publisher", "bibliography",
+    "language"
   )
 
   # Fill missing keys with NA
@@ -578,8 +630,8 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     interactions_clean[[col]] <- result
   }
 
-  # human_edited and deleted_by_user are timestamps (NULL = not edited/deleted)
-  # Ensure they're NA/NULL for new records from extraction
+  # deleted_by_user is a timestamp (NULL = not deleted)
+  # Human edits are tracked in the record_edits audit table
 
   # ellmer handles schema-defined types (integers, strings, etc.) correctly
   # SQLite will auto-coerce types as needed when inserting
@@ -607,13 +659,15 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       for (i in 1:nrow(interactions_clean)) {
         row <- interactions_clean[i, ]
 
-        # Update existing record (only if not human_edited and not rejected)
+        # Update existing record (only if not human-edited and not rejected)
+        # Check record_edits table for human edits instead of human_edited column
         cols_to_update <- setdiff(names(row), c("id", "document_id", "record_id"))
         set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
 
         update_sql <- paste0(
           "UPDATE records SET ", set_clause,
-          " WHERE id = ? AND human_edited IS NULL AND deleted_by_user IS NULL"
+          " WHERE id = ? AND deleted_by_user IS NULL",
+          " AND id NOT IN (SELECT DISTINCT record_id FROM record_edits)"
         )
         params <- unname(c(as.list(row[cols_to_update]), list(row$id)))
 
@@ -672,6 +726,207 @@ get_db_stats <- function(db_conn) {
 
   }, error = function(e) {
     return(list(documents = 0, records = 0, message = paste("Database error:", e$message)))
+  }, finally = {
+    if (close_on_exit) {
+      DBI::dbDisconnect(con)
+    }
+  })
+}
+
+#' Calculate extraction accuracy metrics from verified documents
+#'
+#' Computes precision, recall, F1, and per-column accuracy from human-reviewed documents.
+#' Only includes records from documents that have been reviewed (reviewed_at IS NOT NULL).
+#'
+#' @param db_conn Database connection or path to database file
+#' @param document_ids Optional vector of document IDs to include (default: all verified)
+#' @return List with accuracy metrics:
+#'
+#'   Raw counts:
+#'   - verified_documents: count of reviewed documents
+#'   - verified_records: total records in verified documents
+#'   - model_extracted: records extracted by model
+#'   - human_added: records added by humans (model missed)
+#'   - deleted: records deleted by humans (false positives)
+#'   - edited: records with column-level edits
+#'   - correct: model records kept without edits
+#'   - column_edits: named vector of edit counts per column
+#'
+#'   Derived rates:
+#'   - precision: correct / model_extracted
+#'   - recall: correct / (correct + human_added)
+#'   - f1_score: 2 * precision * recall / (precision + recall)
+#'   - record_accuracy: correct / model_extracted (same as precision)
+#'   - column_accuracy: named vector of per-column accuracy (1 - edits/model_extracted)
+#' @export
+calculate_accuracy <- function(db_conn, document_ids = NULL) {
+  # Empty result template
+
+  empty_result <- list(
+    # Raw counts
+    verified_documents = 0L,
+    verified_records = 0L,
+    model_extracted = 0L,
+    human_added = 0L,
+    deleted = 0L,
+    edited = 0L,
+    correct = 0L,
+    column_edits = integer(0),
+    # Derived rates
+    precision = NA_real_,
+    recall = NA_real_,
+    f1_score = NA_real_,
+    record_accuracy = NA_real_,
+    column_accuracy = numeric(0)
+  )
+
+  # Accept either a connection object or a path string
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+    close_on_exit <- FALSE
+  } else {
+    if (!file.exists(db_conn)) {
+      return(c(empty_result, list(message = "Database not found")))
+    }
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
+    close_on_exit <- TRUE
+  }
+
+  tryCatch({
+    # Build WHERE clause for document filtering
+    if (!is.null(document_ids) && length(document_ids) > 0) {
+      placeholders <- paste(rep("?", length(document_ids)), collapse = ", ")
+      doc_filter <- paste0("d.document_id IN (", placeholders, ") AND ")
+      doc_params <- as.list(document_ids)
+    } else {
+      doc_filter <- ""
+      doc_params <- list()
+    }
+
+    # Count verified documents
+    verified_docs_query <- paste0(
+      "SELECT COUNT(*) as n FROM documents d WHERE ", doc_filter,
+      "d.reviewed_at IS NOT NULL"
+    )
+    # Only pass params if there are parameters to bind
+    if (length(doc_params) > 0) {
+      verified_docs <- DBI::dbGetQuery(con, verified_docs_query, params = doc_params)$n
+    } else {
+      verified_docs <- DBI::dbGetQuery(con, verified_docs_query)$n
+    }
+
+    if (verified_docs == 0) {
+      return(c(empty_result, list(message = "No verified documents found")))
+    }
+
+    # Get records from verified documents
+    records_query <- paste0(
+      "SELECT r.* FROM records r
+       INNER JOIN documents d ON r.document_id = d.document_id
+       WHERE ", doc_filter, "d.reviewed_at IS NOT NULL"
+    )
+    if (length(doc_params) > 0) {
+      records <- DBI::dbGetQuery(con, records_query, params = doc_params)
+    } else {
+      records <- DBI::dbGetQuery(con, records_query)
+    }
+
+    # Raw counts
+    # Model-extracted records: added_by_user = 0 (or NULL for backwards compat)
+    model_records <- records[is.na(records$added_by_user) | records$added_by_user == 0, ]
+    model_extracted <- nrow(model_records)
+
+    # Human added (errors of omission)
+    human_added <- sum(!is.na(records$added_by_user) & records$added_by_user == 1)
+
+    # Deleted by user (false positives)
+    deleted <- sum(!is.na(model_records$deleted_by_user))
+
+    # Edited records and column edit counts
+    edited <- 0L
+    column_edits <- integer(0)
+    column_accuracy <- numeric(0)
+
+    if (model_extracted > 0) {
+      model_ids <- model_records$id[!is.na(model_records$id)]
+      if (length(model_ids) > 0) {
+        placeholders <- paste(rep("?", length(model_ids)), collapse = ", ")
+
+        # Count records with edits
+        edited_query <- paste0(
+          "SELECT COUNT(DISTINCT record_id) as n FROM record_edits
+           WHERE record_id IN (", placeholders, ")"
+        )
+        edited <- DBI::dbGetQuery(con, edited_query, params = as.list(model_ids))$n
+
+        # Get per-column edit counts
+        col_edits_query <- paste0(
+          "SELECT column_name, COUNT(*) as edit_count FROM record_edits
+           WHERE record_id IN (", placeholders, ")
+           GROUP BY column_name"
+        )
+        col_edits_df <- DBI::dbGetQuery(con, col_edits_query, params = as.list(model_ids))
+
+        if (nrow(col_edits_df) > 0) {
+          column_edits <- stats::setNames(
+            as.integer(col_edits_df$edit_count),
+            col_edits_df$column_name
+          )
+          column_accuracy <- stats::setNames(
+            1 - (col_edits_df$edit_count / model_extracted),
+            col_edits_df$column_name
+          )
+        }
+      }
+    }
+
+    # Correct = model extracted, not deleted, not edited
+    correct <- model_extracted - deleted - edited
+
+    # Derived rates
+    # Precision: of model extractions, how many were fully correct
+    precision <- if (model_extracted > 0) {
+      correct / model_extracted
+    } else {
+      NA_real_
+    }
+
+    # Recall: of all true records, how many did model find correctly
+    total_true <- correct + human_added
+    recall <- if (total_true > 0) {
+      correct / total_true
+    } else {
+      NA_real_
+    }
+
+    # F1 score
+    f1_score <- if (!is.na(precision) && !is.na(recall) && (precision + recall) > 0) {
+      2 * precision * recall / (precision + recall)
+    } else {
+      NA_real_
+    }
+
+    return(list(
+      # Raw counts
+      verified_documents = as.integer(verified_docs),
+      verified_records = as.integer(nrow(records)),
+      model_extracted = as.integer(model_extracted),
+      human_added = as.integer(human_added),
+      deleted = as.integer(deleted),
+      edited = as.integer(edited),
+      correct = as.integer(correct),
+      column_edits = column_edits,
+      # Derived rates
+      precision = precision,
+      recall = recall,
+      f1_score = f1_score,
+      record_accuracy = precision,  # Alias
+      column_accuracy = column_accuracy
+    ))
+
+  }, error = function(e) {
+    return(c(empty_result, list(message = paste("Database error:", e$message))))
   }, finally = {
     if (close_on_exit) {
       DBI::dbDisconnect(con)
@@ -848,6 +1103,16 @@ get_existing_records <- function(document_id, db_conn) {
     result <- DBI::dbGetQuery(db_conn, "
       SELECT * FROM records WHERE document_id = ?
     ", params = list(document_id)) |> tibble::as_tibble()
+
+    # Derive human_edited column from record_edits audit table
+    if (nrow(result) > 0 && "id" %in% names(result)) {
+      edited_ids <- DBI::dbGetQuery(db_conn,
+        "SELECT DISTINCT record_id FROM record_edits")$record_id
+      result$human_edited <- result$id %in% edited_ids
+    } else if (nrow(result) > 0) {
+      result$human_edited <- FALSE
+    }
+
     return(result)
   }, error = function(e) {
     message("Error retrieving existing records: ", e$message)

@@ -63,6 +63,10 @@
             "type": "string",
             "description": "Individual reference citation as it appears in the document"
           }
+        },
+        "language": {
+          "type": ["string", "null"],
+          "description": "Primary language of the document as ISO 639-1 two-letter code (e.g., 'en' for English, 'es' for Spanish, 'fr' for French, 'de' for German, 'pt' for Portuguese, 'zh' for Chinese, 'ja' for Japanese)"
         }
       }
     }

@@ -336,6 +336,16 @@ get_records <- function(document_id = NULL, db_conn = "ecoextract_records.db") {
       ", params = list(document_id)) |>
         tibble::as_tibble()
     }
+
+    # Derive human_edited column from record_edits audit table
+    if (nrow(result) > 0 && "id" %in% names(result)) {
+      edited_ids <- DBI::dbGetQuery(con,
+        "SELECT DISTINCT record_id FROM record_edits")$record_id
+      result$human_edited <- result$id %in% edited_ids
+    } else if (nrow(result) > 0) {
+      result$human_edited <- FALSE
+    }
+
     result
   }, error = function(e) {
     message("Error retrieving records: ", e$message)
@@ -512,7 +522,7 @@ diff_records <- function(original_df, records_df) {
   metadata_cols <- c(
     "id", "document_id", "record_id", "extraction_timestamp",
     "llm_model_version", "prompt_hash", "fields_changed_count",
-    "human_edited", "deleted_by_user"
+    "human_edited", "deleted_by_user", "added_by_user"
   )
 
   orig_ids <- original_df$id
@@ -528,10 +538,14 @@ diff_records <- function(original_df, records_df) {
   schema_cols <- setdiff(names(original_df), metadata_cols)
   schema_cols <- intersect(schema_cols, names(records_df))
 
-  modified_ids <- integer(0)
+  # Track column-level changes: list keyed by record id
+  modified_columns <- list()
+  original_values <- list()
+
   for (rid in common_ids) {
-    orig_row <- original_df[original_df$id == rid, schema_cols, drop = FALSE]
-    new_row <- records_df[records_df$id == rid, schema_cols, drop = FALSE]
+    # Use which() to avoid including NA rows when subsetting tibbles
+    orig_row <- original_df[which(original_df$id == rid), schema_cols, drop = FALSE]
+    new_row <- records_df[which(records_df$id == rid), schema_cols, drop = FALSE]
 
     # Compare values (handle NA equality)
     changed <- !mapply(function(a, b) {
@@ -539,7 +553,16 @@ diff_records <- function(original_df, records_df) {
     }, orig_row, new_row)
 
     if (any(changed)) {
-      modified_ids <- c(modified_ids, rid)
+      changed_cols <- schema_cols[changed]
+      rid_key <- as.character(rid)
+      modified_columns[[rid_key]] <- changed_cols
+
+      # Store original values for changed columns
+      orig_vals <- list()
+      for (col in changed_cols) {
+        orig_vals[[col]] <- as.character(orig_row[[col]])
+      }
+      original_values[[rid_key]] <- orig_vals
     }
   }
 
@@ -547,7 +570,8 @@ diff_records <- function(original_df, records_df) {
   added_rows <- records_df[is.na(records_df$id), , drop = FALSE]
 
   list(
-    modified = modified_ids,
+    modified = modified_columns,
+    original_values = original_values,
     added = added_rows,
     deleted = deleted_ids
   )
@@ -556,7 +580,7 @@ diff_records <- function(original_df, records_df) {
 #' Save Document After Human Review
 #'
 #' Updates document metadata with review timestamp and saves modified records,
-#' marking changed rows as human_edited. Designed for Shiny app review workflows.
+#' tracking edits in the record_edits audit table. Designed for Shiny app review workflows.
 #'
 #' @param document_id Document ID to update
 #' @param records_df Updated records dataframe (from Shiny editor)
@@ -633,20 +657,24 @@ save_document <- function(document_id, records_df, original_df = NULL,
       }
 
       # Handle modified records (use id for stable identification)
+      # changes$modified is now a named list: list("id1" = c("col1", "col2"), ...)
       if (length(changes$modified) > 0) {
         # Get schema columns (non-metadata) - include record_id since it may change
         metadata_cols <- c(
           "id", "document_id", "extraction_timestamp",
           "llm_model_version", "prompt_hash", "fields_changed_count",
-          "human_edited", "deleted_by_user"
+          "human_edited", "deleted_by_user", "added_by_user"
         )
         schema_cols <- setdiff(names(records_df), metadata_cols)
 
-        for (rid in changes$modified) {
-          new_row <- records_df[records_df$id == rid, , drop = FALSE]
+        for (rid_key in names(changes$modified)) {
+          rid <- as.integer(rid_key)
+          changed_cols <- changes$modified[[rid_key]]
+          orig_vals <- changes$original_values[[rid_key]]
+
+          new_row <- records_df[which(records_df$id == rid), , drop = FALSE]
           set_parts <- paste0(schema_cols, " = ?", collapse = ", ")
-          query <- paste0("UPDATE records SET ", set_parts,
-                          ", human_edited = ? WHERE id = ?")
+          query <- paste0("UPDATE records SET ", set_parts, " WHERE id = ?")
 
           # Build params - convert list columns to JSON
           params <- lapply(schema_cols, function(col) {
@@ -657,8 +685,16 @@ save_document <- function(document_id, records_df, original_df = NULL,
               val
             }
           })
-          params <- c(params, list(reviewed_at, rid))
+          params <- c(params, list(rid))
           DBI::dbExecute(con, query, params = params)
+
+          # Insert into record_edits audit table for each changed column
+          for (col in changed_cols) {
+            DBI::dbExecute(con,
+              "INSERT INTO record_edits (record_id, column_name, original_value, edited_at)
+               VALUES (?, ?, ?, ?)",
+              params = list(rid, col, orig_vals[[col]], reviewed_at))
+          }
         }
       }
 
@@ -678,31 +714,37 @@ save_document <- function(document_id, records_df, original_df = NULL,
           new_row <- changes$added[i, , drop = FALSE]
 
           # Generate record_id if missing
-          if (is.na(new_row$record_id) || new_row$record_id == "") {
-            new_row$record_id <- generate_record_id(
-              doc_meta$first_author_lastname %||% "Unknown",
-              doc_meta$publication_year %||% format(Sys.Date(), "%Y"),
-              max_seq + i
-            )
+          record_id_val <- new_row$record_id[[1]]
+          if (is.na(record_id_val) || record_id_val == "") {
+            # Handle both NULL and NA for author/year
+            author <- doc_meta$first_author_lastname
+            if (is.null(author) || length(author) == 0 || is.na(author)) author <- "Unknown"
+            year <- doc_meta$publication_year
+            if (is.null(year) || length(year) == 0 || is.na(year)) year <- format(Sys.Date(), "%Y")
+            new_row$record_id <- generate_record_id(author, year, max_seq + i)
           }
 
-          # Prepare insert
-          metadata_cols <- c(
+          # Prepare insert - exclude metadata and derived columns
+          exclude_cols <- c(
+            "id",  # Auto-increment, don't insert
+            "document_id",  # Added explicitly below
             "extraction_timestamp", "llm_model_version", "prompt_hash",
-            "fields_changed_count", "deleted_by_user"
+            "fields_changed_count", "deleted_by_user", "added_by_user",
+            "human_edited"  # Derived column, not in database
           )
-          insert_cols <- setdiff(names(new_row), metadata_cols)
-          insert_cols <- c(insert_cols, "document_id", "human_edited", "extraction_timestamp",
-                           "llm_model_version", "prompt_hash")
+          insert_cols <- setdiff(names(new_row), exclude_cols)
+          insert_cols <- c(insert_cols, "document_id", "added_by_user",
+                           "extraction_timestamp", "llm_model_version", "prompt_hash")
 
           placeholders <- paste(rep("?", length(insert_cols)), collapse = ", ")
           query <- paste0("INSERT INTO records (", paste(insert_cols, collapse = ", "),
                           ") VALUES (", placeholders, ")")
 
-          # Build params
-          params <- lapply(setdiff(insert_cols, c("document_id", "human_edited",
-                                                   "extraction_timestamp", "llm_model_version",
-                                                   "prompt_hash")), function(col) {
+          # Build params - get values for data columns (not the explicitly added ones)
+          data_cols <- setdiff(insert_cols, c("document_id", "added_by_user",
+                                               "extraction_timestamp", "llm_model_version",
+                                               "prompt_hash"))
+          params <- lapply(data_cols, function(col) {
             val <- new_row[[col]]
             if (is.list(val)) {
               jsonlite::toJSON(val[[1]], auto_unbox = TRUE)
@@ -712,7 +754,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
           })
           params <- c(params, list(
             document_id,
-            reviewed_at,  # human_edited timestamp
+            1L,           # added_by_user = TRUE
             reviewed_at,  # extraction_timestamp
             "human_review",  # llm_model_version
             "human_review"   # prompt_hash
