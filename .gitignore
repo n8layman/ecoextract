@@ -62,3 +62,7 @@ plan.md
 scripts/**
 ecoextract/**
 .DS_Store
+
+# testthat debug artifacts
+tests/testthat/_problems/
+tests/testthat/testthat-problems.rds
