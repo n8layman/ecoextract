@@ -29,7 +29,7 @@ Invisibly returns the document_id
 }
 \description{
 Updates document metadata with review timestamp and saves modified records,
-marking changed rows as human_edited. Designed for Shiny app review workflows.
+tracking edits in the record_edits audit table. Designed for Shiny app review workflows.
 }
 \examples{
 \dontrun{
