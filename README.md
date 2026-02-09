@@ -2,10 +2,14 @@
 
 Structured ecological data extraction and refinement from scientific literature.
 
-**Package Links:**
+EcoExtract automates the extraction of structured data from PDFs using OCR and LLMs. It's domain-agnostic and works with any JSON schema you define.
+
+**Quick Links:**
 
 - [ecoextract on GitHub](https://github.com/n8layman/ecoextract)
+- [ecoreview on GitHub](https://github.com/n8layman/ecoreview) (Review Shiny app)
 - [ohseer on GitHub](https://github.com/n8layman/ohseer) (OCR dependency)
+- [Full Tutorial](vignettes/ecoextract-workflow.Rmd) (Comprehensive vignette)
 
 ## Installation
 
@@ -143,204 +147,191 @@ results <- process_documents(
   db_conn = "ecoextract_records.db"
 )
 
-print(results)
-
-# Process a single PDF
-results <- process_documents(
-  pdf_path = "paper.pdf",
-  db_conn = "ecoextract_records.db"
-)
-
-# Use custom schema and extraction prompt
-results <- process_documents(
-  pdf_path = "path/to/pdfs/",
-  db_conn = "ecoextract_records.db",
-  schema_file = "custom_schema.json",
-  extraction_prompt_file = "custom_extraction_prompt.md"
-)
-
-# Run with refinement enabled
-results <- process_documents(
-  pdf_path = "path/to/pdfs/",
-  db_conn = "ecoextract_records.db",
-  run_refinement = TRUE
-)
-
-# Force reprocess all documents from OCR onward
-results <- process_documents(
-  pdf_path = "path/to/pdfs/",
-  db_conn = "ecoextract_records.db",
-  force_reprocess_ocr = TRUE
-)
-
-# Force reprocess specific documents only
-results <- process_documents(
-  pdf_path = "path/to/pdfs/",
-  db_conn = "ecoextract_records.db",
-  force_reprocess_extraction = c(5L, 12L)
-)
-
-# Search for PDFs in all subdirectories
-results <- process_documents(
-  pdf_path = "research_papers/",
-  db_conn = "ecoextract_records.db",
-  recursive = TRUE
-)
+# Retrieve your data
+records <- get_records()
+export_db(filename = "extracted_data.csv")
 ```
 
-For advanced use cases requiring individual step processing, see the package documentation.
+**See the [vignette](vignettes/ecoextract-workflow.Rmd) for:**
 
-## Skip and Cascade Logic
+- Parallel processing with multiple workers
+- Custom schemas and prompts
+- Skip logic and force reprocessing
+- Data retrieval and export options
+- Complete workflow examples
 
-By default, `process_documents()` skips steps that have already completed successfully. Each step checks its status in the database and verifies that output data exists before skipping.
+## Key Features
 
-When a step is re-run (forced or due to missing data), downstream steps are automatically invalidated:
+### Smart Skip Logic
 
-| If This Re-runs | These Become Stale       |
-| --------------- | ------------------------ |
-| OCR             | Metadata, Extraction     |
-| Metadata        | Extraction               |
-| Extraction      | (nothing)                |
-| Refinement      | (nothing, opt-in only)   |
+Re-running `process_documents()` automatically skips completed steps. When a step is forced to re-run, downstream steps are automatically invalidated.
 
-### Force Reprocess Parameters
+See [SKIP_LOGIC.md](SKIP_LOGIC.md) or the [vignette](vignettes/ecoextract-workflow.Rmd) for details.
 
-Each `force_reprocess_*` parameter accepts three values:
-
-- `NULL` (default) -- use normal skip logic
-- `TRUE` -- force reprocess all documents
-- Integer vector (e.g., `c(5L, 12L)`) -- force reprocess specific document IDs
-
-The `run_refinement` parameter works the same way: `NULL` skips refinement, `TRUE` runs on all documents with records, or an integer vector targets specific documents.
-
-See [SKIP_LOGIC.md](SKIP_LOGIC.md) for full details.
-
-## Parallel Processing
+### Parallel Processing
 
 Process multiple documents in parallel using the `crew` package:
 
 ```r
-# Install crew (optional dependency)
 install.packages("crew")
 
-# Process with 4 parallel workers
-results <- process_documents(
-  pdf_path = "papers/",
-  db_conn = "records.db",
-  workers = 4
-)
-
-# With logging for troubleshooting
 results <- process_documents(
   pdf_path = "papers/",
   db_conn = "records.db",
   workers = 4,
-  log = TRUE  # Creates ecoextract_YYYYMMDD_HHMMSS.log
+  log = TRUE
 )
 ```
 
-**Notes:**
+Crash-resilient with automatic resume capability. See the [vignette](vignettes/ecoextract-workflow.Rmd) for details.
 
-- Requires `db_conn` to be a file path (not a connection object)
-- Each worker opens its own database connection (SQLite WAL mode enabled)
-- Progress is shown as documents complete: `[1/10] paper.pdf completed`
-- Crash-resilient: completed documents are saved immediately to the database
-- Resume by re-running -- skip logic will detect completed documents
-- Use `log = TRUE` to capture detailed output for troubleshooting
+### Deduplication
 
-## Deduplication
-
-During extraction, records are deduplicated against existing records in the database to prevent duplicates. Three similarity methods are available:
-
-- **`"llm"`** (default) -- Uses Claude to semantically compare records. Most accurate but uses API calls.
-- **`"embedding"`** -- Cosine similarity on text embeddings. Requires an embedding provider (default: OpenAI).
-- **`"jaccard"`** -- Fast n-gram based comparison. No API calls needed.
-
-Configure via `process_documents()`:
-
-```r
-# Default: LLM-based deduplication
-results <- process_documents("pdfs/", similarity_method = "llm")
-
-# Embedding-based with custom threshold
-results <- process_documents("pdfs/", similarity_method = "embedding", min_similarity = 0.85)
-
-# Fast local deduplication
-results <- process_documents("pdfs/", similarity_method = "jaccard", min_similarity = 0.9)
-```
+Three similarity methods available: `"llm"` (default), `"embedding"`, or `"jaccard"`. See the [vignette](vignettes/ecoextract-workflow.Rmd) for details.
 
 ## Custom Schemas
 
-EcoExtract is domain-agnostic and works with any JSON schema. The package includes a bat-plant interaction schema as an example, but you can define custom schemas for any ecological domain (disease outbreaks, species observations, etc.).
-
-### Initialize Custom Configuration
-
-To customize the schema and prompts for your project:
+EcoExtract is domain-agnostic and works with any JSON schema:
 
 ```r
-# Create ecoextract/ directory with template files
-library(ecoextract)
+# Create custom config directory with templates
 init_ecoextract()
 
-# This creates:
-# - ecoextract/SCHEMA_GUIDE.md      # Read this first!
-# - ecoextract/schema.json          # Edit for your domain
-# - ecoextract/extraction_prompt.md # Edit for your domain
+# Edit the generated files:
+# - ecoextract/schema.json          # Define your data structure
+# - ecoextract/extraction_prompt.md # Describe what to extract
+
+# The package automatically uses these files
+process_documents("pdfs/", "records.db")
 ```
 
-Now edit the files in `ecoextract/` to customize for your domain:
+**Schema Requirements:**
 
-1. **Read `SCHEMA_GUIDE.md`** to understand the required schema format
-2. Edit `schema.json` to define your data structure
-3. Edit `extraction_prompt.md` to describe what to extract
+- Top-level must have a `records` property (array of objects)
+- Each field needs `type` and `description`
+- Use JSON Schema draft-07 format
 
-The package will automatically detect and use these files when you run `process_documents()`.
+See the [vignette](vignettes/ecoextract-workflow.Rmd) and `ecoextract/SCHEMA_GUIDE.md` for complete details and examples.
 
-**Priority order for loading configs:**
+## Data Retrieval
 
-1. Explicit file path passed to function (e.g., `schema_file = "path/to/schema.json"`)
-2. Project `ecoextract/` directory (e.g., `ecoextract/schema.json`)
-3. Working directory with `ecoextract_` prefix (e.g., `ecoextract_schema.json`)
-4. Package defaults from `inst/extdata/` and `inst/prompts/`
+After processing documents, use these functions to retrieve and export your data:
 
-### Schema Requirements
+### Query Records
 
-Your schema MUST follow this structure:
+```r
+# Get all records from all documents
+all_records <- get_records()
 
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Your Domain Schema",
-  "description": "Schema for extracting your domain-specific data",
-  "type": "object",
-  "properties": {
-    "records": {
-      "type": "array",
-      "description": "Your domain-specific records",
-      "items": {
-        "type": "object",
-        "properties": {
-          "your_field_1": { "type": "string", "description": "..." },
-          "your_field_2": { "type": "integer", "description": "..." },
-          "location": { "type": "string", "description": "..." },
-          "observation_date": { "type": "string", "description": "..." }
-          // ... add your custom fields here
-        }
-      }
-    }
-  },
-  "required": ["records"]
-}
+# Get records from a specific document
+doc_records <- get_records(document_id = 1)
+
+# Use a custom database path
+records <- get_records(db_conn = "my_project.db")
 ```
 
-**Key requirements:**
+### Query Documents
 
-1. Top-level must have a `records` property (array of objects)
-2. Each field should have a `type` and `description` (description helps the LLM understand what to extract)
-3. Use JSON Schema draft-07 format
-4. Record IDs are auto-generated from publication metadata (extracted in the metadata step)
+```r
+# Get all documents and their metadata
+all_docs <- get_documents()
 
-See [`inst/extdata/schema.json`](inst/extdata/schema.json) for a complete example.
+# Get a specific document
+doc <- get_documents(document_id = 1)
+
+# Check processing status
+doc$ocr_status          # "completed", "pending", "failed"
+doc$metadata_status     # "completed", "pending", "failed"
+doc$extraction_status   # "completed", "pending", "failed"
+```
+
+### Export Data
+
+The `export_db()` function joins records with document metadata for easy export:
+
+```r
+# Get all records with metadata as a tibble
+data <- export_db()
+
+# Export to CSV file
+export_db(filename = "extracted_data.csv")
+
+# Export only records from specific document
+export_db(document_id = 1, filename = "document_1.csv")
+
+# Include OCR text in export (large files!)
+data <- export_db(include_ocr = TRUE)
+
+# Simplified export (removes processing metadata columns)
+data <- export_db(simple = TRUE)
+```
+
+The exported data includes:
+
+- Document metadata (title, authors, journal, DOI, etc.)
+- All extracted record fields (defined by your schema)
+- Processing status and timestamps
+
+### View OCR Results
+
+```r
+# Get OCR markdown text
+markdown <- get_ocr_markdown(document_id = 1)
+cat(markdown)
+
+# View OCR with embedded images in RStudio Viewer
+get_ocr_html_preview(document_id = 1)
+
+# View all pages
+get_ocr_html_preview(document_id = 1, page_num = "all")
+```
+
+### Database Statistics
+
+```r
+# Get summary counts
+get_db_stats()
+# Returns: documents_count, records_count, documents_with_records
+```
+
+## Human Review Workflow
+
+After extraction, you can review and edit records using the **ecoreview** Shiny application:
+
+### Install ecoreview
+
+```r
+# Install from GitHub
+pak::pak("n8layman/ecoreview")
+```
+
+### Launch Review App
+
+```r
+library(ecoreview)
+
+# Launch the review app with your database
+run_review_app(db_path = "ecoextract_records.db")
+```
+
+The review app provides:
+
+- Document-by-document review interface
+- Side-by-side view of OCR text and extracted records
+- Edit records directly in the app
+- Add new records manually
+- Delete incorrect records
+- Automatic edit tracking and audit trail (stored in `record_edits` table)
+- Accuracy calculation based on edits
+
+All edits are saved to the database using `save_document()`, which tracks:
+
+- Which columns were modified
+- Original values before edits
+- Edit timestamps
+- Records added or deleted by humans
+
+For more information, see the [ecoreview repository](https://github.com/n8layman/ecoreview).
 
 ## Package Functions
 
