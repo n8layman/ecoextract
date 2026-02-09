@@ -1,7 +1,7 @@
 Type: Package
 Package: ecoextract
 Title: Ecological Data Extraction and Refinement
-Version: 0.1.1
+Version: 0.1.2
 Author: Your Name
 Maintainer: Your Name <your.email@example.com>
 Description: Structured ecological data extraction and refinement from
@@ -29,6 +29,7 @@ Imports:
 Suggests:
     crew,
     devtools,
+    ecoreview,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
@@ -36,6 +37,7 @@ Suggests:
 VignetteBuilder: 
     knitr
 Remotes:
+    n8layman/ecoreview,
     n8layman/ohseer
 Config/testthat/edition: 3
 Encoding: UTF-8

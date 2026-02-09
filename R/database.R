@@ -735,11 +735,20 @@ get_db_stats <- function(db_conn) {
 
 #' Calculate extraction accuracy metrics from verified documents
 #'
-#' Computes precision, recall, F1, and per-column accuracy from human-reviewed documents.
+#' Computes field-level accuracy and record detection metrics from human-reviewed documents.
 #' Only includes records from documents that have been reviewed (reviewed_at IS NOT NULL).
+#'
+#' Separates two questions:
+#' 1. Record detection: Did the model find the record vs hallucinate vs miss it?
+#' 2. Field accuracy: Of the fields extracted, how many were correct?
+#'
+#' Edit severity is classified based on schema:
+#' - Major edits: Changes to unique fields (x-unique-fields) or required fields
+#' - Minor edits: Changes to optional descriptive fields
 #'
 #' @param db_conn Database connection or path to database file
 #' @param document_ids Optional vector of document IDs to include (default: all verified)
+#' @param schema_file Optional path to schema JSON file (uses default if NULL)
 #' @return List with accuracy metrics:
 #'
 #'   Raw counts:
@@ -747,19 +756,35 @@ get_db_stats <- function(db_conn) {
 #'   - verified_records: total records in verified documents
 #'   - model_extracted: records extracted by model
 #'   - human_added: records added by humans (model missed)
-#'   - deleted: records deleted by humans (false positives)
-#'   - edited: records with column-level edits
-#'   - correct: model records kept without edits
+#'   - deleted: records deleted by humans (hallucinated)
+#'   - records_with_edits: records with at least one field edit
 #'   - column_edits: named vector of edit counts per column
 #'
-#'   Derived rates:
-#'   - precision: correct / model_extracted
-#'   - recall: correct / (correct + human_added)
-#'   - f1_score: 2 * precision * recall / (precision + recall)
-#'   - record_accuracy: correct / model_extracted (same as precision)
+#'   Field-level metrics (accuracy of individual fields):
+#'   - total_fields: total fields model extracted
+#'   - correct_fields: fields that were correct
+#'   - field_precision: correct_fields / total_fields
+#'   - field_recall: correct_fields / all_true_fields
+#'   - field_f1: harmonic mean of field precision and recall
+#'
+#'   Record detection metrics (finding records):
+#'   - records_found: records model found (includes imperfect extractions)
+#'   - records_missed: records model failed to find
+#'   - records_hallucinated: records model made up
+#'   - detection_precision: records_found / model_extracted
+#'   - detection_recall: records_found / total_true_records
+#'   - perfect_record_rate: of found records, how many had zero errors
+#'
+#'   Per-column accuracy:
 #'   - column_accuracy: named vector of per-column accuracy (1 - edits/model_extracted)
+#'
+#'   Edit severity (based on unique/required fields from schema):
+#'   - major_edits: count of edits to unique or required fields
+#'   - minor_edits: count of edits to other fields
+#'   - major_edit_rate: major_edits / total_edits
+#'   - avg_edits_per_document: mean edits per verified document
 #' @export
-calculate_accuracy <- function(db_conn, document_ids = NULL) {
+calculate_accuracy <- function(db_conn, document_ids = NULL, schema_file = NULL) {
   # Empty result template
 
   empty_result <- list(
@@ -769,15 +794,28 @@ calculate_accuracy <- function(db_conn, document_ids = NULL) {
     model_extracted = 0L,
     human_added = 0L,
     deleted = 0L,
-    edited = 0L,
-    correct = 0L,
+    records_with_edits = 0L,
     column_edits = integer(0),
-    # Derived rates
-    precision = NA_real_,
-    recall = NA_real_,
-    f1_score = NA_real_,
-    record_accuracy = NA_real_,
-    column_accuracy = numeric(0)
+    # Field-level metrics
+    total_fields = 0L,
+    correct_fields = 0L,
+    field_precision = NA_real_,
+    field_recall = NA_real_,
+    field_f1 = NA_real_,
+    # Record detection metrics
+    records_found = 0L,
+    records_missed = 0L,
+    records_hallucinated = 0L,
+    detection_precision = NA_real_,
+    detection_recall = NA_real_,
+    perfect_record_rate = NA_real_,
+    # Per-column accuracy
+    column_accuracy = numeric(0),
+    # Edit severity
+    major_edits = 0L,
+    minor_edits = 0L,
+    major_edit_rate = NA_real_,
+    avg_edits_per_document = NA_real_
   )
 
   # Accept either a connection object or a path string
@@ -843,12 +881,17 @@ calculate_accuracy <- function(db_conn, document_ids = NULL) {
     # Deleted by user (false positives)
     deleted <- sum(!is.na(model_records$deleted_by_user))
 
+    # Get data columns (exclude system columns)
+    system_cols <- c("id", "document_id", "record_id", "added_by_user", "deleted_by_user")
+    data_cols <- setdiff(names(model_records), system_cols)
+    num_fields <- length(data_cols)
+
     # Edited records and column edit counts
-    edited <- 0L
+    records_with_edits <- 0L
     column_edits <- integer(0)
     column_accuracy <- numeric(0)
 
-    if (model_extracted > 0) {
+    if (model_extracted > 0 && num_fields > 0) {
       model_ids <- model_records$id[!is.na(model_records$id)]
       if (length(model_ids) > 0) {
         placeholders <- paste(rep("?", length(model_ids)), collapse = ", ")
@@ -858,7 +901,7 @@ calculate_accuracy <- function(db_conn, document_ids = NULL) {
           "SELECT COUNT(DISTINCT record_id) as n FROM record_edits
            WHERE record_id IN (", placeholders, ")"
         )
-        edited <- DBI::dbGetQuery(con, edited_query, params = as.list(model_ids))$n
+        records_with_edits <- DBI::dbGetQuery(con, edited_query, params = as.list(model_ids))$n
 
         # Get per-column edit counts
         col_edits_query <- paste0(
@@ -868,47 +911,132 @@ calculate_accuracy <- function(db_conn, document_ids = NULL) {
         )
         col_edits_df <- DBI::dbGetQuery(con, col_edits_query, params = as.list(model_ids))
 
+        # Initialize all columns to 100% accuracy
+        column_accuracy <- stats::setNames(rep(1.0, num_fields), data_cols)
+
         if (nrow(col_edits_df) > 0) {
           column_edits <- stats::setNames(
             as.integer(col_edits_df$edit_count),
             col_edits_df$column_name
           )
-          column_accuracy <- stats::setNames(
-            1 - (col_edits_df$edit_count / model_extracted),
-            col_edits_df$column_name
-          )
-        } else {
-          # No edits = 100% accuracy for all columns
-          # Get all column names from model records (exclude system columns)
-          system_cols <- c("id", "document_id", "record_id", "added_by_user", "deleted_by_user")
-          data_cols <- setdiff(names(model_records), system_cols)
-          column_accuracy <- stats::setNames(rep(1.0, length(data_cols)), data_cols)
+          # Update accuracy for edited columns
+          for (i in seq_len(nrow(col_edits_df))) {
+            col_name <- col_edits_df$column_name[i]
+            if (col_name %in% data_cols) {
+              column_accuracy[col_name] <- 1 - (col_edits_df$edit_count[i] / model_extracted)
+            }
+          }
         }
       }
     }
 
-    # Correct = model extracted, not deleted, not edited
-    correct <- model_extracted - deleted - edited
+    # === EDIT SEVERITY AND PER-DOCUMENT METRICS ===
+    # Load schema to identify unique and required fields
+    major_edits <- 0L
+    minor_edits <- 0L
+    major_edit_rate <- NA_real_
+    avg_edits_per_document <- NA_real_
 
-    # Derived rates
-    # Precision: of model extractions, how many were fully correct
-    precision <- if (model_extracted > 0) {
-      correct / model_extracted
+    tryCatch({
+      # Load schema using priority order
+      schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
+      schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
+      schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+
+      # Extract unique and required fields from schema
+      record_schema <- schema_list$properties$records$items
+      unique_fields <- record_schema[["x-unique-fields"]]
+      required_fields <- record_schema[["required"]]
+
+      # Combine unique and required fields as "major" fields
+      major_fields <- unique(c(unique_fields, required_fields))
+
+      # Classify edits as major or minor
+      if (length(column_edits) > 0) {
+        for (col_name in names(column_edits)) {
+          edit_count <- column_edits[[col_name]]
+          if (col_name %in% major_fields) {
+            major_edits <- major_edits + edit_count
+          } else {
+            minor_edits <- minor_edits + edit_count
+          }
+        }
+      }
+
+      total_edits <- major_edits + minor_edits
+      if (total_edits > 0) {
+        major_edit_rate <- major_edits / total_edits
+      }
+
+      # Calculate average edits per document
+      if (verified_docs > 0 && total_edits > 0) {
+        avg_edits_per_document <- total_edits / verified_docs
+      } else if (verified_docs > 0) {
+        avg_edits_per_document <- 0
+      }
+
+    }, error = function(e) {
+      # If schema can't be loaded, skip severity classification
+      message("Could not load schema for severity classification: ", e$message)
+    })
+
+    # === FIELD-LEVEL METRICS ===
+    # Calculate accuracy at the field level, not record level
+    total_fields <- model_extracted * num_fields
+    deleted_fields <- deleted * num_fields
+    edited_fields <- sum(column_edits)
+    correct_fields <- total_fields - deleted_fields - edited_fields
+
+    # Field precision: of fields extracted, how many were correct?
+    field_precision <- if (total_fields > 0) {
+      correct_fields / total_fields
     } else {
       NA_real_
     }
 
-    # Recall: of all true records, how many did model find correctly
-    total_true <- correct + human_added
-    recall <- if (total_true > 0) {
-      correct / total_true
+    # Records found (not deleted) - these contain the true fields
+    records_found <- model_extracted - deleted
+    true_fields <- (records_found * num_fields) + (human_added * num_fields)
+
+    # Field recall: of all true fields, how many did we extract correctly?
+    field_recall <- if (true_fields > 0) {
+      correct_fields / true_fields
     } else {
       NA_real_
     }
 
-    # F1 score
-    f1_score <- if (!is.na(precision) && !is.na(recall) && (precision + recall) > 0) {
-      2 * precision * recall / (precision + recall)
+    # Field F1
+    field_f1 <- if (!is.na(field_precision) && !is.na(field_recall) &&
+                    (field_precision + field_recall) > 0) {
+      2 * field_precision * field_recall / (field_precision + field_recall)
+    } else {
+      NA_real_
+    }
+
+    # === RECORD DETECTION METRICS ===
+    # Did the model find the record (even if imperfect)?
+    records_hallucinated <- deleted
+    records_missed <- human_added
+
+    # Detection precision: of records extracted, how many were real (not hallucinated)?
+    detection_precision <- if (model_extracted > 0) {
+      records_found / model_extracted
+    } else {
+      NA_real_
+    }
+
+    # Detection recall: of all true records, how many did we find?
+    total_true_records <- records_found + records_missed
+    detection_recall <- if (total_true_records > 0) {
+      records_found / total_true_records
+    } else {
+      NA_real_
+    }
+
+    # Perfect record rate: of found records, how many had zero errors?
+    perfect_records <- records_found - records_with_edits
+    perfect_record_rate <- if (records_found > 0) {
+      perfect_records / records_found
     } else {
       NA_real_
     }
@@ -920,15 +1048,28 @@ calculate_accuracy <- function(db_conn, document_ids = NULL) {
       model_extracted = as.integer(model_extracted),
       human_added = as.integer(human_added),
       deleted = as.integer(deleted),
-      edited = as.integer(edited),
-      correct = as.integer(correct),
+      records_with_edits = as.integer(records_with_edits),
       column_edits = column_edits,
-      # Derived rates
-      precision = precision,
-      recall = recall,
-      f1_score = f1_score,
-      record_accuracy = precision,  # Alias
-      column_accuracy = column_accuracy
+      # Field-level metrics
+      total_fields = as.integer(total_fields),
+      correct_fields = as.integer(correct_fields),
+      field_precision = field_precision,
+      field_recall = field_recall,
+      field_f1 = field_f1,
+      # Record detection metrics
+      records_found = as.integer(records_found),
+      records_missed = as.integer(records_missed),
+      records_hallucinated = as.integer(records_hallucinated),
+      detection_precision = detection_precision,
+      detection_recall = detection_recall,
+      perfect_record_rate = perfect_record_rate,
+      # Per-column accuracy
+      column_accuracy = column_accuracy,
+      # Edit severity
+      major_edits = as.integer(major_edits),
+      minor_edits = as.integer(minor_edits),
+      major_edit_rate = major_edit_rate,
+      avg_edits_per_document = avg_edits_per_document
     ))
 
   }, error = function(e) {
@@ -939,7 +1080,6 @@ calculate_accuracy <- function(db_conn, document_ids = NULL) {
     }
   })
 }
-
 
 #' Extract field definitions from JSON schema
 #' @param schema_json_list Parsed JSON schema as list

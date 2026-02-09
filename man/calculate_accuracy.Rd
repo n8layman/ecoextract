@@ -4,12 +4,14 @@
 \alias{calculate_accuracy}
 \title{Calculate extraction accuracy metrics from verified documents}
 \usage{
-calculate_accuracy(db_conn, document_ids = NULL)
+calculate_accuracy(db_conn, document_ids = NULL, schema_file = NULL)
 }
 \arguments{
 \item{db_conn}{Database connection or path to database file}
 
 \item{document_ids}{Optional vector of document IDs to include (default: all verified)}
+
+\item{schema_file}{Optional path to schema JSON file (uses default if NULL)}
 }
 \value{
 List with accuracy metrics:
@@ -19,19 +21,44 @@ List with accuracy metrics:
   - verified_records: total records in verified documents
   - model_extracted: records extracted by model
   - human_added: records added by humans (model missed)
-  - deleted: records deleted by humans (false positives)
-  - edited: records with column-level edits
-  - correct: model records kept without edits
+  - deleted: records deleted by humans (hallucinated)
+  - records_with_edits: records with at least one field edit
   - column_edits: named vector of edit counts per column
 
-  Derived rates:
-  - precision: correct / model_extracted
-  - recall: correct / (correct + human_added)
-  - f1_score: 2 * precision * recall / (precision + recall)
-  - record_accuracy: correct / model_extracted (same as precision)
+  Field-level metrics (accuracy of individual fields):
+  - total_fields: total fields model extracted
+  - correct_fields: fields that were correct
+  - field_precision: correct_fields / total_fields
+  - field_recall: correct_fields / all_true_fields
+  - field_f1: harmonic mean of field precision and recall
+
+  Record detection metrics (finding records):
+  - records_found: records model found (includes imperfect extractions)
+  - records_missed: records model failed to find
+  - records_hallucinated: records model made up
+  - detection_precision: records_found / model_extracted
+  - detection_recall: records_found / total_true_records
+  - perfect_record_rate: of found records, how many had zero errors
+
+  Per-column accuracy:
   - column_accuracy: named vector of per-column accuracy (1 - edits/model_extracted)
+
+  Edit severity (based on unique/required fields from schema):
+  - major_edits: count of edits to unique or required fields
+  - minor_edits: count of edits to other fields
+  - major_edit_rate: major_edits / total_edits
+  - avg_edits_per_document: mean edits per verified document
 }
 \description{
-Computes precision, recall, F1, and per-column accuracy from human-reviewed documents.
+Computes field-level accuracy and record detection metrics from human-reviewed documents.
 Only includes records from documents that have been reviewed (reviewed_at IS NOT NULL).
+}
+\details{
+Separates two questions:
+1. Record detection: Did the model find the record vs hallucinate vs miss it?
+2. Field accuracy: Of the fields extracted, how many were correct?
+
+Edit severity is classified based on schema:
+- Major edits: Changes to unique fields (x-unique-fields) or required fields
+- Minor edits: Changes to optional descriptive fields
 }

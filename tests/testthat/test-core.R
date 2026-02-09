@@ -307,15 +307,32 @@ test_that("calculate_accuracy returns correct structure", {
   expect_true("model_extracted" %in% names(result))
   expect_true("human_added" %in% names(result))
   expect_true("deleted" %in% names(result))
-  expect_true("edited" %in% names(result))
-  expect_true("correct" %in% names(result))
+  expect_true("records_with_edits" %in% names(result))
   expect_true("column_edits" %in% names(result))
 
-  # Derived rates
-  expect_true("precision" %in% names(result))
-  expect_true("recall" %in% names(result))
-  expect_true("f1_score" %in% names(result))
+  # Field-level metrics
+  expect_true("total_fields" %in% names(result))
+  expect_true("correct_fields" %in% names(result))
+  expect_true("field_precision" %in% names(result))
+  expect_true("field_recall" %in% names(result))
+  expect_true("field_f1" %in% names(result))
+
+  # Record detection metrics
+  expect_true("records_found" %in% names(result))
+  expect_true("records_missed" %in% names(result))
+  expect_true("records_hallucinated" %in% names(result))
+  expect_true("detection_precision" %in% names(result))
+  expect_true("detection_recall" %in% names(result))
+  expect_true("perfect_record_rate" %in% names(result))
+
+  # Per-column accuracy
   expect_true("column_accuracy" %in% names(result))
+
+  # Edit severity
+  expect_true("major_edits" %in% names(result))
+  expect_true("minor_edits" %in% names(result))
+  expect_true("major_edit_rate" %in% names(result))
+  expect_true("avg_edits_per_document" %in% names(result))
 })
 
 test_that("calculate_accuracy computes metrics from verified documents", {
@@ -344,6 +361,8 @@ test_that("calculate_accuracy computes metrics from verified documents", {
   expect_equal(result_after$model_extracted, nrow(records))
   expect_equal(result_after$deleted, 0)
   expect_equal(result_after$human_added, 0)
-  expect_equal(result_after$edited, 0)
-  expect_equal(result_after$correct, nrow(records))
+  expect_equal(result_after$records_with_edits, 0)
+  expect_equal(result_after$records_found, nrow(records))
+  expect_equal(result_after$detection_recall, 1.0)
+  expect_equal(result_after$field_precision, 1.0)
 })

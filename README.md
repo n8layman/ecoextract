@@ -10,6 +10,7 @@ EcoExtract automates the extraction of structured data from PDFs using OCR and L
 - [ecoreview on GitHub](https://github.com/n8layman/ecoreview) (Review Shiny app)
 - [ohseer on GitHub](https://github.com/n8layman/ohseer) (OCR dependency)
 - [Full Tutorial](vignettes/ecoextract-workflow.Rmd) (Comprehensive vignette)
+- [Accuracy Metrics Guide](ACCURACY.md) (Understanding accuracy calculations)
 
 ## Installation
 
@@ -332,6 +333,30 @@ All edits are saved to the database using `save_document()`, which tracks:
 - Records added or deleted by humans
 
 For more information, see the [ecoreview repository](https://github.com/n8layman/ecoreview).
+
+### Calculate Accuracy Metrics
+
+After reviewing documents, calculate comprehensive accuracy metrics:
+
+```r
+# Calculate accuracy for all verified documents
+accuracy <- calculate_accuracy("ecoextract_records.db")
+
+# View key metrics
+accuracy$detection_recall      # Did we find the records?
+accuracy$field_precision       # How accurate were the fields?
+accuracy$major_edit_rate       # How serious were the errors?
+accuracy$avg_edits_per_document # Average corrections needed
+```
+
+EcoExtract provides nuanced accuracy metrics that separate:
+- **Record detection**: Finding records vs missing/hallucinating them
+- **Field-level accuracy**: Correctness of individual fields (gives partial credit)
+- **Edit severity**: Major edits (unique/required fields) vs minor edits
+
+For a complete explanation of how accuracy is calculated and interpreted, see [ACCURACY.md](ACCURACY.md).
+
+Accuracy visualizations (confusion matrices, heatmaps) are available in [ecoreview](https://github.com/n8layman/ecoreview).
 
 ## Package Functions
 
