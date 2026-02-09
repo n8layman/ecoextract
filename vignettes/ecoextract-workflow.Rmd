@@ -25,7 +25,7 @@ The complete workflow involves three packages:
 
 1. **[ohseer](https://github.com/n8layman/ohseer)** - OCR processing for PDFs
    - Converts PDFs to markdown with embedded images
-   - Uses Mistral AI for vision-based text extraction
+   - Uses Tensorlake for vision-based text extraction
    - Handles tables, figures, and complex layouts
 
 2. **[ecoextract](https://github.com/n8layman/ecoextract)** - Data extraction pipeline (this package)
@@ -73,24 +73,24 @@ library(ecoextract)
 
 ## API Key Setup
 
-EcoExtract requires API keys for OCR (Mistral AI) and data extraction (Anthropic Claude):
+EcoExtract requires API keys for OCR (Tensorlake) and data extraction (Anthropic Claude):
 
 ```{r api-setup, eval=FALSE}
 # Create a .env file in your project root (make sure it's in .gitignore!)
 # .env file contents:
-# MISTRAL_API_KEY=your_mistral_key_here
+# TENSORLAKE_API_KEY=your_tensorlake_key_here
 # ANTHROPIC_API_KEY=your_anthropic_key_here
 
 # The .env file is automatically loaded when R starts in the project directory
 
 # Or set keys manually in R:
-Sys.setenv(MISTRAL_API_KEY = "your_mistral_key")
+Sys.setenv(TENSORLAKE_API_KEY = "your_tensorlake_key")
 Sys.setenv(ANTHROPIC_API_KEY = "your_anthropic_key")
 ```
 
 Get API keys from:
 
-- Mistral AI (for OCR): https://console.mistral.ai/
+- Tensorlake (for OCR): https://www.tensorlake.ai/
 - Anthropic Claude (for extraction): https://console.anthropic.com/
 
 ## Quick Start: Process Documents
@@ -506,7 +506,7 @@ results <- process_documents(
 # Monitor usage at: https://console.anthropic.com/
 
 # Typical usage per paper:
-# - OCR: ~2,000-5,000 tokens (Mistral)
+# - OCR: ~2,000-5,000 tokens (Tensorlake)
 # - Metadata: ~1,000-2,000 tokens (Claude)
 # - Extraction: ~5,000-10,000 tokens (Claude)
 # - Refinement: ~3,000-5,000 tokens (Claude)
@@ -524,7 +524,7 @@ readRenviron(".env")
 
 # Solution 2: Set directly in R
 Sys.setenv(ANTHROPIC_API_KEY = "sk-ant-...")
-Sys.setenv(MISTRAL_API_KEY = "...")
+Sys.setenv(TENSORLAKE_API_KEY = "...")
 
 # Verify keys are set
 Sys.getenv("ANTHROPIC_API_KEY")

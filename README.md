@@ -52,19 +52,19 @@ library(ecoextract)
 
 ## API Key Setup
 
-EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions. OCR processing via [ohseer](https://github.com/n8layman/ohseer) currently requires Mistral AI.
+EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions. OCR processing via [ohseer](https://github.com/n8layman/ohseer) uses Tensorlake.
 
 ### Getting API Keys
 
 Required:
 
-- Mistral AI (for OCR): <https://console.mistral.ai/>
+- Tensorlake (for OCR): <https://www.tensorlake.ai/>
 
 Recommended for data extraction:
 
 - Anthropic Claude: <https://console.anthropic.com/>
 
-Note: While ecoextract is designed to work with any ellmer-supported LLM provider (OpenAI, etc.), this has not been fully tested. Mistral AI is currently hardcoded for OCR processing.
+Note: While ecoextract is designed to work with any ellmer-supported LLM provider (OpenAI, etc.), this has not been fully tested.
 
 ### Setting Up API Keys
 
@@ -83,7 +83,7 @@ Create a `.env` file in the project root directory:
 ```bash
 # .env
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
-MISTRAL_API_KEY=your_mistral_api_key_here
+TENSORLAKE_API_KEY=your_tensorlake_api_key_here
 
 # Or use other providers supported by ellmer
 OPENAI_API_KEY=your_openai_api_key_here
@@ -428,7 +428,7 @@ ecoextract/
 
 ### External APIs
 
-- Mistral AI - OCR processing (via ohseer)
+- Tensorlake - OCR processing (via ohseer)
 - Anthropic Claude / OpenAI / other LLM providers - Data extraction and refinement (via ellmer)
 
 ## License
