@@ -877,6 +877,12 @@ calculate_accuracy <- function(db_conn, document_ids = NULL) {
             1 - (col_edits_df$edit_count / model_extracted),
             col_edits_df$column_name
           )
+        } else {
+          # No edits = 100% accuracy for all columns
+          # Get all column names from model records (exclude system columns)
+          system_cols <- c("id", "document_id", "record_id", "added_by_user", "deleted_by_user")
+          data_cols <- setdiff(names(model_records), system_cols)
+          column_accuracy <- stats::setNames(rep(1.0, length(data_cols)), data_cols)
         }
       }
     }
