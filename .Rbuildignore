@@ -24,3 +24,4 @@
 ^test_parallel\.db-wal$
 ^test_serial\.db$
 ^.*\.log$
+^LICENSE\.md$

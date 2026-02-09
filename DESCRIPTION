@@ -8,7 +8,7 @@ Description: Structured ecological data extraction and refinement from
     scientific literature.  Provides functions for OCR processing,
     extracting structured data from documents, and refining extracted data
     using LLMs.
-License: MIT + file LICENSE
+License: GPL (>= 3)
 Imports:
     DBI,
     digest,
