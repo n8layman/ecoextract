@@ -1,7 +1,7 @@
 Type: Package
 Package: ecoextract
 Title: Ecological Data Extraction and Refinement
-Version: 0.1.0
+Version: 0.1.1
 Author: Your Name
 Maintainer: Your Name <your.email@example.com>
 Description: Structured ecological data extraction and refinement from
