@@ -166,7 +166,7 @@ export_db(filename = "extracted_data.csv")
 
 Re-running `process_documents()` automatically skips completed steps. When a step is forced to re-run, downstream steps are automatically invalidated.
 
-See [SKIP_LOGIC.md](SKIP_LOGIC.md) or the [vignette](vignettes/ecoextract-workflow.Rmd) for details.
+See the [vignette](vignettes/ecoextract-workflow.Rmd) for details.
 
 ### Parallel Processing
 
@@ -408,7 +408,6 @@ ecoextract/
 ├── vignettes/              # Package vignettes
 ├── DESCRIPTION
 ├── NAMESPACE
-├── SKIP_LOGIC.md           # Skip/cascade logic documentation
 ├── CONTRIBUTING.md         # Development guide
 └── README.md
 ```

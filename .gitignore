@@ -57,10 +57,12 @@ plan.md
 *.db-wal
 *.db-shm
 *.log
+*.csv
 
 **/.DS_Store
-scripts/**
-ecoextract/**
+scripts/
+ecoextract/
+tasks/
 .DS_Store
 
 # testthat debug artifacts
