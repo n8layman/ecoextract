@@ -2,12 +2,15 @@ Type: Package
 Package: ecoextract
 Title: Ecological Data Extraction and Refinement
 Version: 0.1.2
-Author: Your Name
-Maintainer: Your Name <your.email@example.com>
+Authors@R: person("Nathan C", "Layman", role = c("aut", "cre"),
+    email = "n8layman@gmail.com")
+Author: Nathan C Layman [aut, cre]
+Maintainer: Nathan C Layman <n8layman@gmail.com>
 Description: Structured ecological data extraction and refinement from
     scientific literature.  Provides functions for OCR processing,
     extracting structured data from documents, and refining extracted data
     using LLMs.
+Date: 2025-01-01
 License: GPL (>= 3)
 URL: https://github.com/n8layman/ecoextract,
     https://n8layman.github.io/ecoextract/
