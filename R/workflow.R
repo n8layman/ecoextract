@@ -74,6 +74,7 @@ validate_force_param <- function(param, param_name) {
 #' @param log If TRUE and using parallel processing (workers > 1), write detailed output
 #'   to an auto-generated log file (e.g., ecoextract_20240129_143052.log). Default FALSE.
 #'   Ignored for sequential processing. Useful for troubleshooting errors.
+#' @param ... Additional arguments passed to underlying functions (e.g., max_wait_seconds for OCR timeout)
 #' @return Tibble with processing results
 #' @export
 #'
@@ -128,6 +129,9 @@ validate_force_param <- function(param, param_name) {
 #'
 #' # Parallel with logging for troubleshooting
 #' process_documents("pdfs/", workers = 4, log = TRUE)
+#'
+#' # Increase OCR timeout to 5 minutes for large documents
+#' process_documents("pdfs/", max_wait_seconds = 300)
 #' }
 process_documents <- function(pdf_path,
                              db_conn = "ecoextract_records.db",
@@ -144,7 +148,8 @@ process_documents <- function(pdf_path,
                              similarity_method = "llm",
                              recursive = FALSE,
                              workers = NULL,
-                             log = FALSE) {
+                             log = FALSE,
+                             ...) {
 
   # Validate force parameters
   validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
@@ -269,6 +274,9 @@ process_documents <- function(pdf_path,
   # Track timing
   start_time <- Sys.time()
 
+  # Capture ellipsis arguments for passing to workers
+  extra_args <- list(...)
+
   # Process documents
   results_list <- list()
 
@@ -314,20 +322,23 @@ process_documents <- function(pdf_path,
             output <- character(0)
             result <- tryCatch({
               output <- utils::capture.output({
-                res <- ecoextract::process_single_document(
-                  pdf_file = pdf_file,
-                  db_conn = db_path,
-                  schema_file = schema_file,
-                  extraction_prompt_file = extraction_prompt_file,
-                  refinement_prompt_file = refinement_prompt_file,
-                  force_reprocess_ocr = force_reprocess_ocr,
-                  force_reprocess_metadata = force_reprocess_metadata,
-                  force_reprocess_extraction = force_reprocess_extraction,
-                  run_extraction = run_extraction,
-                  run_refinement = run_refinement,
-                  min_similarity = min_similarity,
-                  embedding_provider = embedding_provider,
-                  similarity_method = similarity_method
+                res <- do.call(
+                  ecoextract::process_single_document,
+                  c(list(
+                    pdf_file = pdf_file,
+                    db_conn = db_path,
+                    schema_file = schema_file,
+                    extraction_prompt_file = extraction_prompt_file,
+                    refinement_prompt_file = refinement_prompt_file,
+                    force_reprocess_ocr = force_reprocess_ocr,
+                    force_reprocess_metadata = force_reprocess_metadata,
+                    force_reprocess_extraction = force_reprocess_extraction,
+                    run_extraction = run_extraction,
+                    run_refinement = run_refinement,
+                    min_similarity = min_similarity,
+                    embedding_provider = embedding_provider,
+                    similarity_method = similarity_method
+                  ), extra_args)
                 )
               }, type = "message")
               res
@@ -337,20 +348,23 @@ process_documents <- function(pdf_path,
             })
             list(result = result, output = output)
           } else {
-            ecoextract::process_single_document(
-              pdf_file = pdf_file,
-              db_conn = db_path,
-              schema_file = schema_file,
-              extraction_prompt_file = extraction_prompt_file,
-              refinement_prompt_file = refinement_prompt_file,
-              force_reprocess_ocr = force_reprocess_ocr,
-              force_reprocess_metadata = force_reprocess_metadata,
-              force_reprocess_extraction = force_reprocess_extraction,
-              run_extraction = run_extraction,
-              run_refinement = run_refinement,
-              min_similarity = min_similarity,
-              embedding_provider = embedding_provider,
-              similarity_method = similarity_method
+            do.call(
+              ecoextract::process_single_document,
+              c(list(
+                pdf_file = pdf_file,
+                db_conn = db_path,
+                schema_file = schema_file,
+                extraction_prompt_file = extraction_prompt_file,
+                refinement_prompt_file = refinement_prompt_file,
+                force_reprocess_ocr = force_reprocess_ocr,
+                force_reprocess_metadata = force_reprocess_metadata,
+                force_reprocess_extraction = force_reprocess_extraction,
+                run_extraction = run_extraction,
+                run_refinement = run_refinement,
+                min_similarity = min_similarity,
+                embedding_provider = embedding_provider,
+                similarity_method = similarity_method
+              ), extra_args)
             )
           }
         },
@@ -369,7 +383,8 @@ process_documents <- function(pdf_path,
           embedding_provider = embedding_provider,
           similarity_method = similarity_method,
           capture_output = !is.null(log_file),
-          parent_env = parent_env
+          parent_env = parent_env,
+          extra_args = extra_args
         ),
         name = basename(pdf_files[i])
       )
@@ -502,7 +517,8 @@ process_documents <- function(pdf_path,
         run_refinement = run_refinement,
         min_similarity = min_similarity,
         embedding_provider = embedding_provider,
-        similarity_method = similarity_method
+        similarity_method = similarity_method,
+        ...
       )
       results_list[[length(results_list) + 1]] <- result
     }
@@ -685,7 +701,7 @@ process_single_document <- function(pdf_file,
   message("\n[1/4] OCR Processing...")
 
   if (should_run_step(doc$ocr_status[1], ocr_data_exists)) {
-    ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = TRUE)
+    ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = TRUE, ...)
     status_tracking$ocr_status <- ocr_result$status
 
     # Cascade: nullify metadata_status

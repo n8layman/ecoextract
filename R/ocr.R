@@ -5,11 +5,12 @@
 #' Perform OCR on PDF
 #'
 #' @param pdf_file Path to PDF
+#' @param max_wait_seconds Maximum seconds to wait for OCR completion (default: 60)
 #' @return List with markdown content, images, and raw result
 #' @keywords internal
-perform_ocr <- function(pdf_file) {
+perform_ocr <- function(pdf_file, max_wait_seconds = 60) {
   # Perform OCR using Tensorlake via ohseer
-  ocr_result <- ohseer::tensorlake_ocr(pdf_file)
+  ocr_result <- ohseer::tensorlake_ocr(pdf_file, max_wait_seconds = max_wait_seconds)
 
   # Extract pages as structured JSON
   pages <- ohseer::tensorlake_extract_pages(ocr_result)
@@ -32,9 +33,10 @@ perform_ocr <- function(pdf_file) {
 #' @param pdf_file Path to PDF file
 #' @param db_conn Database connection
 #' @param force_reprocess Ignored (kept for backward compatibility). Skip logic handled by workflow.
+#' @param max_wait_seconds Maximum seconds to wait for OCR completion (default: 60)
 #' @return List with status ("completed"/<error message>) and document_id
 #' @keywords internal
-ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE) {
+ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, max_wait_seconds = 60) {
 
  document_id <- NA
 
@@ -53,7 +55,7 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE) {
   # Run OCR
   ocr_response <- tryCatch({
     message(glue::glue("Performing OCR on {basename(pdf_file)}..."))
-    ocr_result <- perform_ocr(pdf_file)
+    ocr_result <- perform_ocr(pdf_file, max_wait_seconds = max_wait_seconds)
 
     # Save document to database with JSON content
     saved_id <- save_document_to_db(
