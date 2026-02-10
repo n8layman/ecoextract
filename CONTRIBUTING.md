@@ -110,7 +110,7 @@ resolve any issues.
 - Use `withr` for cleanup, not
   [`on.exit()`](https://rdrr.io/r/base/on.exit.html)
 - Tests must be schema-agnostic (work with any domain/prompts)
-- See `tests/TESTING_PHILOSOPHY.md` for detailed testing patterns
+- See `tests/TESTING.md` for detailed testing patterns
 
 ## Documentation
 

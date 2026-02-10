@@ -8,3 +8,5 @@
   Database](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.md):
 - [Configuring EcoExtract for Your
   Data](https://n8layman.github.io/ecoextract/articles/configuration.md):
+- [Testing
+  Guide](https://n8layman.github.io/ecoextract/articles/testing.md):
