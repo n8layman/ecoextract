@@ -443,8 +443,12 @@ process_documents <- function(pdf_path,
           results_list[[completed]] <- r
 
           # Console output with status details
+          # Check if any step failed (not "completed" or "skipped")
+          has_failure <- any(!c(r$ocr_status, r$metadata_status, r$extraction_status, r$refinement_status) %in% c("completed", "skipped"))
+          overall_status <- if (has_failure) "FAILED" else "COMPLETED"
+
           cat(sprintf("[%d/%d] %s\n", completed, total, result$name))
-          cat("Status: COMPLETED\n")
+          cat(sprintf("Status: %s\n", overall_status))
           cat(sprintf("  OCR: %s\n", r$ocr_status))
           cat(sprintf("  Metadata: %s\n", r$metadata_status))
           cat(sprintf("  Extraction: %s\n", r$extraction_status))
@@ -461,7 +465,7 @@ process_documents <- function(pdf_path,
               cat(worker_output, file = log_file, append = TRUE, sep = "\n")
             } else {
               # Fallback to summary if no captured output
-              cat("Status: COMPLETED\n", file = log_file, append = TRUE)
+              cat(sprintf("Status: %s\n", overall_status), file = log_file, append = TRUE)
               cat(sprintf("  OCR: %s\n", r$ocr_status), file = log_file, append = TRUE)
               cat(sprintf("  Metadata: %s\n", r$metadata_status), file = log_file, append = TRUE)
               cat(sprintf("  Extraction: %s\n", r$extraction_status), file = log_file, append = TRUE)
