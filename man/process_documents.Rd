@@ -20,7 +20,8 @@ process_documents(
   similarity_method = "llm",
   recursive = FALSE,
   workers = NULL,
-  log = FALSE
+  log = FALSE,
+  ...
 )
 }
 \arguments{
@@ -65,6 +66,8 @@ Values > 1 require the crew package and db_conn must be a file path (not a conne
 \item{log}{If TRUE and using parallel processing (workers > 1), write detailed output
 to an auto-generated log file (e.g., ecoextract_20240129_143052.log). Default FALSE.
 Ignored for sequential processing. Useful for troubleshooting errors.}
+
+\item{...}{Additional arguments passed to underlying functions (e.g., max_wait_seconds for OCR timeout)}
 }
 \value{
 Tibble with processing results
@@ -123,5 +126,8 @@ process_documents("pdfs/", workers = 4)
 
 # Parallel with logging for troubleshooting
 process_documents("pdfs/", workers = 4, log = TRUE)
+
+# Increase OCR timeout to 5 minutes for large documents
+process_documents("pdfs/", max_wait_seconds = 300)
 }
 }

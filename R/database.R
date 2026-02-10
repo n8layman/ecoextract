@@ -23,76 +23,70 @@ configure_sqlite_connection <- function(con) {
   invisible(con)
 }
 
-#' Normalize array fields based on schema definition (schema-agnostic)
+#' Get array field names from schema definition
 #'
-#' Ensures that fields defined as arrays in the schema are properly formatted,
-#' even if the LLM returns scalar values. Works with any schema.
+#' Identifies fields defined as arrays in the JSON schema.
 #'
-#' @param df Dataframe with extracted records
 #' @param schema_list Parsed JSON schema (from jsonlite::fromJSON)
-#' @return Normalized dataframe with proper array formatting
+#' @return Character vector of array field names
 #' @keywords internal
-normalize_array_fields <- function(df, schema_list) {
-  if (nrow(df) == 0) return(df)
-
-  # Extract field definitions from schema
+get_schema_array_fields <- function(schema_list) {
   if (!("properties" %in% names(schema_list) &&
         "records" %in% names(schema_list$properties))) {
-    # No schema structure, return as-is
-    return(df)
+    return(character(0))
   }
 
   records_schema <- schema_list$properties$records
   if (!("items" %in% names(records_schema) &&
         "properties" %in% names(records_schema$items))) {
-    return(df)
+    return(character(0))
   }
 
   field_properties <- records_schema$items$properties
-  required_fields <- rlang::`%||%`(records_schema$items$required, character(0))
-
-  # Identify which fields should be arrays
-  array_fields <- names(field_properties)[
+  names(field_properties)[
     sapply(field_properties, function(prop) {
       type <- prop$type
       if (is.null(type)) return(FALSE)
-      # Handle both "array" and ["array", "null"]
-      if (length(type) > 1) {
-        "array" %in% type
-      } else {
-        type == "array"
-      }
+      if (length(type) > 1) "array" %in% type else type == "array"
     })
   ]
+}
 
-  # Normalize each array field
-  for (field in array_fields) {
+#' Validate required array fields based on schema definition (schema-agnostic)
+#'
+#' Validates that required array fields have values. Array normalization
+#' (flattening nested lists) is handled during serialization in save_records_to_db
+#' to avoid vctrs type-checking issues with tibble column assignment.
+#'
+#' @param df Dataframe with extracted records
+#' @param schema_list Parsed JSON schema (from jsonlite::fromJSON)
+#' @return Validated dataframe (unmodified)
+#' @keywords internal
+normalize_array_fields <- function(df, schema_list) {
+  if (nrow(df) == 0) return(df)
+
+  array_fields <- get_schema_array_fields(schema_list)
+  if (length(array_fields) == 0) return(df)
+
+  records_schema <- schema_list$properties$records
+  required_fields <- rlang::`%||%`(records_schema$items$required, character(0))
+
+  # Validate required array fields have values
+  for (field in intersect(array_fields, required_fields)) {
     if (!field %in% names(df)) next
 
     for (i in 1:nrow(df)) {
       value <- df[[field]][[i]]
 
-      # Check if value is missing/null
       is_missing <- is.null(value) ||
                    (is.atomic(value) && length(value) == 1 && is.na(value)) ||
                    (is.atomic(value) && length(value) == 0)
 
       if (is_missing) {
-        # Check if field is required
-        if (field %in% required_fields) {
-          stop(glue::glue(
-            "Required field '{field}' is missing in record {i}. ",
-            "LLM must return a value for this field."
-          ))
-        }
-        # Optional field - keep as NULL/NA
-        next
-      }
-
-      # Value exists - ensure it's a list (for JSON conversion)
-      # If it's a scalar (character/numeric/etc), wrap it in a list
-      if (is.atomic(value) && !is.list(value)) {
-        df[[field]][[i]] <- list(value)
+        stop(glue::glue(
+          "Required field '{field}' is missing in record {i}. ",
+          "LLM must return a value for this field."
+        ))
       }
     }
   }
@@ -593,9 +587,13 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     dplyr::select(dplyr::all_of(db_columns)) |>
     as.data.frame()  # Convert to data.frame for easier column manipulation
 
+  # Identify array fields from schema for proper JSON serialization
+  array_fields <- if (!is.null(schema_list)) get_schema_array_fields(schema_list) else character(0)
+
   # Convert list columns to JSON strings
   list_cols <- names(interactions_clean)[sapply(interactions_clean, is.list)]
   for (col in list_cols) {
+    is_array_field <- col %in% array_fields
     col_data <- interactions_clean[[col]]
     result <- character(length(col_data))
 
@@ -618,8 +616,17 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
         next
       }
 
-      # If it's a list or vector with multiple elements, convert to JSON
-      if (is.list(x) || length(x) > 1) {
+      # Flatten any remaining list wrappers to avoid double-nesting
+      if (is.list(x)) {
+        x <- unlist(x, recursive = TRUE)
+        if (is.null(x) || length(x) == 0) {
+          result[i] <- NA_character_
+          next
+        }
+      }
+
+      # Array fields and multi-element values: serialize as JSON array
+      if (is_array_field || length(x) > 1) {
         result[i] <- jsonlite::toJSON(x, auto_unbox = FALSE)
         next
       }

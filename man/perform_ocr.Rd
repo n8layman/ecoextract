@@ -4,10 +4,12 @@
 \alias{perform_ocr}
 \title{OCR Functions}
 \usage{
-perform_ocr(pdf_file)
+perform_ocr(pdf_file, max_wait_seconds = 60)
 }
 \arguments{
 \item{pdf_file}{Path to PDF}
+
+\item{max_wait_seconds}{Maximum seconds to wait for OCR completion (default: 60)}
 }
 \value{
 List with markdown content, images, and raw result

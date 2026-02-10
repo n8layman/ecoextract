@@ -4,7 +4,7 @@
 \alias{ocr_document}
 \title{OCR Document and Save to Database}
 \usage{
-ocr_document(pdf_file, db_conn, force_reprocess = TRUE)
+ocr_document(pdf_file, db_conn, force_reprocess = TRUE, max_wait_seconds = 60)
 }
 \arguments{
 \item{pdf_file}{Path to PDF file}
@@ -12,6 +12,8 @@ ocr_document(pdf_file, db_conn, force_reprocess = TRUE)
 \item{db_conn}{Database connection}
 
 \item{force_reprocess}{Ignored (kept for backward compatibility). Skip logic handled by workflow.}
+
+\item{max_wait_seconds}{Maximum seconds to wait for OCR completion (default: 60)}
 }
 \value{
 List with status ("completed"/<error message>) and document_id

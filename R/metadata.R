@@ -116,7 +116,8 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model
         pages = pub_metadata$pages,
         issn = pub_metadata$issn,
         publisher = pub_metadata$publisher,
-        bibliography = references_json
+        bibliography = references_json,
+        language = pub_metadata$language
       )
     )
 
@@ -133,6 +134,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model
       message(glue::glue("  pages: {rlang::`%||%`(pub_metadata$pages, '<empty>')}"))
       message(glue::glue("  issn: {rlang::`%||%`(pub_metadata$issn, '<empty>')}"))
       message(glue::glue("  publisher: {rlang::`%||%`(pub_metadata$publisher, '<empty>')}"))
+      message(glue::glue("  language: {rlang::`%||%`(pub_metadata$language, '<empty>')}"))
       message(glue::glue("  references: {if(!is.null(pub_metadata$bibliography)) length(pub_metadata$bibliography) else 0} citations"))
 
       "completed"
@@ -179,7 +181,8 @@ json_schema_to_ellmer_type_metadata <- function(schema_path) {
       items = ellmer::type_string(),
       description = pub_meta_props$bibliography$description,
       required = FALSE
-    )
+    ),
+    language = ellmer::type_string(description = pub_meta_props$language$description, required = FALSE)
   )
 
   # Build complete schema

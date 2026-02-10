@@ -1,0 +1,42 @@
+url: https://n8layman.github.io/ecoextract/
+
+template:
+  bootstrap: 5
+
+reference:
+  - title: Workflow
+    desc: Main document processing pipeline
+    contents:
+      - process_documents
+      - process_single_document
+
+  - title: Database Setup
+    desc: Initialize and configure databases
+    contents:
+      - init_ecoextract_database
+      - init_ecoextract
+
+  - title: Data Access
+    desc: Query and export extracted data
+    contents:
+      - get_documents
+      - get_records
+      - get_ocr_markdown
+      - get_ocr_html_preview
+      - get_db_stats
+      - export_db
+      - export_bibtex
+
+  - title: Review and Accuracy
+    desc: Human review workflow and accuracy metrics
+    contents:
+      - save_document
+      - calculate_accuracy
+
+articles:
+  - title: Guides
+    navbar: ~
+    contents:
+      - getting-started
+      - ecoextract-workflow
+      - configuration
