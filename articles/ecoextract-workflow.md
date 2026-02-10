@@ -1,0 +1,750 @@
+# Complete Workflow: From PDF to Database
+
+## Overview
+
+This vignette demonstrates the complete workflow for extracting
+structured ecological data from scientific literature PDFs using the
+ecoextract ecosystem.
+
+### The Three-Package Ecosystem
+
+The complete workflow involves three packages:
+
+1.  **[ohseer](https://github.com/n8layman/ohseer)** - OCR processing
+    for PDFs
+    - Converts PDFs to markdown with embedded images
+    - Uses Tensorlake for vision-based text extraction
+    - Handles tables, figures, and complex layouts
+2.  **[ecoextract](https://github.com/n8layman/ecoextract)** - Data
+    extraction pipeline (this package)
+    - Extracts publication metadata
+    - Extracts structured records using LLM (Claude)
+    - Optional refinement pass
+    - SQLite database storage with full audit trail
+3.  **[ecoreview](https://github.com/n8layman/ecoreview)** - Human
+    review Shiny app
+    - Interactive review interface
+    - Edit, add, or delete records
+    - Automatic accuracy calculation
+    - Edit tracking and audit trail
+
+### The Four-Step Pipeline
+
+The `ecoextract` package orchestrates a four-step extraction pipeline:
+
+1.  **OCR Processing** (via ohseer) - Convert PDF to markdown text with
+    embedded images
+2.  **Metadata Extraction** - Extract publication metadata (title,
+    authors, DOI, etc.)
+3.  **Data Extraction** - Extract structured records using LLM according
+    to your schema
+4.  **Refinement** (optional) - Enhance and verify extracted data
+
+After extraction, use **ecoreview** to review and correct the results.
+
+### Installation
+
+Install all three packages from GitHub:
+
+``` r
+# Install the complete ecosystem
+pak::pak("n8layman/ohseer")      # OCR processing
+pak::pak("n8layman/ecoextract")  # Data extraction
+pak::pak("n8layman/ecoreview")   # Review app (optional)
+```
+
+``` r
+library(ecoextract)
+```
+
+**Package Dependencies:**
+
+- `ohseer` is required for OCR processing (you can skip OCR if providing
+  text directly)
+- `ecoreview` is optional but recommended for reviewing and correcting
+  extraction results
+
+### API Key Setup
+
+EcoExtract requires API keys for OCR (Tensorlake) and data extraction
+(Anthropic Claude):
+
+``` r
+# Create a .env file in your project root (make sure it's in .gitignore!)
+# .env file contents:
+# TENSORLAKE_API_KEY=your_tensorlake_key_here
+# ANTHROPIC_API_KEY=your_anthropic_key_here
+
+# The .env file is automatically loaded when R starts in the project directory
+
+# Or set keys manually in R:
+Sys.setenv(TENSORLAKE_API_KEY = "your_tensorlake_key")
+Sys.setenv(ANTHROPIC_API_KEY = "your_anthropic_key")
+```
+
+Get API keys from:
+
+- Tensorlake (for OCR): <https://www.tensorlake.ai/>
+- Anthropic Claude (for extraction): <https://console.anthropic.com/>
+
+### Quick Start: Process Documents
+
+The simplest way to process documents is using
+[`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md):
+
+``` r
+# Process a single PDF
+results <- process_documents(
+  pdf_path = "my_paper.pdf",
+  db_conn = "ecoextract_records.db"
+)
+
+# Process all PDFs in a folder
+results <- process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "ecoextract_records.db"
+)
+
+# Process with refinement enabled
+results <- process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "ecoextract_records.db",
+  run_refinement = TRUE
+)
+```
+
+This automatically handles:
+
+- OCR processing
+- Metadata extraction
+- Data extraction with Claude
+- Optional refinement pass
+- Saving to SQLite database
+- Smart skip logic (re-running skips completed steps)
+
+### Parallel Processing
+
+For processing multiple documents faster, use parallel processing with
+the `crew` package:
+
+``` r
+# Install crew (optional dependency)
+install.packages("crew")
+
+# Process with 4 parallel workers
+results <- process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "ecoextract_records.db",
+  workers = 4
+)
+
+# With logging for troubleshooting
+results <- process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "ecoextract_records.db",
+  workers = 4,
+  log = TRUE  # Creates ecoextract_YYYYMMDD_HHMMSS.log
+)
+```
+
+Benefits of parallel processing:
+
+- Each worker processes a complete document (all 4 steps)
+- Crash-resilient: completed documents saved immediately
+- Progress shown as documents complete: `[1/10] paper.pdf completed`
+- Re-run to resume: skip logic detects completed documents
+
+### Understanding Skip Logic
+
+When you re-run
+[`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md),
+it automatically skips steps that have already completed successfully.
+This allows you to:
+
+- Resume interrupted batch processing
+- Add new PDFs to an existing database
+- Re-run specific steps after fixing issues
+
+#### Skip Behavior
+
+Each step checks its status in the database:
+
+| Step       | Skips When                                          |
+|------------|-----------------------------------------------------|
+| OCR        | `ocr_status = "completed"` AND markdown exists      |
+| Metadata   | `metadata_status = "completed"` AND metadata exists |
+| Extraction | `extraction_status = "completed"` AND records exist |
+| Refinement | `refinement_status = "completed"` (opt-in only)     |
+
+#### Cascade Logic
+
+When a step is re-run, downstream steps are automatically invalidated:
+
+| If This Re-runs | These Become Stale     |
+|-----------------|------------------------|
+| OCR             | Metadata, Extraction   |
+| Metadata        | Extraction             |
+| Extraction      | (nothing)              |
+| Refinement      | (nothing, opt-in only) |
+
+#### Force Reprocessing
+
+Override skip logic to force reprocessing:
+
+``` r
+# Force reprocess all documents from OCR onward
+results <- process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "ecoextract_records.db",
+  force_reprocess_ocr = TRUE
+)
+
+# Force reprocess specific documents only (by document_id)
+results <- process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "ecoextract_records.db",
+  force_reprocess_extraction = c(5L, 12L)
+)
+
+# Force reprocess metadata for all documents
+results <- process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "ecoextract_records.db",
+  force_reprocess_metadata = TRUE
+)
+```
+
+Each `force_reprocess_*` parameter accepts:
+
+- `NULL` (default) - use normal skip logic
+- `TRUE` - force reprocess all documents
+- Integer vector (e.g., `c(5L, 12L)`) - force reprocess specific
+  document IDs
+
+### Customizing the Workflow
+
+#### Step 1: Initialize Custom Configuration
+
+Create customizable schema and prompt files in your project:
+
+``` r
+# Creates ecoextract/ directory with template files
+init_ecoextract()
+
+# This creates:
+# - ecoextract/SCHEMA_GUIDE.md      # Read this first!
+# - ecoextract/schema.json          # Edit for your domain
+# - ecoextract/extraction_prompt.md # Edit for your domain
+```
+
+#### Step 2: Customize for Your Domain
+
+Edit the files in `ecoextract/` to customize for your research domain.
+
+**ecoextract/schema.json** - Define what data to extract:
+
+The schema must follow this structure:
+
+``` json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Your Domain Schema",
+  "type": "object",
+  "properties": {
+    "records": {
+      "type": "array",
+      "description": "Your domain-specific records",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field_1": {"type": "string", "description": "..."},
+          "field_2": {"type": "integer", "description": "..."},
+          "location": {"type": "string", "description": "..."}
+        }
+      }
+    }
+  },
+  "required": ["records"]
+}
+```
+
+Key requirements:
+
+- Top-level must have a `records` property (array of objects)
+- Each field should have a `type` and `description`
+- Use JSON Schema draft-07 format
+
+**ecoextract/extraction_prompt.md** - Customize extraction instructions
+for your domain
+
+#### Step 3: Process with Custom Configuration
+
+The package automatically detects and uses files in `ecoextract/`:
+
+``` r
+# Automatically uses ecoextract/schema.json and ecoextract/extraction_prompt.md
+process_documents("pdfs/", "ecoextract_records.db")
+
+# Or specify custom files explicitly
+process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "ecoextract_records.db",
+  schema_file = "my_custom/schema.json",
+  extraction_prompt_file = "my_custom/extraction.md"
+)
+```
+
+#### Configuration Priority
+
+The package looks for configuration files in this order:
+
+1.  **Explicit parameter** - Files you specify directly
+2.  **Project ecoextract/ directory** - `ecoextract/schema.json`, etc.
+3.  **Working directory with prefix** - `ecoextract_schema.json`, etc.
+4.  **Package defaults** - Built-in defaults (bat-plant interactions
+    example)
+
+### Retrieving Your Data
+
+After processing, use these functions to retrieve and export your data:
+
+#### Query Records
+
+``` r
+# Get all records from all documents
+all_records <- get_records()
+
+# Get records from a specific document
+doc_records <- get_records(document_id = 1)
+
+# Use a custom database path
+records <- get_records(db_conn = "my_project.db")
+```
+
+#### Query Documents
+
+``` r
+# Get all documents and their metadata
+all_docs <- get_documents()
+
+# Get a specific document
+doc <- get_documents(document_id = 1)
+
+# Check processing status
+doc$ocr_status          # "completed", "pending", "failed"
+doc$metadata_status     # "completed", "pending", "failed"
+doc$extraction_status   # "completed", "pending", "failed"
+```
+
+#### Export Data
+
+The
+[`export_db()`](https://n8layman.github.io/ecoextract/reference/export_db.md)
+function joins records with document metadata:
+
+``` r
+# Get all records with metadata as a tibble
+data <- export_db()
+
+# Export to CSV file
+export_db(filename = "extracted_data.csv")
+
+# Export only records from specific document
+export_db(document_id = 1, filename = "document_1.csv")
+
+# Include OCR content in export (large files!)
+data <- export_db(include_ocr = TRUE)
+
+# Simplified export (removes processing metadata columns)
+data <- export_db(simple = TRUE)
+```
+
+The exported data includes:
+
+- Document metadata (title, authors, journal, DOI, etc.)
+- All extracted record fields (defined by your schema)
+- Processing status and timestamps
+
+#### View OCR Results
+
+``` r
+# Get OCR markdown text
+markdown <- get_ocr_markdown(document_id = 1)
+cat(markdown)
+
+# View OCR with embedded images in RStudio Viewer
+get_ocr_html_preview(document_id = 1)
+
+# View all pages
+get_ocr_html_preview(document_id = 1, page_num = "all")
+```
+
+### Deduplication
+
+During extraction, records are automatically deduplicated against
+existing records in the database. Three similarity methods are
+available:
+
+``` r
+# Default: LLM-based deduplication (most accurate)
+results <- process_documents("pdfs/", db_conn = "records.db",
+                            similarity_method = "llm")
+
+# Embedding-based with custom threshold
+results <- process_documents("pdfs/", db_conn = "records.db",
+                            similarity_method = "embedding",
+                            min_similarity = 0.85)
+
+# Fast local deduplication (no API calls)
+results <- process_documents("pdfs/", db_conn = "records.db",
+                            similarity_method = "jaccard",
+                            min_similarity = 0.9)
+```
+
+Methods:
+
+- **`"llm"`** (default) - Uses Claude to semantically compare records
+- **`"embedding"`** - Cosine similarity on text embeddings (requires
+  embedding provider)
+- **`"jaccard"`** - Fast n-gram based comparison (no API calls)
+
+### Complete Example: Custom Domain
+
+Here’s a complete example of setting up extraction for a custom domain
+(disease outbreaks):
+
+``` r
+# 1. Initialize configuration
+init_ecoextract()
+
+# 2. Edit ecoextract/schema.json for disease outbreaks
+# (manually edit the file to define fields like: disease, location, date, cases, etc.)
+
+# 3. Edit ecoextract/extraction_prompt.md
+# (manually edit to describe what information to extract about disease outbreaks)
+
+# 4. Process documents with parallel processing
+results <- process_documents(
+  pdf_path = "disease_papers/",
+  db_conn = "disease_outbreaks.db",
+  workers = 4,
+  run_refinement = TRUE,
+  log = TRUE
+)
+
+# 5. Export results
+outbreak_data <- export_db(
+  db_conn = "disease_outbreaks.db",
+  filename = "disease_outbreaks.csv",
+  simple = TRUE
+)
+
+# 6. Analyze with dplyr
+library(dplyr)
+outbreak_data |>
+  group_by(disease) |>
+  summarize(
+    total_papers = n_distinct(document_id),
+    total_outbreaks = n()
+  )
+```
+
+### Best Practices
+
+#### 1. Start with Defaults
+
+``` r
+# Use package defaults first to understand the system
+process_documents("test.pdf", "test.db")
+
+# Review the results
+get_records(db_conn = "test.db")
+```
+
+#### 2. Test on Small Batches
+
+``` r
+# Test on 2-3 papers first
+test_files <- c("paper1.pdf", "paper2.pdf", "paper3.pdf")
+
+results <- process_documents(
+  pdf_path = test_files,
+  db_conn = "test.db"
+)
+
+# Review results before processing entire corpus
+data <- export_db(db_conn = "test.db")
+View(data)
+```
+
+#### 3. Use Parallel Processing for Large Batches
+
+``` r
+# For 10+ papers, use parallel processing
+results <- process_documents(
+  pdf_path = "large_corpus/",
+  db_conn = "corpus.db",
+  workers = 4,
+  log = TRUE
+)
+```
+
+#### 4. Enable Refinement Selectively
+
+``` r
+# Run refinement only on specific documents that need it
+results <- process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "records.db",
+  run_refinement = c(5L, 12L, 18L)  # Only these document IDs
+)
+```
+
+#### 5. Version Control Your Configs
+
+``` r
+# Add custom configs to git
+# .gitignore should exclude .env (API keys) but include ecoextract/ configs
+```
+
+#### 6. Monitor API Usage
+
+``` r
+# Extraction and refinement use Claude API
+# Monitor usage at: https://console.anthropic.com/
+
+# Typical usage per paper:
+# - OCR: ~2,000-5,000 tokens (Tensorlake)
+# - Metadata: ~1,000-2,000 tokens (Claude)
+# - Extraction: ~5,000-10,000 tokens (Claude)
+# - Refinement: ~3,000-5,000 tokens (Claude)
+```
+
+### Troubleshooting
+
+#### API Key Not Found
+
+``` r
+# Error: API key not found
+
+# Solution 1: Load from .env file
+readRenviron(".env")
+
+# Solution 2: Set directly in R
+Sys.setenv(ANTHROPIC_API_KEY = "sk-ant-...")
+Sys.setenv(TENSORLAKE_API_KEY = "...")
+
+# Verify keys are set
+Sys.getenv("ANTHROPIC_API_KEY")
+```
+
+#### Database Locked Errors
+
+``` r
+# If you get "database is locked" errors during parallel processing,
+# this usually means SQLite WAL mode isn't enabled properly.
+
+# The package handles this automatically, but you can verify:
+library(DBI)
+db <- dbConnect(RSQLite::SQLite(), "records.db")
+dbGetQuery(db, "PRAGMA journal_mode")  # Should return "wal"
+dbDisconnect(db)
+```
+
+#### Schema Validation Errors
+
+``` r
+# If extraction fails, check your schema
+
+# 1. Validate JSON syntax
+jsonlite::validate("ecoextract/schema.json")
+
+# 2. Verify schema structure (must have top-level "records" property)
+schema <- jsonlite::read_json("ecoextract/schema.json")
+names(schema$properties)  # Should include "records"
+
+# 3. Test with default schema first
+process_documents("test.pdf", "test.db", schema_file = NULL)
+```
+
+#### OCR Failures
+
+``` r
+# If OCR fails, check document status
+docs <- get_documents()
+docs |> filter(ocr_status == "failed")
+
+# Force reprocess failed OCR
+process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "records.db",
+  force_reprocess_ocr = c(5L)  # Document ID that failed
+)
+```
+
+### Understanding the Database Schema
+
+The SQLite database has two main tables:
+
+#### documents table
+
+Stores document metadata and processing status:
+
+- `document_id` - Primary key
+- `file_name`, `file_path` - Original PDF location
+- `title`, `authors`, `publication_year`, `journal`, `doi` - Publication
+  metadata
+- `document_content` - OCR markdown text
+- `ocr_status`, `metadata_status`, `extraction_status`,
+  `refinement_status` - Processing status
+- `records_extracted` - Count of records extracted
+
+#### records table
+
+Stores extracted data records:
+
+- `id` - Primary key (auto-increment)
+- `document_id` - Foreign key to documents
+- `record_id` - Human-readable identifier (e.g., “Smith2023-001”)
+- Custom fields defined by your schema
+- `extraction_timestamp`, `llm_model_version` - Metadata
+
+#### record_edits table
+
+Audit trail for human edits (used by review workflows):
+
+- Tracks column-level changes
+- Stores original values
+- Records edit timestamps
+
+### Human Review Workflow
+
+After extraction, you can review and edit records using the
+**ecoreview** Shiny application:
+
+#### Install ecoreview
+
+``` r
+# Install from GitHub
+pak::pak("n8layman/ecoreview")
+```
+
+#### Launch Review App
+
+``` r
+library(ecoreview)
+
+# Launch the review app with your database
+run_review_app(db_path = "ecoextract_records.db")
+```
+
+The review app provides:
+
+- **Document-by-document review** - Navigate through all processed
+  documents
+- **Side-by-side view** - See OCR text and extracted records together
+- **Edit records** - Modify extracted data directly in the app
+- **Add records** - Manually add records that the LLM missed
+- **Delete records** - Remove incorrect records
+- **Automatic audit trail** - All edits tracked in `record_edits` table
+- **Accuracy metrics** - Calculate extraction accuracy based on human
+  edits
+
+#### Review Workflow Example
+
+``` r
+# 1. Process documents
+results <- process_documents(
+  pdf_path = "papers/",
+  db_conn = "records.db"
+)
+
+# 2. Launch review app
+library(ecoreview)
+run_review_app(db_path = "records.db")
+
+# 3. Review and edit records in the Shiny app
+#    - Click through documents
+#    - Edit incorrect fields
+#    - Add missing records
+#    - Delete duplicates or errors
+#    - Click "Accept" to save changes
+
+# 4. Export final data with edits
+final_data <- export_db(
+  db_conn = "records.db",
+  filename = "final_data.csv"
+)
+
+# Check which records were edited
+edited_records <- final_data |>
+  filter(human_edited == TRUE)
+```
+
+#### Edit Tracking
+
+The
+[`save_document()`](https://n8layman.github.io/ecoextract/reference/save_document.md)
+function (used by ecoreview) tracks all changes:
+
+- **Column-level edits** - Knows exactly which fields were changed
+- **Original values** - Stores the LLM’s original extraction
+- **Edit timestamps** - When each change was made
+- **Added/deleted flags** - Distinguishes human-added vs LLM-extracted
+  records
+
+This audit trail enables:
+
+- Accuracy calculations
+- Understanding LLM performance
+- Training data for fine-tuning
+- Quality control
+
+For more information, see the [ecoreview
+repository](https://github.com/n8layman/ecoreview).
+
+#### Calculate Accuracy Metrics
+
+After reviewing documents, calculate comprehensive accuracy metrics:
+
+``` r
+# Calculate accuracy for all verified documents
+accuracy <- calculate_accuracy("ecoextract_records.db")
+
+# View key metrics
+accuracy$detection_recall      # Did we find the records?
+accuracy$field_precision       # How accurate were the fields?
+accuracy$major_edit_rate       # How serious were the errors?
+accuracy$avg_edits_per_document # Average corrections needed
+```
+
+EcoExtract provides nuanced accuracy metrics that separate:
+
+- **Record detection**: Finding records vs missing/hallucinating them
+- **Field-level accuracy**: Correctness of individual fields (gives
+  partial credit)
+- **Edit severity**: Major edits (unique/required fields) vs minor edits
+
+For a complete explanation of how accuracy is calculated and why, see
+[ACCURACY.md](https://n8layman.github.io/ecoextract/ACCURACY.md).
+
+Accuracy visualizations (confusion matrices, heatmaps) are available in
+the [ecoreview](https://github.com/n8layman/ecoreview) Shiny app.
+
+### Next Steps
+
+- Review the package functions:
+  [`?process_documents`](https://n8layman.github.io/ecoextract/reference/process_documents.md),
+  [`?get_records`](https://n8layman.github.io/ecoextract/reference/get_records.md),
+  [`?export_db`](https://n8layman.github.io/ecoextract/reference/export_db.md)
+- Read the schema guide: Run
+  [`init_ecoextract()`](https://n8layman.github.io/ecoextract/reference/init_ecoextract.md)
+  and read `ecoextract/SCHEMA_GUIDE.md`
+- Learn about database structure:
+  [`?init_ecoextract_database`](https://n8layman.github.io/ecoextract/reference/init_ecoextract_database.md)
+- Check the GitHub repos:
+  - [ecoextract](https://github.com/n8layman/ecoextract) - Main
+    extraction package
+  - [ecoreview](https://github.com/n8layman/ecoreview) - Review Shiny
+    app
+  - [ohseer](https://github.com/n8layman/ohseer) - OCR package

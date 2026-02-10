@@ -1,0 +1,39 @@
+# Load Configuration File with Priority Order
+
+Searches for configuration files in the following priority order: 1.
+Explicit file path (if provided) 2. Project ecoextract/ directory 3.
+Working directory (with ecoextract\_ prefix) 4. Package default location
+
+## Usage
+
+``` r
+load_config_file(
+  file_path = NULL,
+  file_name = NULL,
+  package_subdir = "extdata",
+  return_content = FALSE
+)
+```
+
+## Arguments
+
+- file_path:
+
+  Explicit path to file (highest priority)
+
+- file_name:
+
+  Base filename to search for (e.g., "schema.json",
+  "extraction_prompt.md")
+
+- package_subdir:
+
+  Subdirectory in package inst/ (e.g., "extdata", "prompts")
+
+- return_content:
+
+  If TRUE, returns file content; if FALSE, returns file path
+
+## Value
+
+File path or content, depending on return_content parameter
