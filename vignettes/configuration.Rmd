@@ -1,0 +1,781 @@
+---
+title: "Configuring EcoExtract for Your Data"
+author: "EcoExtract Team"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+vignette: >
+  %\VignetteIndexEntry{Configuring EcoExtract for Your Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+# Introduction
+
+EcoExtract is domain-agnostic and works with any JSON schema you define. This guide teaches you how to customize EcoExtract to extract exactly the data you need for your research domain.
+
+## What You'll Learn
+
+- How to create custom configuration files
+- How to define your data schema (what fields to extract)
+- How to write extraction prompts (how to extract those fields)
+- How to use array fields for multi-valued data
+- How to work with required vs optional fields
+- How to test and iterate on your configuration
+
+## Configuration Files
+
+EcoExtract's extraction behavior is controlled by two key configuration files:
+
+1. **`schema.json`** - Defines the structure of extracted data (what fields, what types)
+2. **`extraction_prompt.md`** - Provides instructions to the LLM (how to extract, edge cases)
+
+There's also an optional refinement prompt:
+
+3. **`refinement_prompt.md`** - Instructions for the refinement step (validating and enhancing data)
+
+# Understanding the Schema
+
+## Schema Basics
+
+The schema is a JSON file that defines:
+
+- What fields should be extracted
+- What data types each field should have
+- Which fields are required vs optional
+- How to validate the extracted data
+- Which fields uniquely identify records
+
+## Required Structure
+
+Your schema **must** follow this structure:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Your Domain Schema Title",
+  "type": "object",
+  "properties": {
+    "records": {
+      "type": "array",
+      "description": "Array of extracted records",
+      "items": {
+        "type": "object",
+        "required": ["field1", "field2"],
+        "properties": {
+          "field1": {
+            "type": "string",
+            "description": "Description of field1"
+          },
+          "field2": {
+            "type": "integer",
+            "description": "Description of field2"
+          }
+        },
+        "x-unique-fields": ["field1", "field2"]
+      }
+    }
+  },
+  "required": ["records"]
+}
+```
+
+Key requirements:
+
+- Top-level must have a `records` property (array of objects)
+- Each field should have a `type` and `description`
+- Use `required` array to specify required fields
+- Use `x-unique-fields` to identify fields that define uniqueness (used for deduplication and accuracy)
+
+## Field Types
+
+The schema supports standard JSON Schema types:
+
+| JSON Type | SQLite Type | R Type | Example |
+|-----------|-------------|--------|---------|
+| `string` | TEXT | character | "Myotis lucifugus" |
+| `integer` | INTEGER | integer | 2023 |
+| `number` | REAL | numeric | 45.123 |
+| `boolean` | BOOLEAN | logical | true |
+| `array` | TEXT (JSON) | list | ["sentence 1", "sentence 2"] |
+| `object` | TEXT (JSON) | list | {"lat": 45, "lon": -122} |
+
+## Reserved System Field
+
+**⚠️ IMPORTANT**: `record_id` is a reserved system field:
+
+- **Format**: `AuthorYear-oN` (e.g., `Smith2020-o1`)
+- **Purpose**: Unique identifier for each record
+- **Generated**: Automatically by the system
+- **Do NOT include in your schema** - this is managed internally
+
+# Creating Custom Configuration
+
+## Step 1: Initialize Configuration
+
+Create template configuration files in your project:
+
+```{r init}
+library(ecoextract)
+
+# Creates ecoextract/ directory with template files
+init_ecoextract()
+```
+
+This creates:
+
+- `ecoextract/SCHEMA_GUIDE.md` - Read this first!
+- `ecoextract/schema.json` - Template schema to customize
+- `ecoextract/extraction_prompt.md` - Template prompt to customize
+
+## Step 2: Edit the Schema
+
+Open `ecoextract/schema.json` and customize for your domain.
+
+### Example 1: Simple Schema (Disease Outbreaks)
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Disease Outbreak Schema",
+  "description": "Schema for extracting disease outbreak data from epidemiological literature",
+  "type": "object",
+  "properties": {
+    "records": {
+      "type": "array",
+      "description": "Array of disease outbreak records",
+      "items": {
+        "type": "object",
+        "required": [
+          "disease_name",
+          "location",
+          "year",
+          "all_supporting_source_sentences"
+        ],
+        "properties": {
+          "disease_name": {
+            "type": "string",
+            "description": "Name of the disease (e.g., 'COVID-19', 'Influenza A(H1N1)')"
+          },
+          "location": {
+            "type": "string",
+            "description": "Geographic location of outbreak (city, region, or country)"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Year the outbreak occurred"
+          },
+          "cases": {
+            "type": "integer",
+            "description": "Total number of cases reported"
+          },
+          "deaths": {
+            "type": "integer",
+            "description": "Total number of deaths reported"
+          },
+          "all_supporting_source_sentences": {
+            "type": "array",
+            "description": "All sentences from the document that support this record",
+            "items": {
+              "type": "string",
+              "description": "Individual supporting sentence"
+            }
+          }
+        },
+        "x-unique-fields": ["disease_name", "location", "year"]
+      }
+    }
+  },
+  "required": ["records"]
+}
+```
+
+### Example 2: Complex Schema with Arrays (Host-Pathogen Interactions)
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Host-Pathogen Interaction Schema",
+  "type": "object",
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "Pathogen_Name",
+          "Host_Name",
+          "Detection_Method",
+          "all_supporting_source_sentences"
+        ],
+        "properties": {
+          "Pathogen_Name": {
+            "type": "string",
+            "description": "Scientific name of the pathogen"
+          },
+          "Host_Name": {
+            "type": "string",
+            "description": "Scientific name of the host organism"
+          },
+          "Detection_Method": {
+            "type": "array",
+            "description": "Methods used to detect the pathogen (can be multiple)",
+            "items": {
+              "type": "string",
+              "description": "Individual detection method (e.g., 'PCR', 'culture', 'serology')"
+            }
+          },
+          "Sample_type": {
+            "type": "array",
+            "description": "Types of samples collected (can be multiple)",
+            "items": {
+              "type": "string",
+              "description": "Individual sample type (e.g., 'blood', 'tissue', 'fecal swab')"
+            }
+          },
+          "Location": {
+            "type": "string",
+            "description": "Geographic location where interaction was documented"
+          },
+          "all_supporting_source_sentences": {
+            "type": "array",
+            "description": "All sentences from document supporting this record",
+            "items": {
+              "type": "string"
+            }
+          },
+          "Confidence_Score": {
+            "type": "integer",
+            "description": "Confidence in extraction accuracy (1-5 scale)"
+          }
+        },
+        "x-unique-fields": ["Pathogen_Name", "Host_Name"]
+      }
+    }
+  },
+  "required": ["records"]
+}
+```
+
+## Step 3: Edit the Extraction Prompt
+
+Open `ecoextract/extraction_prompt.md` and customize the instructions for your domain.
+
+### Prompt Structure
+
+A good extraction prompt should include:
+
+1. **Task description** - What you're extracting and why
+2. **Field definitions** - Clear explanation of each field
+3. **Extraction rules** - When to create separate records
+4. **Edge case handling** - What to do with ambiguous cases
+5. **Quality guidelines** - Standards for completeness and accuracy
+
+### Example Prompt (Disease Outbreaks)
+
+```markdown
+# Task
+
+Extract all disease outbreak events mentioned in this epidemiological document.
+Each outbreak should be a separate record.
+
+# Field Definitions
+
+- **disease_name**: The specific disease or pathogen name. Use the most specific
+  name mentioned (e.g., "Influenza A(H1N1)" not just "Influenza").
+
+- **location**: Geographic location where outbreak occurred. Use the most specific
+  location mentioned (city > region > country).
+
+- **year**: Year the outbreak occurred (4-digit year).
+
+- **cases**: Total number of confirmed or suspected cases. Extract only if explicitly
+  stated.
+
+- **deaths**: Total number of deaths attributed to the outbreak. Extract only if
+  explicitly stated.
+
+- **all_supporting_source_sentences**: Include every sentence that provides
+  information about this outbreak. Include the full sentence verbatim.
+
+# Extraction Rules
+
+## One Record Per Outbreak
+
+Create separate records for:
+- Different diseases in the same location
+- Same disease in different locations
+- Same disease in same location but different time periods
+
+## Handling Uncertainty
+
+- If year is not explicitly stated, try to infer from context
+- If location is ambiguous, use the most likely interpretation
+- If case/death counts are ranges, use the midpoint
+- Mark low-confidence extractions with Confidence_Score = 2 or 3
+
+## Multiple Mentions
+
+If an outbreak is mentioned multiple times, create ONE record and include
+all supporting sentences.
+
+# Quality Standards
+
+- Prioritize completeness: extract all outbreaks mentioned
+- Include all supporting sentences for each record
+- Be precise with location and disease names
+- Don't hallucinate: only extract what's explicitly stated or clearly implied
+```
+
+## Step 4: Test Your Configuration
+
+```{r test-config}
+# Process a test document with your custom configuration
+results <- process_documents(
+  pdf_path = "test_paper.pdf",
+  db_conn = "test.db"
+)
+
+# Retrieve and inspect results
+records <- get_records(db_conn = "test.db")
+View(records)
+
+# Check what was extracted
+names(records)  # Should match your schema fields
+str(records)    # Check data types
+```
+
+## Step 5: Iterate and Refine
+
+```{r iterate}
+# Common iterations:
+# 1. Adjust field descriptions in schema
+# 2. Add edge case handling in prompt
+# 3. Reprocess with force flag
+# 4. Review results in ecoreview app
+
+# Force reprocess after changing schema/prompt
+results <- process_documents(
+  pdf_path = "test_paper.pdf",
+  db_conn = "test.db",
+  force_reprocess_extraction = TRUE
+)
+```
+
+# Working with Array Fields
+
+Array fields let you capture multi-valued data like:
+- Multiple detection methods per observation
+- Multiple sample types
+- Multiple supporting sentences
+- Multiple geographic locations
+
+## Defining Array Fields
+
+```json
+{
+  "detection_methods": {
+    "type": "array",
+    "description": "All methods used to detect the organism",
+    "items": {
+      "type": "string",
+      "description": "Individual detection method (e.g., 'PCR', 'culture', 'ELISA')"
+    }
+  }
+}
+```
+
+## Instructing the LLM on Arrays
+
+In your extraction prompt, clearly explain when to use arrays:
+
+```markdown
+## detection_methods (array)
+
+List ALL methods mentioned for detecting this organism. Each method should be a
+separate array element.
+
+Examples:
+- If text says "detected by PCR and culture" → ["PCR", "culture"]
+- If text says "PCR-positive samples" → ["PCR"]
+- If text says "antibodies detected via ELISA" → ["ELISA"]
+
+Common methods: PCR, RT-PCR, qPCR, culture, serology, ELISA, Western blot,
+microscopy, sequencing, antigen detection
+```
+
+## Retrieving Array Data in R
+
+```{r arrays}
+library(dplyr)
+library(tidyr)
+
+# Get records with array fields
+records <- get_records(db_conn = "records.db")
+
+# Array fields are stored as lists
+class(records$detection_methods)  # "list"
+
+# Unnest to see individual values
+records |>
+  unnest(detection_methods) |>
+  select(record_id, detection_methods)
+
+# Count frequency of each method
+records |>
+  unnest(detection_methods) |>
+  count(detection_methods, sort = TRUE)
+```
+
+## Best Practices for Arrays
+
+1. **Be explicit in prompts** - Show examples of single vs multiple values
+2. **Use consistent terminology** - Define a controlled vocabulary when possible
+3. **Always include descriptions** - Help the LLM understand what belongs in the array
+4. **Test with edge cases** - Papers with 1 value, 5 values, 0 values
+
+# Required vs Optional Fields
+
+## Marking Required Fields
+
+Use the `required` array in your schema:
+
+```json
+{
+  "items": {
+    "type": "object",
+    "required": [
+      "pathogen_name",
+      "host_name",
+      "all_supporting_source_sentences"
+    ],
+    "properties": {
+      "pathogen_name": { "type": "string" },
+      "host_name": { "type": "string" },
+      "location": { "type": "string" },  // optional
+      "all_supporting_source_sentences": { "type": "array" }
+    }
+  }
+}
+```
+
+## Impact of Required Fields
+
+Required fields affect:
+
+1. **Extraction validation** - LLM must provide these fields
+2. **Accuracy calculation** - Edits to required fields are "major edits"
+3. **Record completeness** - Records without required fields may be rejected
+
+## Guidelines for Required Fields
+
+**Mark as required:**
+- Core identifying information (organism names, dates, locations)
+- Evidence fields (`all_supporting_source_sentences`)
+- Fields needed for deduplication
+
+**Mark as optional:**
+- Descriptive details that may not always be present
+- Quantitative measurements (counts, concentrations)
+- Contextual information
+
+# Unique Fields and Deduplication
+
+## Defining Unique Fields
+
+Use `x-unique-fields` to specify which fields define record uniqueness:
+
+```json
+{
+  "items": {
+    "type": "object",
+    "properties": {
+      "pathogen_name": { "type": "string" },
+      "host_name": { "type": "string" },
+      "location": { "type": "string" },
+      "sample_date": { "type": "string" }
+    },
+    "x-unique-fields": ["pathogen_name", "host_name", "location"]
+  }
+}
+```
+
+## How Unique Fields Are Used
+
+1. **Deduplication** - Records with same unique field values are considered duplicates
+2. **Accuracy metrics** - Edits to unique fields are classified as "major edits"
+3. **Review workflow** - Helps identify truly distinct records
+
+## Choosing Unique Fields
+
+Good unique field combinations:
+- **Species interactions**: species1 + species2 + interaction_type
+- **Disease outbreaks**: disease + location + year
+- **Chemical measurements**: chemical + sample_location + date
+- **Observations**: organism + location + date + observer
+
+# Advanced Configuration
+
+## Configuration Priority
+
+EcoExtract looks for configuration files in this order:
+
+1. **Explicit parameter** - Files you specify directly in function calls
+2. **Project ecoextract/ directory** - `ecoextract/schema.json`, etc.
+3. **Working directory with prefix** - `ecoextract_schema.json`, etc.
+4. **Package defaults** - Built-in example schema
+
+```{r config-priority}
+# Uses ecoextract/schema.json automatically
+process_documents("pdfs/", "records.db")
+
+# Specify custom path explicitly
+process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "records.db",
+  schema_file = "custom/my_schema.json",
+  extraction_prompt_file = "custom/my_prompt.md"
+)
+```
+
+## Refinement Prompts
+
+The refinement step validates and enhances extracted data. Customize the refinement prompt for domain-specific validation:
+
+```{r refinement}
+# Run with custom refinement prompt
+process_documents(
+  pdf_path = "pdfs/",
+  db_conn = "records.db",
+  run_refinement = TRUE,
+  refinement_prompt_file = "ecoextract/refinement_prompt.md"
+)
+```
+
+A good refinement prompt should:
+- Validate field values against known standards
+- Check for logical consistency
+- Enhance incomplete records using context
+- Resolve ambiguities from extraction step
+
+## Multiple Schemas for Different Projects
+
+```{r multiple-schemas}
+# Project 1: Disease outbreaks
+process_documents(
+  "disease_pdfs/",
+  "disease.db",
+  schema_file = "schemas/disease_schema.json",
+  extraction_prompt_file = "prompts/disease_prompt.md"
+)
+
+# Project 2: Species interactions
+process_documents(
+  "species_pdfs/",
+  "species.db",
+  schema_file = "schemas/species_schema.json",
+  extraction_prompt_file = "prompts/species_prompt.md"
+)
+```
+
+# Complete Example: Building a Custom Schema
+
+Let's walk through creating a schema for extracting plant-pollinator interactions:
+
+## 1. Define Your Domain
+
+What information do we need?
+- Plant species (scientific name)
+- Pollinator species (scientific name)
+- Interaction type (pollination, nectar robbing, etc.)
+- Location (where observed)
+- Date/season (when observed)
+- Supporting evidence
+
+## 2. Create the Schema
+
+```{r example-schema, eval=FALSE}
+# Save as ecoextract/schema.json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Plant-Pollinator Interaction Schema",
+  "type": "object",
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "plant_species",
+          "pollinator_species",
+          "interaction_type",
+          "all_supporting_source_sentences"
+        ],
+        "properties": {
+          "plant_species": {
+            "type": "string",
+            "description": "Scientific name of plant species"
+          },
+          "pollinator_species": {
+            "type": "string",
+            "description": "Scientific name of pollinator species"
+          },
+          "interaction_type": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Type of interaction: pollination, nectar_robbing, etc."
+            }
+          },
+          "location": {
+            "type": "string",
+            "description": "Geographic location of observation"
+          },
+          "season": {
+            "type": "string",
+            "description": "Season or months when interaction observed"
+          },
+          "all_supporting_source_sentences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "x-unique-fields": ["plant_species", "pollinator_species", "location"]
+      }
+    }
+  },
+  "required": ["records"]
+}
+```
+
+## 3. Write the Prompt
+
+```{r example-prompt, eval=FALSE}
+# Save as ecoextract/extraction_prompt.md
+
+# Task
+Extract all plant-pollinator interactions reported in this document.
+
+# Field Definitions
+
+**plant_species**: Scientific name of the plant (genus + species).
+
+**pollinator_species**: Scientific name of the pollinator. Use the most specific
+taxonomic level available.
+
+**interaction_type**: Type(s) of interaction. Common types:
+- pollination (legitimate pollination)
+- nectar_robbing (accessing nectar without pollinating)
+- pollen_collecting (collecting pollen but not pollinating)
+
+**location**: Geographic location. Use most specific available (site > region > country).
+
+**season**: When the interaction was observed (season, months, or dates).
+
+**all_supporting_source_sentences**: All sentences providing information about
+this interaction.
+
+# Extraction Rules
+
+Create one record per unique plant-pollinator-location combination.
+
+If the same pair is observed in multiple seasons at the same location, create
+separate records.
+
+# Examples
+
+"Bombus terrestris was observed visiting Trifolium repens flowers in meadows
+near Oxford during June and July."
+
+→ One record:
+- plant_species: "Trifolium repens"
+- pollinator_species: "Bombus terrestris"
+- interaction_type: ["pollination"]
+- location: "meadows near Oxford"
+- season: "June and July"
+```
+
+## 4. Process and Test
+
+```{r example-process}
+# Process test documents
+process_documents(
+  pdf_path = "pollinator_papers/",
+  db_conn = "pollinators.db"
+)
+
+# Review results
+records <- get_records(db_conn = "pollinators.db")
+
+# Check extraction quality
+library(ecoreview)
+run_review_app("pollinators.db")
+
+# Calculate accuracy after review
+accuracy <- calculate_accuracy("pollinators.db")
+```
+
+# Troubleshooting
+
+## Schema Validation Errors
+
+```{r schema-errors}
+# Validate JSON syntax
+jsonlite::validate("ecoextract/schema.json")
+
+# Read and inspect schema
+schema <- jsonlite::read_json("ecoextract/schema.json")
+names(schema$properties)  # Should include "records"
+
+# Test with default schema first
+process_documents("test.pdf", "test.db", schema_file = NULL)
+```
+
+## LLM Not Following Instructions
+
+If the LLM isn't extracting correctly:
+
+1. **Make prompts more explicit** - Add examples and edge cases
+2. **Simplify field descriptions** - Use clear, unambiguous language
+3. **Check required fields** - Too many required fields can cause failures
+4. **Test incrementally** - Start with a simple schema, add complexity gradually
+
+## Array Fields Not Working
+
+```{r array-issues}
+# Check if arrays are being recognized
+records <- get_records()
+class(records$your_array_field)  # Should be "list"
+
+# If it's character, arrays aren't being parsed correctly
+# Check schema has proper array definition:
+# "type": "array", "items": {"type": "string"}
+```
+
+# Next Steps
+
+- **Process your documents** with your custom schema
+- **Launch the review app** to validate extraction quality
+- **Iterate on configuration** based on results
+- **Calculate accuracy** to measure performance
+
+## Additional Resources
+
+- [Getting Started Guide](getting-started.html) - Basic workflow
+- [Complete Workflow](ecoextract-workflow.html) - Comprehensive reference
+- [ACCURACY.md](../ACCURACY.md) - Understanding accuracy metrics
+- [SCHEMA_GUIDE.md](../inst/extdata/SCHEMA_GUIDE.md) - Detailed schema specification
