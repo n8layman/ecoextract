@@ -97,7 +97,7 @@ If CI integration tests fail, the maintainers will work with you to resolve any 
 - Use testthat 3rd edition
 - Use `withr` for cleanup, not `on.exit()`
 - Tests must be schema-agnostic (work with any domain/prompts)
-- See `tests/TESTING_PHILOSOPHY.md` for detailed testing patterns
+- See `tests/TESTING.md` for detailed testing patterns
 
 ## Documentation
 

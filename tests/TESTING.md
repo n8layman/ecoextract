@@ -49,22 +49,22 @@ Tests verify that the package's core operations work correctly, regardless of th
 
 ## Test Structure
 
-### Unit Tests (test-core.R)
-- Test individual functions in isolation
-- Use minimal, generic test data
-- Fast execution (less than 1 second total)
-- No API calls required
+### Local Tests (no API keys required)
 
-### Integration Tests (test-integration.R)
-- Test API calls (requires API keys)
-- Verify response structure only, not content
-- Can be slow (may take 10-30 seconds)
-- Skipped when API keys not available
+These run entirely offline and execute in under a second.
 
-### Schema-Agnostic Tests (test-schema-agnostic.R)
-- Tests must work with any domain/prompts
-- Use fixture schemas that differ from default
-- Verify extraction works regardless of schema content
+- **test-database.R** - Database initialization, schema validation, save/retrieve records, array field handling
+- **test-review.R** - Human review workflow (`save_document`), edit tracking, accuracy metrics
+- **test-utils.R** - Record ID generation, token estimation
+- **test-deduplication.R** - Canonicalization, similarity functions, Jaccard-based deduplication
+- **test-bibtex.R** - BibTeX export and citation extraction
+
+### Integration Tests (require API keys)
+
+- **test-integration.R** - Full pipeline (OCR, extraction, refinement), schema-agnostic pipeline, embedding/field-by-field/LLM deduplication
+- Requires `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, and optionally `OPENAI_API_KEY`
+- Verify response structure only, not content accuracy
+- Automatically skipped when API keys are not set
 
 ## Best Practices
 
@@ -147,7 +147,7 @@ devtools::load_all()
 
 ```r
 # Test a single file
-testthat::test_file("tests/testthat/test-core.R")
+testthat::test_file("tests/testthat/test-database.R")
 
 # Test entire package
 testthat::test_dir("tests/testthat")
@@ -176,10 +176,12 @@ testthat::test_file("tests/testthat/test-integration.R")
 
 All test files are in `tests/testthat/` and follow these conventions:
 
-- **test-core.R** - Core unit tests (no API calls)
-- **test-integration.R** - Integration tests (requires API keys)
-- **test-schema-agnostic.R** - Tests that work with any schema
-- **test-deduplication.R** - Deduplication logic tests
+- **test-database.R** - Database initialization, schema validation, save/retrieve records
+- **test-review.R** - Human review workflow, edit tracking, accuracy metrics
+- **test-utils.R** - Record ID generation, token estimation
+- **test-deduplication.R** - Deduplication logic (local, no API calls)
+- **test-bibtex.R** - BibTeX export functionality
+- **test-integration.R** - All API-requiring tests (full pipeline, schema-agnostic, deduplication methods)
 
 Naming convention: Test files must start with `test-`
 

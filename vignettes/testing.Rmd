@@ -1,0 +1,177 @@
+---
+title: "Testing Guide"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Testing Guide}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Philosophy
+
+**Core principle: test functionality, not domain content.**
+
+EcoExtract tests verify that the package's core operations work correctly regardless of the specific schema, prompts, or ecological domain. Tests never check whether the LLM produces "correct" extractions -- they verify that the pipeline machinery functions properly.
+
+This means:
+
+- **No schema-specific assertions** -- tests don't look for field names like `bat_species` or `pathogen_name`
+- **No prompt effectiveness testing** -- tests don't check whether extraction finds specific data in text
+- **No LLM quality evaluation** -- tests verify API calls return valid structure, not accurate content
+- **Schema-agnostic fixtures** -- test schemas deliberately differ from the package defaults
+
+## Test Categories
+
+### Local Tests (no API keys required)
+
+These tests run entirely offline and execute in under a second. They are always run by `devtools::test()` and `devtools::check()`.
+
+**`test-database.R`** -- Database operations:
+
+- Database initialization creates required tables (documents, records, record_edits)
+- Database schema matches JSON schema definition
+- Records can be saved and retrieved
+- Array fields stored as single-level JSON arrays
+
+**`test-review.R`** -- Human review and accuracy:
+
+- `save_document()` updates reviewed_at timestamp
+- Modified records marked as human_edited
+- Deleted records marked as deleted_by_user
+- Edit tracking populates record_edits table
+- `calculate_accuracy()` returns correct structure and metrics
+
+**`test-utils.R`** -- Utility functions:
+
+- Record ID generation and formatting
+- Special character handling in IDs
+- Token estimation for various inputs
+
+**`test-deduplication.R`** -- Deduplication logic:
+
+- Text canonicalization (Unicode normalization, case folding, whitespace trimming)
+- Cosine similarity and Jaccard similarity calculation
+- Jaccard-based deduplication (exact duplicates, typos, partial matches)
+- Schema validation (x-unique-fields required and valid)
+
+**`test-bibtex.R`** -- BibTeX export:
+
+- Document metadata exports as valid BibTeX entries
+- Citation extraction from bibliography field
+- Handles incomplete metadata gracefully
+
+### Integration Tests (require API keys)
+
+These tests make real API calls and validate the end-to-end pipeline. They are **automatically skipped** when the required API keys are not set, so contributors without keys can still run the local test suite.
+
+**Required API keys:**
+
+| Key | Service | Used For |
+|-----|---------|----------|
+| `ANTHROPIC_API_KEY` | [Anthropic Claude](https://console.anthropic.com/) | Data extraction, metadata, refinement, LLM deduplication |
+| `MISTRAL_API_KEY` | [Tensorlake](https://www.tensorlake.ai/) | OCR processing (via ohseer) |
+| `OPENAI_API_KEY` | [OpenAI](https://platform.openai.com/) | Embedding-based deduplication |
+
+**`test-integration.R`** -- All API-requiring tests in one file:
+
+- Full pipeline: PDF to database (OCR, metadata, extraction, refinement)
+- API failures captured in status columns, not thrown as errors
+- Schema-agnostic pipeline with a host-pathogen schema (proves no hard-coded assumptions)
+- Embedding-based deduplication (exact duplicates, near-duplicates, missing fields)
+- Field-by-field deduplication (partial matches, populated field comparison)
+- LLM-based semantic deduplication (common names vs scientific names)
+
+## Running Tests
+
+### Local tests only (no API keys needed)
+
+```r
+# Run all tests (integration tests auto-skip without keys)
+devtools::test()
+
+# Run a specific test file
+testthat::test_file("tests/testthat/test-database.R")
+
+# Full package check (includes tests, documentation, examples)
+devtools::check()
+```
+
+### Including integration tests
+
+Create a `.env` file in the project root (**verify it's in `.gitignore` first**):
+
+```bash
+# Check that .env is gitignored
+grep "^\.env$" .gitignore
+
+# Create .env file
+cat > .env << 'EOF'
+ANTHROPIC_API_KEY=your_anthropic_key_here
+MISTRAL_API_KEY=your_tensorlake_key_here
+EOF
+```
+
+The `.env` file is automatically loaded when you start R in the project directory (via `.Rprofile`). Then run tests normally:
+
+```r
+devtools::test()
+```
+
+Or load keys manually in your R session:
+
+```r
+Sys.setenv(ANTHROPIC_API_KEY = "your_key")
+Sys.setenv(MISTRAL_API_KEY = "your_key")
+devtools::test()
+```
+
+## Best Practices
+
+### Use withr for cleanup
+
+All test resources (temp databases, files, environment variables) are cleaned up automatically using `withr`:
+
+```r
+test_that("database operations work", {
+  db_path <- local_test_db()  # auto-cleaned up after test
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  # test code -- no manual cleanup needed
+})
+```
+
+### Write focused tests
+
+Each `test_that()` block tests one specific behavior:
+
+```r
+# Good -- separate tests for different behaviors
+test_that("function handles valid input", { })
+test_that("function handles NULL input", { })
+test_that("function handles empty input", { })
+
+# Bad -- one test covering everything
+test_that("function works", {
+  # tests valid, NULL, and empty all in one
+})
+```
+
+### Test edge cases
+
+Each function should be tested for:
+
+- Typical usage with expected inputs
+- Edge cases: empty inputs, NULL values, boundary conditions
+- Error conditions: invalid inputs, missing data
+- Type validation: correct data types returned
+
+## Adding New Tests
+
+When writing a new test, ask yourself:
+
+1. **Am I testing functionality or content?** Tests should verify "can we save records?" not "does it find this specific species?"
+2. **Will this break if someone changes the schema?** If yes, make it schema-agnostic.
+3. **Am I testing LLM accuracy?** That's outside the scope of package tests.
+4. **Does this need API calls?** If yes, add `skip_if()` guards for the required keys.

@@ -4,6 +4,32 @@ Structured ecological data extraction and refinement from scientific literature.
 
 EcoExtract automates the extraction of structured data from PDFs using OCR and LLMs. It's domain-agnostic and works with any JSON schema you define.
 
+## Pipeline
+
+```mermaid
+graph LR
+    A[PDF Papers] -->|ohseer| B[OCR]
+    B -->|ecoextract| C[Metadata]
+    B -->|ecoextract + Claude| D[Data Extraction]
+    C --> E[SQLite Database]
+    D --> E
+    E -.->|optional| F[Refinement]
+    F -.-> E
+    E -->|ecoreview| G[Human Review]
+    G --> H[Validated Data]
+
+    style A fill:#e1f5ff
+    style H fill:#c8e6c9
+    style G fill:#fff9c4
+    style E fill:#f0f0f0
+```
+
+| Package | Purpose | Links |
+|---------|---------|-------|
+| [ohseer](https://github.com/n8layman/ohseer) | OCR processing via Tensorlake | [GitHub](https://github.com/n8layman/ohseer) |
+| [ecoextract](https://github.com/n8layman/ecoextract) | AI-powered extraction pipeline | [Docs](https://n8layman.github.io/ecoextract/) \| [GitHub](https://github.com/n8layman/ecoextract) |
+| [ecoreview](https://github.com/n8layman/ecoreview) | Interactive Shiny review app | [GitHub](https://github.com/n8layman/ecoreview) |
+
 **Quick Links:**
 
 - [Documentation](https://n8layman.github.io/ecoextract/) (GitHub Pages)
