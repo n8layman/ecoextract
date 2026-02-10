@@ -13,20 +13,6 @@
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Configuring EcoExtract for Your Data">
 </head>
 <body>
-<p>
-
-
-
-
-
-
-
-
-  pkgdown/mermaid.html
-
-  
-
-  </p>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -44,8 +30,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../index.html" aria-label="Home"><span class="fa fa-home"></span></a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Getting Started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/ecoextract-workflow.html">Workflow</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/ecoextract-workflow.html">Guide</a></li>
 <li class="active nav-item"><a class="nav-link" href="../articles/configuration.html">Configuration</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/testing.html">Testing</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -973,11 +958,8 @@ quality</li>
 </h3>
 <ul>
 <li>
-<a href="getting-started.html">Getting Started Guide</a> - Basic
-workflow</li>
-<li>
-<a href="ecoextract-workflow.html">Complete Workflow</a> -
-Comprehensive reference</li>
+<a href="ecoextract-workflow.html">Complete Workflow Guide</a> -
+Full workflow reference</li>
 <li>
 <a href="../ACCURACY.html">ACCURACY.md</a> - Understanding accuracy
 metrics</li>
@@ -1006,8 +988,17 @@ Detailed schema specification</li>
 
 
 
-
-
-  
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script><script>
+  mermaid.initialize({ startOnLoad: false, theme: "default" });
+  document.querySelectorAll("pre.mermaid").forEach(function(pre) {
+    var code = pre.querySelector("code");
+    var text = code ? code.textContent : pre.textContent;
+    var div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = text;
+    pre.parentElement.replaceChild(div, pre);
+  });
+  mermaid.run();
+</script>
 </body>
 </html>

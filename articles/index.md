@@ -2,11 +2,9 @@
 
 ### Guides
 
-- [Getting Started with
-  EcoExtract](https://n8layman.github.io/ecoextract/articles/getting-started.md):
-- [Complete Workflow: From PDF to
-  Database](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.md):
+- [EcoExtract: Complete Workflow
+  Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.md):
 - [Configuring EcoExtract for Your
   Data](https://n8layman.github.io/ecoextract/articles/configuration.md):
 - [Testing
-  Guide](https://n8layman.github.io/ecoextract/articles/testing.md):
+  Philosophy](https://n8layman.github.io/ecoextract/articles/testing.md):

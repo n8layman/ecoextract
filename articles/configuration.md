@@ -764,12 +764,9 @@ class(records$your_array_field)  # Should be "list"
 
 ### Additional Resources
 
-- [Getting Started
-  Guide](https://n8layman.github.io/ecoextract/articles/getting-started.md) -
-  Basic workflow
-- [Complete
-  Workflow](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.md) -
-  Comprehensive reference
+- [Complete Workflow
+  Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.md) -
+  Full workflow reference
 - [ACCURACY.md](https://n8layman.github.io/ecoextract/ACCURACY.md) -
   Understanding accuracy metrics
 - [SCHEMA_GUIDE.md](https://n8layman.github.io/ecoextract/inst/extdata/SCHEMA_GUIDE.md) -

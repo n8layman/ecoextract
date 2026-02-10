@@ -13,20 +13,6 @@
 <script src="https://n8layman.github.io/ecoextract/deps/headroom-0.11.0/headroom.min.js"></script><script src="https://n8layman.github.io/ecoextract/deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="https://n8layman.github.io/ecoextract/deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="https://n8layman.github.io/ecoextract/deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="https://n8layman.github.io/ecoextract/deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="https://n8layman.github.io/ecoextract/deps/search-1.0.0/fuse.min.js"></script><script src="https://n8layman.github.io/ecoextract/deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="https://n8layman.github.io/ecoextract/pkgdown.js"></script><meta property="og:title" content="Page not found (404)">
 </head>
 <body>
-<p>
-
-
-
-
-
-
-
-
-  pkgdown/mermaid.html
-
-  
-
-  </p>
     <a href="https://n8layman.github.io/ecoextract/#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -44,8 +30,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="https://n8layman.github.io/ecoextract/index.html" aria-label="Home"><span class="fa fa-home"></span></a></li>
-<li class="nav-item"><a class="nav-link" href="https://n8layman.github.io/ecoextract/articles/getting-started.html">Getting Started</a></li>
-<li class="nav-item"><a class="nav-link" href="https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html">Workflow</a></li>
+<li class="nav-item"><a class="nav-link" href="https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html">Guide</a></li>
 <li class="nav-item"><a class="nav-link" href="https://n8layman.github.io/ecoextract/articles/configuration.html">Configuration</a></li>
 <li class="nav-item"><a class="nav-link" href="https://n8layman.github.io/ecoextract/articles/testing.html">Testing</a></li>
 <li class="nav-item"><a class="nav-link" href="https://n8layman.github.io/ecoextract/reference/index.html">Reference</a></li>
@@ -87,8 +72,17 @@ Content not found. Please use links in the navbar.
 
 
 
-
-
-  
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script><script src="https://n8layman.github.io/ecoextract/NA">
+  mermaid.initialize({ startOnLoad: false, theme: "default" });
+  document.querySelectorAll("pre.mermaid").forEach(function(pre) {
+    var code = pre.querySelector("code");
+    var text = code ? code.textContent : pre.textContent;
+    var div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = text;
+    pre.parentElement.replaceChild(div, pre);
+  });
+  mermaid.run();
+</script>
 </body>
 </html>
