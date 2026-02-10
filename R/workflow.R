@@ -603,6 +603,7 @@ process_documents <- function(pdf_path,
 #' @param min_similarity Minimum cosine similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
+#' @param ... Additional arguments passed to underlying functions (e.g., max_wait_seconds for OCR timeout)
 #' @return List with processing result
 #' @export
 process_single_document <- function(pdf_file,
@@ -617,7 +618,8 @@ process_single_document <- function(pdf_file,
                                     run_refinement = NULL,
                                     min_similarity = 0.9,
                                     embedding_provider = "openai",
-                                    similarity_method = "llm") {
+                                    similarity_method = "llm",
+                                    ...) {
 
   # Log header
   message(strrep("=", 70))
