@@ -15,7 +15,7 @@ refine_records(
 )
 }
 \arguments{
-\item{db_conn}{Database connection}
+\item{db_conn}{Database connection or path to SQLite database file}
 
 \item{document_id}{Document ID}
 
