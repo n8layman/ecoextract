@@ -15,3 +15,4 @@ Character string with column definitions
 \description{
 Get record table column definitions as SQL
 }
+\keyword{internal}

@@ -14,3 +14,4 @@ log_message(message, level = "INFO")
 \description{
 Simple logging function
 }
+\keyword{internal}

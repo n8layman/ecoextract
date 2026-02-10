@@ -22,6 +22,7 @@ add_record_ids <- function(interactions, author_lastname, publication_year) {
 #' Simple logging function
 #' @param message Message to log
 #' @param level Log level (INFO, WARNING, ERROR)
+#' @keywords internal
 log_message <- function(message, level = "INFO") {
   timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
   cat("[", timestamp, "] ", level, ": ", message, "\n", sep = "")

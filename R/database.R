@@ -272,6 +272,7 @@ migrate_database <- function(con) {
 #' Get record table column definitions as SQL
 #' @param schema_json_list Parsed JSON schema to generate columns from
 #' @return Character string with column definitions
+#' @keywords internal
 get_record_columns_sql <- function(schema_json_list) {
   if (is.null(schema_json_list)) {
     stop("schema_json_list is required - no schema provided")
@@ -1091,6 +1092,7 @@ calculate_accuracy <- function(db_conn, document_ids = NULL, schema_file = NULL)
 #' Extract field definitions from JSON schema
 #' @param schema_json_list Parsed JSON schema as list
 #' @return Named list with field names, types, and requirements
+#' @keywords internal
 extract_fields_from_json_schema <- function(schema_json_list) {
   # Navigate JSON structure to get record properties
   if (!("properties" %in% names(schema_json_list) &&
@@ -1210,6 +1212,7 @@ validate_schema_with_db <- function(db_conn, schema_json_list, table_name = "rec
 #' Generate SQL column definitions from JSON schema
 #' @param schema_json_list Parsed JSON schema as list
 #' @return Character string with SQL column definitions
+#' @keywords internal
 generate_columns_from_json_schema <- function(schema_json_list) {
   schema_fields <- extract_fields_from_json_schema(schema_json_list)
 

@@ -15,3 +15,4 @@ Character string with SQL column definitions
 \description{
 Generate SQL column definitions from JSON schema
 }
+\keyword{internal}

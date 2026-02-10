@@ -15,3 +15,4 @@ Named list with field names, types, and requirements
 \description{
 Extract field definitions from JSON schema
 }
+\keyword{internal}
