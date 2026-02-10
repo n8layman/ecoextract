@@ -4,22 +4,32 @@ template:
   bootstrap: 5
   bootswatch: flatly
   includes:
-    in_header: pkgdown/mermaid.html
+    after_body: >
+      <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+      <script>
+        mermaid.initialize({ startOnLoad: false, theme: "default" });
+        document.querySelectorAll("pre.mermaid").forEach(function(pre) {
+          var code = pre.querySelector("code");
+          var text = code ? code.textContent : pre.textContent;
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          pre.parentElement.replaceChild(div, pre);
+        });
+        mermaid.run();
+      </script>
 
 navbar:
   structure:
-    left: [home, getting-started, workflow, configuration, testing, reference]
+    left: [home, workflow, configuration, testing, reference]
     right: [search, github]
   components:
     home:
       icon: fa-home
       href: index.html
       aria-label: Home
-    getting-started:
-      text: Getting Started
-      href: articles/getting-started.html
     workflow:
-      text: Workflow
+      text: Guide
       href: articles/ecoextract-workflow.html
     configuration:
       text: Configuration
@@ -73,7 +83,6 @@ articles:
   - title: Guides
     navbar: ~
     contents:
-      - getting-started
       - ecoextract-workflow
       - configuration
       - testing

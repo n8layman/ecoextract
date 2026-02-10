@@ -1,15 +1,15 @@
 ---
-title: "Testing Guide"
+title: "Testing Philosophy"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Testing Guide}
+  %\VignetteIndexEntry{Testing Philosophy}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-## Philosophy
+## Core Principle
 
-**Core principle: test functionality, not domain content.**
+**Test functionality, not domain content.**
 
 EcoExtract tests verify that the package's core operations work correctly regardless of the specific schema, prompts, or ecological domain. Tests never check whether the LLM produces "correct" extractions -- they verify that the pipeline machinery functions properly.
 
@@ -83,8 +83,6 @@ These tests make real API calls and validate the end-to-end pipeline. They are *
 
 ## Running Tests
 
-### Local tests only (no API keys needed)
-
 ```r
 # Run all tests (integration tests auto-skip without keys)
 devtools::test()
@@ -96,82 +94,16 @@ testthat::test_file("tests/testthat/test-database.R")
 devtools::check()
 ```
 
-### Including integration tests
+To include integration tests, set up API keys in a `.env` file (see the [Complete Guide](ecoextract-workflow.html#api-key-setup) for details). The `.env` file is automatically loaded when R starts in the project directory.
 
-Create a `.env` file in the project root (**verify it's in `.gitignore` first**):
+## Design Patterns
 
-```bash
-# Check that .env is gitignored
-grep "^\.env$" .gitignore
+**Cleanup with withr.** All test resources (temp databases, files, environment variables) are cleaned up automatically using `withr`, ensuring no side effects between tests.
 
-# Create .env file
-cat > .env << 'EOF'
-ANTHROPIC_API_KEY=your_anthropic_key_here
-MISTRAL_API_KEY=your_tensorlake_key_here
-EOF
-```
+**Focused assertions.** Each `test_that()` block tests one specific behavior rather than bundling multiple concerns.
 
-The `.env` file is automatically loaded when you start R in the project directory (via `.Rprofile`). Then run tests normally:
+**Edge case coverage.** Tests cover typical usage, edge cases (empty inputs, NULL values), error conditions, and type validation.
 
-```r
-devtools::test()
-```
+**Schema-agnostic design.** Test fixtures use schemas that deliberately differ from the package defaults, proving no hard-coded domain assumptions exist in the pipeline.
 
-Or load keys manually in your R session:
-
-```r
-Sys.setenv(ANTHROPIC_API_KEY = "your_key")
-Sys.setenv(MISTRAL_API_KEY = "your_key")
-devtools::test()
-```
-
-## Best Practices
-
-### Use withr for cleanup
-
-All test resources (temp databases, files, environment variables) are cleaned up automatically using `withr`:
-
-```r
-test_that("database operations work", {
-  db_path <- local_test_db()  # auto-cleaned up after test
-
-  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  withr::defer(DBI::dbDisconnect(con))
-
-  # test code -- no manual cleanup needed
-})
-```
-
-### Write focused tests
-
-Each `test_that()` block tests one specific behavior:
-
-```r
-# Good -- separate tests for different behaviors
-test_that("function handles valid input", { })
-test_that("function handles NULL input", { })
-test_that("function handles empty input", { })
-
-# Bad -- one test covering everything
-test_that("function works", {
-  # tests valid, NULL, and empty all in one
-})
-```
-
-### Test edge cases
-
-Each function should be tested for:
-
-- Typical usage with expected inputs
-- Edge cases: empty inputs, NULL values, boundary conditions
-- Error conditions: invalid inputs, missing data
-- Type validation: correct data types returned
-
-## Adding New Tests
-
-When writing a new test, ask yourself:
-
-1. **Am I testing functionality or content?** Tests should verify "can we save records?" not "does it find this specific species?"
-2. **Will this break if someone changes the schema?** If yes, make it schema-agnostic.
-3. **Am I testing LLM accuracy?** That's outside the scope of package tests.
-4. **Does this need API calls?** If yes, add `skip_if()` guards for the required keys.
+**API key gating.** Integration tests use `skip_if()` guards so the full local test suite passes without any API keys configured.

@@ -775,7 +775,6 @@ class(records$your_array_field)  # Should be "list"
 
 ## Additional Resources
 
-- [Getting Started Guide](getting-started.html) - Basic workflow
-- [Complete Workflow](ecoextract-workflow.html) - Comprehensive reference
+- [Complete Workflow Guide](ecoextract-workflow.html) - Full workflow reference
 - [ACCURACY.md](../ACCURACY.md) - Understanding accuracy metrics
 - [SCHEMA_GUIDE.md](../inst/extdata/SCHEMA_GUIDE.md) - Detailed schema specification

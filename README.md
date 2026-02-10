@@ -24,6 +24,8 @@ graph LR
     style E fill:#f0f0f0
 ```
 
+<br>
+
 | Package | Purpose | Links |
 |---------|---------|-------|
 | [ohseer](https://github.com/n8layman/ohseer) | OCR processing via Tensorlake | [GitHub](https://github.com/n8layman/ohseer) |
@@ -32,145 +34,48 @@ graph LR
 
 **Quick Links:**
 
-- [Documentation](https://n8layman.github.io/ecoextract/) (GitHub Pages)
-- [Getting Started](https://n8layman.github.io/ecoextract/articles/getting-started.html)
-- [Full Tutorial](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) (Comprehensive vignette)
-- [Configuration Guide](https://n8layman.github.io/ecoextract/articles/configuration.html)
+- [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) (Installation, workflow, review, accuracy)
+- [Configuration Guide](https://n8layman.github.io/ecoextract/articles/configuration.html) (Custom schemas and prompts)
 - [Accuracy Metrics Guide](ACCURACY.md) (Understanding accuracy calculations)
-- [ecoreview on GitHub](https://github.com/n8layman/ecoreview) (Review Shiny app)
-- [ohseer on GitHub](https://github.com/n8layman/ohseer) (OCR dependency)
 
 ## Installation
 
-### Prerequisites
-
-First, install the required `ohseer` package for OCR processing:
-
 ```r
-# Option 1: Using pak (recommended)
-pak::pak("n8layman/ohseer")
-
-# Option 2: Using devtools
-devtools::install_github("n8layman/ohseer")
-
-# Option 3: Using remotes
-remotes::install_github("n8layman/ohseer")
-
-# Option 4: Using renv
-renv::install("n8layman/ohseer")
+# Install the ecosystem (pak recommended)
+pak::pak("n8layman/ohseer")      # OCR processing
+pak::pak("n8layman/ecoextract")  # Data extraction
+pak::pak("n8layman/ecoreview")   # Review app (optional)
 ```
 
-### Install ecoextract
-
-```r
-# Option 1: Using pak (recommended)
-pak::pak("n8layman/ecoextract")
-
-# Option 2: Using devtools
-devtools::install_github("n8layman/ecoextract")
-
-# Option 3: Using remotes
-remotes::install_github("n8layman/ecoextract")
-
-# Option 4: Using renv
-renv::install("n8layman/ecoextract")
-
-# Then load the library
-library(ecoextract)
-```
+See the [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for alternative installation methods and troubleshooting.
 
 ## API Key Setup
 
-EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions. OCR processing via [ohseer](https://github.com/n8layman/ohseer) uses Tensorlake.
+EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions and [ohseer](https://github.com/n8layman/ohseer) for OCR via Tensorlake.
 
-### Getting API Keys
+**Required API keys:**
 
-Required:
+- Tensorlake (OCR): <https://www.tensorlake.ai/>
+- Anthropic Claude (extraction): <https://console.anthropic.com/>
 
-- Tensorlake (for OCR): <https://www.tensorlake.ai/>
-
-Recommended for data extraction:
-
-- Anthropic Claude: <https://console.anthropic.com/>
-
-Note: While ecoextract is designed to work with any ellmer-supported LLM provider (OpenAI, etc.), this has not been fully tested.
-
-### Setting Up API Keys
-
-**IMPORTANT: Before creating your `.env` file, verify it's gitignored:**
+Create a `.env` file in your project root (make sure it's in `.gitignore` first!):
 
 ```bash
-# Check that .env is in .gitignore
-grep "^\.env$" .gitignore
-
-# If not found, add it NOW before creating the file:
-echo ".env" >> .gitignore
-```
-
-Create a `.env` file in the project root directory:
-
-```bash
-# .env
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 TENSORLAKE_API_KEY=your_tensorlake_api_key_here
-
-# Or use other providers supported by ellmer
-OPENAI_API_KEY=your_openai_api_key_here
-# ... etc
 ```
 
-**Verify before committing:**
+The `.env` file is automatically loaded when R starts in the project directory. See the [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html#api-key-setup) for detailed setup instructions.
 
-```bash
-# This should show no output if .env is properly ignored:
-git status | grep ".env"
-
-# If .env appears, do NOT commit! Add it to .gitignore first.
-```
-
-**The `.env` file is automatically loaded** when you start R in this project directory (via `.Rprofile`). Just restart your R session after creating the file.
-
-Alternatively, load manually:
-
-```r
-# Option 1: Use readRenviron for a specific file
-readRenviron(".env")
-
-# Option 2: Set directly in R
-Sys.setenv(ANTHROPIC_API_KEY = "your_key_here")
-```
-
-### Using Different LLM Providers
-
-By default, ecoextract uses `anthropic/claude-sonnet-4-5` for data extraction, metadata, and refinement. If you have an Anthropic API key set up, no additional configuration is needed.
-
-To use a different LLM provider, pass the `model` parameter:
-
-```r
-# Default (Anthropic Claude) - no model parameter needed
-results <- process_documents(
-  pdf_path = "path/to/pdfs/",
-  db_conn = "ecoextract_records.db"
-)
-
-# Use a different model (experimental - not fully tested)
-results <- process_documents(
-  pdf_path = "path/to/pdfs/",
-  db_conn = "ecoextract_records.db",
-  model = "openai/gpt-4"
-)
-```
+By default, ecoextract uses `anthropic/claude-sonnet-4-5`. To use a different provider, pass the `model` parameter to `process_documents()`. Note: non-Anthropic providers have not been fully tested.
 
 ## Quick Start
 
 ```r
 library(ecoextract)
 
-# Process all PDFs in a folder through complete 4-step workflow:
-# 1. OCR (extract text from PDF)
-# 2. Metadata (extract publication metadata)
-# 3. Extraction (extract domain-specific records)
-# 4. Refinement (refine and validate records, opt-in)
+# Process all PDFs in a folder through the 4-step pipeline:
+# OCR -> Metadata -> Extraction -> Refinement (optional)
 results <- process_documents(
   pdf_path = "path/to/pdfs/",
   db_conn = "ecoextract_records.db"
@@ -181,42 +86,15 @@ records <- get_records()
 export_db(filename = "extracted_data.csv")
 ```
 
-**See the [vignette](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for:**
-
-- Parallel processing with multiple workers
-- Custom schemas and prompts
-- Skip logic and force reprocessing
-- Data retrieval and export options
-- Complete workflow examples
-
 ## Key Features
 
-### Smart Skip Logic
+- **Smart skip logic** -- Re-running `process_documents()` skips completed steps. Forced re-runs automatically invalidate downstream steps.
+- **Parallel processing** -- Process multiple documents simultaneously with `workers = 4` (requires `crew` package).
+- **Deduplication** -- Three methods: `"llm"` (default), `"embedding"`, or `"jaccard"`.
+- **Human review** -- Edit, add, and delete records in the [ecoreview](https://github.com/n8layman/ecoreview) Shiny app with full audit trail.
+- **Accuracy metrics** -- Calculate detection recall, field precision, F1, and edit severity after review.
 
-Re-running `process_documents()` automatically skips completed steps. When a step is forced to re-run, downstream steps are automatically invalidated.
-
-See the [vignette](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for details.
-
-### Parallel Processing
-
-Process multiple documents in parallel using the `crew` package:
-
-```r
-install.packages("crew")
-
-results <- process_documents(
-  pdf_path = "papers/",
-  db_conn = "records.db",
-  workers = 4,
-  log = TRUE
-)
-```
-
-Crash-resilient with automatic resume capability. See the [vignette](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for details.
-
-### Deduplication
-
-Three similarity methods available: `"llm"` (default), `"embedding"`, or `"jaccard"`. See the [vignette](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for details.
+See the [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for details on all features.
 
 ## Custom Schemas
 
@@ -234,157 +112,9 @@ init_ecoextract()
 process_documents("pdfs/", "records.db")
 ```
 
-**Schema Requirements:**
+**Schema requirements:** top-level `records` property (array of objects), each field with `type` and `description`, JSON Schema draft-07 format.
 
-- Top-level must have a `records` property (array of objects)
-- Each field needs `type` and `description`
-- Use JSON Schema draft-07 format
-
-See the [vignette](vignettes/ecoextract-workflow.Rmd) and `ecoextract/SCHEMA_GUIDE.md` for complete details and examples.
-
-## Data Retrieval
-
-After processing documents, use these functions to retrieve and export your data:
-
-### Query Records
-
-```r
-# Get all records from all documents
-all_records <- get_records()
-
-# Get records from a specific document
-doc_records <- get_records(document_id = 1)
-
-# Use a custom database path
-records <- get_records(db_conn = "my_project.db")
-```
-
-### Query Documents
-
-```r
-# Get all documents and their metadata
-all_docs <- get_documents()
-
-# Get a specific document
-doc <- get_documents(document_id = 1)
-
-# Check processing status
-doc$ocr_status          # "completed", "pending", "failed"
-doc$metadata_status     # "completed", "pending", "failed"
-doc$extraction_status   # "completed", "pending", "failed"
-```
-
-### Export Data
-
-The `export_db()` function joins records with document metadata for easy export:
-
-```r
-# Get all records with metadata as a tibble
-data <- export_db()
-
-# Export to CSV file
-export_db(filename = "extracted_data.csv")
-
-# Export only records from specific document
-export_db(document_id = 1, filename = "document_1.csv")
-
-# Include OCR text in export (large files!)
-data <- export_db(include_ocr = TRUE)
-
-# Simplified export (removes processing metadata columns)
-data <- export_db(simple = TRUE)
-```
-
-The exported data includes:
-
-- Document metadata (title, authors, journal, DOI, etc.)
-- All extracted record fields (defined by your schema)
-- Processing status and timestamps
-
-### View OCR Results
-
-```r
-# Get OCR markdown text
-markdown <- get_ocr_markdown(document_id = 1)
-cat(markdown)
-
-# View OCR with embedded images in RStudio Viewer
-get_ocr_html_preview(document_id = 1)
-
-# View all pages
-get_ocr_html_preview(document_id = 1, page_num = "all")
-```
-
-### Database Statistics
-
-```r
-# Get summary counts
-get_db_stats()
-# Returns: documents_count, records_count, documents_with_records
-```
-
-## Human Review Workflow
-
-After extraction, you can review and edit records using the **ecoreview** Shiny application:
-
-### Install ecoreview
-
-```r
-# Install from GitHub
-pak::pak("n8layman/ecoreview")
-```
-
-### Launch Review App
-
-```r
-library(ecoreview)
-
-# Launch the review app with your database
-run_review_app(db_path = "ecoextract_records.db")
-```
-
-The review app provides:
-
-- Document-by-document review interface
-- Side-by-side view of OCR text and extracted records
-- Edit records directly in the app
-- Add new records manually
-- Delete incorrect records
-- Automatic edit tracking and audit trail (stored in `record_edits` table)
-- Accuracy calculation based on edits
-
-All edits are saved to the database using `save_document()`, which tracks:
-
-- Which columns were modified
-- Original values before edits
-- Edit timestamps
-- Records added or deleted by humans
-
-For more information, see the [ecoreview repository](https://github.com/n8layman/ecoreview).
-
-### Calculate Accuracy Metrics
-
-After reviewing documents, calculate comprehensive accuracy metrics:
-
-```r
-# Calculate accuracy for all verified documents
-accuracy <- calculate_accuracy("ecoextract_records.db")
-
-# View key metrics
-accuracy$detection_recall      # Did we find the records?
-accuracy$field_precision       # How accurate were the fields?
-accuracy$major_edit_rate       # How serious were the errors?
-accuracy$avg_edits_per_document # Average corrections needed
-```
-
-EcoExtract provides nuanced accuracy metrics that separate:
-- **Record detection**: Finding records vs missing/hallucinating them
-- **Field-level accuracy**: Correctness of individual fields (gives partial credit)
-- **Edit severity**: Major edits (unique/required fields) vs minor edits
-
-For a complete explanation of how accuracy is calculated and interpreted, see [ACCURACY.md](ACCURACY.md).
-
-Accuracy visualizations (confusion matrices, heatmaps) are available in [ecoreview](https://github.com/n8layman/ecoreview).
+See the [Configuration Guide](https://n8layman.github.io/ecoextract/articles/configuration.html) for complete details and examples.
 
 ## Package Functions
 
@@ -409,23 +139,11 @@ Accuracy visualizations (confusion matrices, heatmaps) are available in [ecorevi
 ## Testing
 
 ```r
-# Run all tests
-devtools::test()
-
-# Run package checks
-devtools::check()
+devtools::test()   # Run all tests
+devtools::check()  # Run package checks
 ```
 
-### Integration Tests
-
-Integration tests verify API interactions with LLM providers. To run these locally, set up API keys in a `.env` file (see API Key Setup above). The tests will automatically load `.env` files, or you can load them manually:
-
-```r
-library(ecoextract)
-devtools::test()
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on testing and development workflow.
+Integration tests require API keys in a `.env` file. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## File Structure
 
@@ -486,4 +204,4 @@ ecoextract/
 
 ## License
 
-MIT License
+GPL (>= 3)
