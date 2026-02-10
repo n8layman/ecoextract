@@ -1308,10 +1308,10 @@
         "magrittr",
         "readr",
         "fs",
-        "here",
-        "ecoextract"
+        "here"
       ],
       "Suggests": [
+        "ecoextract",
         "tokenizers",
         "testthat (>= 3.0.0)"
       ],
@@ -1319,11 +1319,11 @@
       "Author": "Nathan Layman [aut, cre] (ORCID: YOUR-ORCID-ID)",
       "Maintainer": "Nathan Layman <nathan.layman@gmail.com>",
       "RemoteType": "github",
-      "RemoteHost": "api.github.com",
       "RemoteUsername": "n8layman",
       "RemoteRepo": "ecoreview",
       "RemoteRef": "main",
-      "RemoteSha": "8d734433e0673eeb89d33d7abf6278f94638b9e0"
+      "RemoteSha": "fe205ff3bab4bee9862af8b5226115f0a165a51f",
+      "RemoteHost": "api.github.com"
     },
     "ellipsis": {
       "Package": "ellipsis",
@@ -2839,11 +2839,11 @@
       "Author": "First Last [aut, cre]",
       "Maintainer": "First Last <first.last@example.com>",
       "RemoteType": "github",
-      "RemoteHost": "api.github.com",
       "RemoteUsername": "n8layman",
       "RemoteRepo": "ohseer",
       "RemoteRef": "main",
-      "RemoteSha": "c881c325dfb892ff030c781463700c7d07ac4960"
+      "RemoteSha": "c881c325dfb892ff030c781463700c7d07ac4960",
+      "RemoteHost": "api.github.com"
     },
     "openssl": {
       "Package": "openssl",
