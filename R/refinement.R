@@ -3,7 +3,7 @@
 #' Refine and enhance extracted ecological interaction data
 
 #' Refine extracted records with additional context
-#' @param db_conn Database connection
+#' @param db_conn Database connection or path to SQLite database file
 #' @param document_id Document ID
 #' @param extraction_prompt_file Path to extraction prompt file (provides domain context)
 #' @param refinement_prompt_file Path to custom refinement prompt file (optional, uses generic if not provided)
@@ -22,16 +22,26 @@ refine_records <- function(db_conn = NULL, document_id,
   records_count <- 0
 
   tryCatch({
-    # Validate db_conn
-    if (!inherits(db_conn, "DBIConnection")) {
-      stop(paste("db_conn is not a DBIConnection, got:", class(db_conn)))
+    # Handle database connection - accept either connection object or path string
+    if (inherits(db_conn, "DBIConnection")) {
+      con <- db_conn
+      close_on_exit <- FALSE
+    } else {
+      # Assume it's a path string
+      con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+      configure_sqlite_connection(con)
+      close_on_exit <- TRUE
+    }
+
+    if (close_on_exit) {
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
     }
 
     # Read document content from database (atomic - starts with DB)
-    markdown_text <- get_document_content(document_id, db_conn)
+    markdown_text <- get_document_content(document_id, con)
 
     # Read existing records from database
-    existing_records <- get_existing_records(document_id, db_conn)
+    existing_records <- get_existing_records(document_id, con)
 
     # Check if we got valid records (get_existing_records returns NA on error)
     if (!is.data.frame(existing_records)) {
@@ -134,7 +144,7 @@ refine_records <- function(db_conn = NULL, document_id,
       reasoning_text <- refine_result$reasoning
       if (!is.null(reasoning_text) && nchar(reasoning_text) > 0) {
         message("Saving refinement reasoning to database...")
-        save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "refinement")
+        save_reasoning_to_db(document_id, con, reasoning_text, step = "refinement")
       } else {
         if (is.null(reasoning_text) || nchar(reasoning_text) == 0) message("Note: Reasoning is empty - not saved")
       }
@@ -243,7 +253,7 @@ refine_records <- function(db_conn = NULL, document_id,
       # Save refined records back to database
       # Pass the connection object directly (not the path) so it uses the same transaction
       save_records_to_db(
-        db_path = db_conn,  # Now accepts connection object
+        db_path = con,  # Now accepts connection object
         document_id = document_id,
         interactions_df = refined_df,
         metadata = list(
@@ -266,11 +276,11 @@ refine_records <- function(db_conn = NULL, document_id,
     # Save status and record count to DB
     status <- tryCatch({
       # Get current total record count for this document
-      current_count <- DBI::dbGetQuery(db_conn,
+      current_count <- DBI::dbGetQuery(con,
         "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
         params = list(document_id))$count[1]
 
-      DBI::dbExecute(db_conn,
+      DBI::dbExecute(con,
         "UPDATE documents SET refinement_status = ?, records_extracted = ? WHERE document_id = ?",
         params = list(status, current_count, document_id))
       status
@@ -286,9 +296,10 @@ refine_records <- function(db_conn = NULL, document_id,
   }, error = function(e) {
     status <- paste("Refinement failed:", e$message)
 
-    # Try to save error status
+    # Try to save error status (use con if it was created, otherwise db_conn)
     tryCatch({
-      DBI::dbExecute(db_conn,
+      error_con <- if (exists("con")) con else db_conn
+      DBI::dbExecute(error_con,
         "UPDATE documents SET refinement_status = ? WHERE document_id = ?",
         params = list(status, document_id))
     }, error = function(e2) {
