@@ -1,27 +1,41 @@
+# Dev/CI infrastructure
+^\.github$
+^\.claude$
+^\.git-crypt$
+^\.gitattributes$
+^\.env$
+^\.Rprofile$
+
+# renv (users install deps normally)
 ^renv$
 ^renv\.lock$
-^\.claude$
-^\.github$
-^plan\.md$
-^resources$
-^\.env$
-^\.gitattributes$
-^\.git-crypt$
+
+# pkgdown
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+
+# Dev-only docs
+^ACCURACY\.md$
 ^CONTRIBUTING\.md$
-^ecoextract_records\.db$
-^ecoextract$
+^LICENSE\.md$
+^SKIP_LOGIC\.md$
 ^REFACTORING_STATUS\.md$
-^bulk_test_20\.csv$
-^ecoextract_records\.db-shm$
-^ecoextract_records\.db-wal$
+^README\.md$
+^plan\.md$
 ^todo\.md$
+
+# Dev directories
 ^scripts$
 ^tasks$
-^SKIP_LOGIC\.md$
+^resources$
+^ecoextract$
+
+# Database/test artifacts
+^ecoextract_records\.db.*$
+^ecoextract_results\.sqlite$
 ^test\.sqlite$
-^test_parallel\.db$
-^test_parallel\.db-shm$
-^test_parallel\.db-wal$
+^test_parallel\.db.*$
 ^test_serial\.db$
+^bulk_test_20\.csv$
 ^.*\.log$
-^LICENSE\.md$

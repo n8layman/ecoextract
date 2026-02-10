@@ -2,7 +2,7 @@
 % Please edit documentation in R/database.R
 \name{normalize_array_fields}
 \alias{normalize_array_fields}
-\title{Normalize array fields based on schema definition (schema-agnostic)}
+\title{Validate required array fields based on schema definition (schema-agnostic)}
 \usage{
 normalize_array_fields(df, schema_list)
 }
@@ -12,10 +12,11 @@ normalize_array_fields(df, schema_list)
 \item{schema_list}{Parsed JSON schema (from jsonlite::fromJSON)}
 }
 \value{
-Normalized dataframe with proper array formatting
+Validated dataframe (unmodified)
 }
 \description{
-Ensures that fields defined as arrays in the schema are properly formatted,
-even if the LLM returns scalar values. Works with any schema.
+Validates that required array fields have values. Array normalization
+(flattening nested lists) is handled during serialization in save_records_to_db
+to avoid vctrs type-checking issues with tibble column assignment.
 }
 \keyword{internal}

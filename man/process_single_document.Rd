@@ -17,7 +17,8 @@ process_single_document(
   run_refinement = NULL,
   min_similarity = 0.9,
   embedding_provider = "openai",
-  similarity_method = "llm"
+  similarity_method = "llm",
+  ...
 )
 }
 \arguments{
@@ -46,6 +47,8 @@ process_single_document(
 \item{embedding_provider}{Provider for embeddings (default: "openai")}
 
 \item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")}
+
+\item{...}{Additional arguments passed to underlying functions (e.g., max_wait_seconds for OCR timeout)}
 }
 \value{
 List with processing result

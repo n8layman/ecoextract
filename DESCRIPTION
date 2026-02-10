@@ -9,6 +9,9 @@ Description: Structured ecological data extraction and refinement from
     extracting structured data from documents, and refining extracted data
     using LLMs.
 License: GPL (>= 3)
+URL: https://github.com/n8layman/ecoextract,
+    https://n8layman.github.io/ecoextract/
+BugReports: https://github.com/n8layman/ecoextract/issues
 Imports:
     DBI,
     digest,
@@ -31,6 +34,7 @@ Suggests:
     devtools,
     ecoreview,
     knitr,
+    pkgdown,
     rmarkdown,
     testthat (>= 3.0.0),
     withr

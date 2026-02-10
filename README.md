@@ -6,11 +6,13 @@ EcoExtract automates the extraction of structured data from PDFs using OCR and L
 
 **Quick Links:**
 
-- [ecoextract on GitHub](https://github.com/n8layman/ecoextract)
+- [Documentation](https://n8layman.github.io/ecoextract/) (GitHub Pages)
+- [Getting Started](https://n8layman.github.io/ecoextract/articles/getting-started.html)
+- [Full Tutorial](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) (Comprehensive vignette)
+- [Configuration Guide](https://n8layman.github.io/ecoextract/articles/configuration.html)
+- [Accuracy Metrics Guide](ACCURACY.md) (Understanding accuracy calculations)
 - [ecoreview on GitHub](https://github.com/n8layman/ecoreview) (Review Shiny app)
 - [ohseer on GitHub](https://github.com/n8layman/ohseer) (OCR dependency)
-- [Full Tutorial](vignettes/ecoextract-workflow.Rmd) (Comprehensive vignette)
-- [Accuracy Metrics Guide](ACCURACY.md) (Understanding accuracy calculations)
 
 ## Installation
 
@@ -153,7 +155,7 @@ records <- get_records()
 export_db(filename = "extracted_data.csv")
 ```
 
-**See the [vignette](vignettes/ecoextract-workflow.Rmd) for:**
+**See the [vignette](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for:**
 
 - Parallel processing with multiple workers
 - Custom schemas and prompts
@@ -167,7 +169,7 @@ export_db(filename = "extracted_data.csv")
 
 Re-running `process_documents()` automatically skips completed steps. When a step is forced to re-run, downstream steps are automatically invalidated.
 
-See the [vignette](vignettes/ecoextract-workflow.Rmd) for details.
+See the [vignette](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for details.
 
 ### Parallel Processing
 
@@ -184,11 +186,11 @@ results <- process_documents(
 )
 ```
 
-Crash-resilient with automatic resume capability. See the [vignette](vignettes/ecoextract-workflow.Rmd) for details.
+Crash-resilient with automatic resume capability. See the [vignette](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for details.
 
 ### Deduplication
 
-Three similarity methods available: `"llm"` (default), `"embedding"`, or `"jaccard"`. See the [vignette](vignettes/ecoextract-workflow.Rmd) for details.
+Three similarity methods available: `"llm"` (default), `"embedding"`, or `"jaccard"`. See the [vignette](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for details.
 
 ## Custom Schemas
 

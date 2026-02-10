@@ -8,4 +8,13 @@
 \description{
 Structured ecological data extraction and refinement from scientific literature. Provides functions for OCR processing, extracting structured data from documents, and refining extracted data using LLMs.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/n8layman/ecoextract}
+  \item \url{https://n8layman.github.io/ecoextract/}
+  \item Report bugs at \url{https://github.com/n8layman/ecoextract/issues}
+}
+
+}
 \keyword{internal}
