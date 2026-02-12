@@ -158,8 +158,12 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         -- Step status tracking
         ocr_status TEXT,            -- NULL | 'completed' | 'skipped' | 'OCR failed: <msg>'
         metadata_status TEXT,       -- NULL | 'completed' | 'skipped' | 'Metadata extraction failed: <msg>'
+        metadata_llm_model TEXT,    -- Model used for metadata extraction (e.g., 'anthropic/claude-sonnet-4-5', 'mistral/mistral-large-latest')
+        metadata_log TEXT,          -- JSON array of all model attempts with errors/refusals (audit trail)
         extraction_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Extraction failed: <msg>'
+        extraction_log TEXT,        -- JSON array of all model attempts with errors/refusals (audit trail)
         refinement_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Refinement failed: <msg>'
+        refinement_log TEXT,        -- JSON array of all model attempts with errors/refusals (audit trail)
 
         -- Extraction summary
         records_extracted INTEGER DEFAULT 0,  -- Total number of records extracted from this document
@@ -187,6 +191,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         -- Processing metadata
         extraction_timestamp TEXT NOT NULL,
         llm_model_version TEXT NOT NULL,
+        llm_refusals TEXT,  -- JSON array of models that refused during extraction/refinement (audit trail)
         prompt_hash TEXT NOT NULL,
         fields_changed_count INTEGER DEFAULT 0,
         deleted_by_user TEXT,  -- NULL = not deleted, timestamp = when deleted
@@ -385,7 +390,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
 #' @param overwrite Logical, if TRUE will overwrite all existing fields
 #' @return Document ID
 #' @keywords internal
-save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwrite = FALSE) {
+save_metadata_to_db <- function(document_id, db_conn, metadata = list(), metadata_llm_model = NULL, metadata_log = NULL, overwrite = FALSE) {
 
   # Safe null/NA coalescing
   `%||NA%` <- function(x, y) {
@@ -420,10 +425,12 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
 
   # Fill missing keys with NA
   metadata_complete <- unname(sapply(meta_keys, function(k) metadata[[k]] %||NA% NA))
-  params <- c(metadata_complete, document_id)
+
+  # Add metadata_llm_model and metadata_log to the update
+  params <- c(metadata_complete, metadata_llm_model %||NA% NA, metadata_log %||NA% NA, document_id)
 
   # Build the SET clause dynamically
-  set_clause <- glue::glue_collapse(
+  meta_set <- glue::glue_collapse(
     if (overwrite) {
       glue::glue("{meta_keys} = ?")
     } else {
@@ -431,6 +438,21 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), overwri
     },
     sep = ", "
   )
+
+  # Add metadata_llm_model and metadata_log to SET clause
+  llm_model_set <- if (overwrite) {
+    "metadata_llm_model = ?"
+  } else {
+    "metadata_llm_model = COALESCE(?, metadata_llm_model)"
+  }
+
+  llm_log_set <- if (overwrite) {
+    "metadata_log = ?"
+  } else {
+    "metadata_log = COALESCE(?, metadata_log)"
+  }
+
+  set_clause <- paste(meta_set, llm_model_set, llm_log_set, sep = ", ")
 
   # Build full SQL
   sql <- glue::glue("

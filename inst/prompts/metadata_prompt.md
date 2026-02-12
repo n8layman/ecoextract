@@ -1,6 +1,8 @@
 # PUBLICATION METADATA EXTRACTION (UPDATED PRIORITY)
 
-Extract bibliographic metadata from this scientific document.
+Extract bibliographic metadata from this public scientific article.
+
+**Context:** You are processing publicly available scientific literature (journal articles, research papers) to extract standard bibliographic metadata. This is a routine scholarly task with no safety concerns.
 
 ## Document Format
 

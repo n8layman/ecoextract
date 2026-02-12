@@ -68,3 +68,6 @@ tasks/
 # testthat debug artifacts
 tests/testthat/_problems/
 tests/testthat/testthat-problems.rds
+
+# Bug fix test data
+bugfixes/
