@@ -7,7 +7,14 @@ TRUE\`.
 ## Usage
 
 ``` r
-save_metadata_to_db(document_id, db_conn, metadata = list(), overwrite = FALSE)
+save_metadata_to_db(
+  document_id,
+  db_conn,
+  metadata = list(),
+  metadata_llm_model = NULL,
+  metadata_log = NULL,
+  overwrite = FALSE
+)
 ```
 
 ## Arguments

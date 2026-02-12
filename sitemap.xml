@@ -15,6 +15,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/calculate_accuracy.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/calculate_fields_changed.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/canonicalize.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/check_api_keys_for_models.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/configure_sqlite_connection.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/cosine_similarity.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/deduplicate_records.html</loc></url>
@@ -73,6 +74,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/save_reasoning_to_db.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/save_records_to_db.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/should_run_step.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/try_models_with_fallback.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/validate_force_param.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/validate_schema_with_db.html</loc></url>
 </urlset>

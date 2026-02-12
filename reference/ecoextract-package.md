@@ -13,3 +13,7 @@ Useful links:
 - <https://n8layman.github.io/ecoextract/>
 
 - Report bugs at <https://github.com/n8layman/ecoextract/issues>
+
+## Author
+
+**Maintainer**: Nathan C Layman <n8layman@gmail.com>

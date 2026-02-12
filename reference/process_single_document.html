@@ -48,6 +48,7 @@
 <span>  schema_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extraction_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  refinement_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-4-5"</span>,</span>
 <span>  force_reprocess_ocr <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force_reprocess_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force_reprocess_extraction <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -82,6 +83,11 @@
 
 <dt id="arg-refinement-prompt-file">refinement_prompt_file<a class="anchor" aria-label="anchor" href="#arg-refinement-prompt-file"></a></dt>
 <dd><p>Optional custom refinement prompt</p></dd>
+
+
+<dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
+<dd><p>LLM model(s) to use for metadata extraction, record extraction, and refinement.
+Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"</p></dd>
 
 
 <dt id="arg-force-reprocess-ocr">force_reprocess_ocr<a class="anchor" aria-label="anchor" href="#arg-force-reprocess-ocr"></a></dt>

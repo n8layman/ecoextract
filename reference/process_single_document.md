@@ -11,6 +11,7 @@ process_single_document(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
+  model = "anthropic/claude-sonnet-4-5",
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -44,6 +45,12 @@ process_single_document(
 - refinement_prompt_file:
 
   Optional custom refinement prompt
+
+- model:
+
+  LLM model(s) to use for metadata extraction, record extraction, and
+  refinement. Can be a single model name or a vector of models for
+  tiered fallback. Default: "anthropic/claude-sonnet-4-5"
 
 - force_reprocess_ocr:
 
