@@ -110,15 +110,6 @@ refine_records <- function(db_conn = NULL, document_id,
     record_count <- nrow(existing_records)
     cat(glue::glue("Inputs loaded: OCR data ({markdown_chars} chars), {record_count} records, refinement prompt ({nchar(refinement_prompt)} chars, hash: {substring(prompt_hash, 1, 8)})"), "\n")
 
-    # Initialize refinement chat
-    cat("Calling", model, "for refinement\n")
-    refine_chat <- ellmer::chat(
-      name = model,
-      system_prompt = refinement_prompt,  # System prompt is just the generic refinement instructions
-      echo = "none",
-      params = list(max_tokens = 16384)
-    )
-
     # Build refinement context using glue to inject data
     document_content <- markdown_text  # Alias for template variable name
     refinement_context <- glue::glue(refinement_context_template,
@@ -128,11 +119,19 @@ refine_records <- function(db_conn = NULL, document_id,
       existing_records_context = existing_context
     )
 
-    # Execute refinement with structured output
-    refine_result <- refine_chat$chat_structured(refinement_context, type = schema)
+    # Execute refinement with model fallback
+    llm_result <- try_models_with_fallback(
+      models = model,
+      system_prompt = refinement_prompt,
+      context = refinement_context,
+      schema = schema,
+      max_tokens = 16384,
+      step_name = "Refinement"
+    )
 
-    # Process result - chat_structured can return either a list or JSON string
-    cat("Refinement completed\n")
+    refine_result <- llm_result$result
+    model_used <- llm_result$model_used
+    error_log <- llm_result$error_log
 
     # Parse if it's a JSON string
     if (is.character(refine_result)) {
@@ -257,7 +256,7 @@ refine_records <- function(db_conn = NULL, document_id,
         document_id = document_id,
         interactions_df = refined_df,
         metadata = list(
-          model = model,
+          model = model_used,
           prompt_hash = prompt_hash
         ),
         schema_list = schema_list,  # Pass schema for array normalization
@@ -291,7 +290,8 @@ refine_records <- function(db_conn = NULL, document_id,
     return(list(
       status = status,
       records_refined = records_count,
-      document_id = document_id
+      document_id = document_id,
+      error_log = error_log  # Include error log for audit
     ))
   }, error = function(e) {
     status <- paste("Refinement failed:", e$message)
@@ -309,7 +309,8 @@ refine_records <- function(db_conn = NULL, document_id,
     return(list(
       status = status,
       records_refined = 0,
-      document_id = document_id
+      document_id = document_id,
+      error_log = NA_character_  # No error log available (error before LLM call)
     ))
   })
 }

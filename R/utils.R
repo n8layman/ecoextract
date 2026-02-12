@@ -128,3 +128,152 @@ build_existing_records_context <- function(existing_records, document_id = NULL,
 
   return(paste(context_lines, collapse = "\n"))
 }
+
+#' Check that API keys exist for specified models
+#'
+#' @param models Character vector of model names
+#' @return NULL (stops with error if keys missing)
+#' @keywords internal
+check_api_keys_for_models <- function(models) {
+  # Map provider prefixes to environment variable names
+  provider_keys <- list(
+    "anthropic" = "ANTHROPIC_API_KEY",
+    "openai" = "OPENAI_API_KEY",
+    "mistral" = "MISTRAL_API_KEY",
+    "groq" = "GROQ_API_KEY",
+    "google" = "GOOGLE_API_KEY"
+  )
+
+  # Extract unique providers from model list
+  providers <- unique(sapply(strsplit(models, "/"), `[`, 1))
+
+  # Check each provider
+  missing_keys <- character(0)
+  for (provider in providers) {
+    key_name <- provider_keys[[provider]]
+    if (is.null(key_name)) {
+      # Unknown provider - skip check (ellmer might handle it)
+      next
+    }
+
+    # Check if environment variable exists and is not empty
+    key_value <- Sys.getenv(key_name, unset = NA)
+    if (is.na(key_value) || nchar(key_value) == 0) {
+      missing_keys <- c(missing_keys, key_name)
+    }
+  }
+
+  # Stop with informative error if any keys are missing
+  if (length(missing_keys) > 0) {
+    stop(
+      "Missing API keys for the following providers:\n",
+      paste0("  - ", missing_keys, collapse = "\n"), "\n\n",
+      "Please set the following environment variables:\n",
+      paste0("  ", missing_keys, " = <your-api-key>", collapse = "\n"), "\n\n",
+      "You can set them in your .Renviron file or use Sys.setenv()\n",
+      "Models requested: ", paste(models, collapse = ", ")
+    )
+  }
+}
+
+#' Try multiple LLM models with fallback on refusal
+#'
+#' Attempts to get structured output from LLMs in sequential order.
+#' If a model refuses (stop_reason == "refusal") or errors, tries the next model.
+#'
+#' @param models Character vector of model names (e.g., c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest"))
+#' @param system_prompt System prompt for the LLM
+#' @param context User context/input for the LLM
+#' @param schema ellmer type schema for structured output
+#' @param max_tokens Maximum tokens for response (default 16384)
+#' @param step_name Name of the step for logging (default "LLM call")
+#' @return List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)
+#' @keywords internal
+try_models_with_fallback <- function(
+  models,
+  system_prompt,
+  context,
+  schema,
+  max_tokens = 16384,
+  step_name = "LLM call"
+) {
+  # Ensure models is a character vector
+  if (!is.character(models) || length(models) == 0) {
+    stop("models must be a non-empty character vector")
+  }
+
+  # Check that API keys exist for all models in the list
+  check_api_keys_for_models(models)
+
+  errors <- list()
+
+  for (model in models) {
+    tryCatch({
+      # Create chat instance
+      chat <- ellmer::chat(
+        name = model,
+        system_prompt = system_prompt,
+        echo = "none",
+        params = list(max_tokens = max_tokens)
+      )
+
+      # Attempt structured chat
+      result <- chat$chat_structured(context, type = schema)
+
+      # Success - return immediately with error log
+      message(sprintf("%s completed successfully using %s", step_name, model))
+
+      # Convert error log to JSON (NULL if no errors)
+      error_log_json <- if (length(errors) > 0) {
+        jsonlite::toJSON(errors, auto_unbox = TRUE)
+      } else {
+        NA_character_
+      }
+
+      return(list(
+        result = result,
+        model_used = model,
+        error_log = error_log_json
+      ))
+
+    }, error = function(e) {
+      # Check if this was a refusal
+      is_refusal <- FALSE
+      tryCatch({
+        turns <- chat$get_turns()
+        if (length(turns) > 0) {
+          last_turn <- turns[[length(turns)]]
+          if (!is.null(last_turn@json$stop_reason) &&
+              last_turn@json$stop_reason == "refusal") {
+            is_refusal <- TRUE
+          }
+        }
+      }, error = function(e2) {
+        # If we can't check turns, treat as regular error
+      })
+
+      error_type <- if (is_refusal) "refusal" else "error"
+      message(sprintf("%s %s with %s: %s", step_name, error_type, model, conditionMessage(e)))
+
+      # Store error for audit log (use <<- to modify parent scope)
+      errors[[model]] <<- list(
+        type = error_type,
+        message = conditionMessage(e),
+        timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      )
+    })
+  }
+
+  # All models failed - construct informative error message
+  error_messages <- sapply(names(errors), function(model) {
+    paste(model, "-", errors[[model]]$type, ":", errors[[model]]$message)
+  })
+
+  error_summary <- paste(
+    sprintf("All models failed for %s:", step_name),
+    paste(error_messages, collapse = "\n"),
+    sep = "\n"
+  )
+
+  stop(error_summary)
+}

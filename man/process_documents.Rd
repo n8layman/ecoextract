@@ -10,6 +10,7 @@ process_documents(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
+  model = "anthropic/claude-sonnet-4-5",
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -36,6 +37,12 @@ If a connection is provided, tables must already exist (use \code{init_ecoextrac
 \item{extraction_prompt_file}{Optional custom extraction prompt}
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
+
+\item{model}{LLM model(s) to use for metadata extraction, record extraction, and refinement.
+Can be a single model name (character string) or a vector of models for tiered fallback.
+When a vector is provided, models are tried sequentially until one succeeds.
+Default: "anthropic/claude-sonnet-4-5".
+Examples: "openai/gpt-4o", c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest")}
 
 \item{force_reprocess_ocr}{Controls OCR reprocessing. NULL (default) uses normal skip logic,
 TRUE forces all documents, or an integer vector of document_ids to force specific documents.}

@@ -65,20 +65,20 @@ extract_records <- function(document_id = NA,
       .null = "0"
     ), "\n")
 
-    # Initialize extraction chat
-    cat("Calling", model, "for extraction\n")
-    extract_chat <- ellmer::chat(
-      name = model,
+    # Execute extraction with model fallback
+    # Using native ellmer types, arrays of objects are automatically converted to dataframes
+    llm_result <- try_models_with_fallback(
+      models = model,
       system_prompt = extraction_prompt,
-      echo = "none",
-      params = list(max_tokens = 16384)
+      context = extraction_context,
+      schema = schema,
+      max_tokens = 16384,
+      step_name = "Extraction"
     )
 
-    # Execute extraction with structured output
-    # Using native ellmer types, arrays of objects are automatically converted to dataframes
-    extract_result <- extract_chat$chat_structured(extraction_context, type = schema)
-
-    cat("Extraction completed\n")
+    extract_result <- llm_result$result
+    model_used <- llm_result$model_used
+    error_log <- llm_result$error_log
 
     # Extract and save reasoning
     if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
@@ -144,7 +144,7 @@ extract_records <- function(document_id = NA,
             document_id = document_id,
             interactions_df = unique_records,
             metadata = list(
-              model = model,
+              model = model_used,
               prompt_hash = extraction_prompt_hash
             ),
             schema_list = schema_list,  # Pass schema for array normalization
@@ -189,14 +189,16 @@ extract_records <- function(document_id = NA,
         records_extracted = records_count,
         records = extraction_df_no_db,
         document_id = if (!is.na(document_id)) document_id else NA,
-        raw_llm_response = extract_result  # Include raw LLM response
+        raw_llm_response = extract_result,  # Include raw LLM response
+        error_log = error_log  # Include error log for audit
       ))
     } else {
       return(list(
         status = status,
         records_extracted = records_count,
         document_id = if (!is.na(document_id)) document_id else NA,
-        raw_llm_response = extract_result  # Include raw LLM response
+        raw_llm_response = extract_result,  # Include raw LLM response
+        error_log = error_log  # Include error log for audit
       ))
     }
   }, error = function(e) {
@@ -217,7 +219,8 @@ extract_records <- function(document_id = NA,
       status = status,
       records_extracted = 0,
       document_id = if (!is.na(document_id)) document_id else NA,
-      raw_llm_response = NULL  # No response on error
+      raw_llm_response = NULL,  # No response on error
+      error_log = NA_character_  # No error log available (error before LLM call)
     ))
   })
 }

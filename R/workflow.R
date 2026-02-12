@@ -55,6 +55,11 @@ validate_force_param <- function(param, param_name) {
 #' @param schema_file Optional custom schema file
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
+#' @param model LLM model(s) to use for metadata extraction, record extraction, and refinement.
+#'   Can be a single model name (character string) or a vector of models for tiered fallback.
+#'   When a vector is provided, models are tried sequentially until one succeeds.
+#'   Default: "anthropic/claude-sonnet-4-5".
+#'   Examples: "openai/gpt-4o", c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest")
 #' @param force_reprocess_ocr Controls OCR reprocessing. NULL (default) uses normal skip logic,
 #'   TRUE forces all documents, or an integer vector of document_ids to force specific documents.
 #' @param force_reprocess_metadata Controls metadata reprocessing. NULL (default) uses normal skip logic,
@@ -138,6 +143,7 @@ process_documents <- function(pdf_path,
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
+                             model = "anthropic/claude-sonnet-4-5",
                              force_reprocess_ocr = NULL,
                              force_reprocess_metadata = NULL,
                              force_reprocess_extraction = NULL,
@@ -156,6 +162,9 @@ process_documents <- function(pdf_path,
   validate_force_param(force_reprocess_metadata, "force_reprocess_metadata")
   validate_force_param(force_reprocess_extraction, "force_reprocess_extraction")
   validate_force_param(run_refinement, "run_refinement")
+
+  # Validate API keys exist for all models (fail early)
+  check_api_keys_for_models(model)
 
   # Validate workers parameter
   use_parallel <- FALSE
@@ -330,6 +339,7 @@ process_documents <- function(pdf_path,
                     schema_file = schema_file,
                     extraction_prompt_file = extraction_prompt_file,
                     refinement_prompt_file = refinement_prompt_file,
+                    model = model,
                     force_reprocess_ocr = force_reprocess_ocr,
                     force_reprocess_metadata = force_reprocess_metadata,
                     force_reprocess_extraction = force_reprocess_extraction,
@@ -356,6 +366,7 @@ process_documents <- function(pdf_path,
                 schema_file = schema_file,
                 extraction_prompt_file = extraction_prompt_file,
                 refinement_prompt_file = refinement_prompt_file,
+                model = model,
                 force_reprocess_ocr = force_reprocess_ocr,
                 force_reprocess_metadata = force_reprocess_metadata,
                 force_reprocess_extraction = force_reprocess_extraction,
@@ -374,6 +385,7 @@ process_documents <- function(pdf_path,
           schema_file = schema_src$path,
           extraction_prompt_file = extraction_prompt_file,
           refinement_prompt_file = refinement_prompt_file,
+          model = model,
           force_reprocess_ocr = force_reprocess_ocr,
           force_reprocess_metadata = force_reprocess_metadata,
           force_reprocess_extraction = force_reprocess_extraction,
@@ -510,6 +522,7 @@ process_documents <- function(pdf_path,
         schema_file = schema_src$path,
         extraction_prompt_file = extraction_prompt_file,
         refinement_prompt_file = refinement_prompt_file,
+        model = model,
         force_reprocess_ocr = force_reprocess_ocr,
         force_reprocess_metadata = force_reprocess_metadata,
         force_reprocess_extraction = force_reprocess_extraction,
@@ -595,6 +608,8 @@ process_documents <- function(pdf_path,
 #' @param schema_file Optional custom schema
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
+#' @param model LLM model(s) to use for metadata extraction, record extraction, and refinement.
+#'   Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"
 #' @param force_reprocess_ocr NULL, TRUE, or integer vector of document_ids to force OCR
 #' @param force_reprocess_metadata NULL, TRUE, or integer vector of document_ids to force metadata
 #' @param force_reprocess_extraction NULL, TRUE, or integer vector of document_ids to force extraction
@@ -611,6 +626,7 @@ process_single_document <- function(pdf_file,
                                     schema_file = NULL,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
+                                    model = "anthropic/claude-sonnet-4-5",
                                     force_reprocess_ocr = NULL,
                                     force_reprocess_metadata = NULL,
                                     force_reprocess_extraction = NULL,
@@ -741,7 +757,7 @@ process_single_document <- function(pdf_file,
                             !is.na(doc$publication_year[1]) && !is.null(doc$publication_year[1])
 
     if (should_run_step(doc$metadata_status[1], metadata_data_exists)) {
-      metadata_result <- extract_metadata(document_id = doc_id, db_conn, force_reprocess = TRUE)
+      metadata_result <- extract_metadata(document_id = doc_id, db_conn, force_reprocess = TRUE, model = model)
       status_tracking$metadata_status <- metadata_result$status
 
       # Cascade: nullify extraction_status
@@ -782,6 +798,7 @@ process_single_document <- function(pdf_file,
         db_conn = db_conn,
         schema_file = schema_file,
         extraction_prompt_file = extraction_prompt_file,
+        model = model,
         min_similarity = min_similarity,
         embedding_provider = embedding_provider,
         similarity_method = similarity_method
@@ -794,11 +811,17 @@ process_single_document <- function(pdf_file,
     }
   }
 
-  # Save extraction status to DB
+  # Save extraction status and log to DB
   tryCatch({
+    extraction_log <- if (exists("extraction_result") && !is.null(extraction_result$error_log)) {
+      extraction_result$error_log
+    } else {
+      NA_character_
+    }
+
     DBI::dbExecute(db_conn,
-      "UPDATE documents SET extraction_status = ? WHERE document_id = ?",
-      params = list(status_tracking$extraction_status, doc_id))
+      "UPDATE documents SET extraction_status = ?, extraction_log = ? WHERE document_id = ?",
+      params = list(status_tracking$extraction_status, extraction_log, doc_id))
   }, error = function(e) {
     status_tracking$extraction_status <<- paste("Failure: Could not save status -", e$message)
   })
@@ -822,7 +845,8 @@ process_single_document <- function(pdf_file,
         document_id = doc_id,
         extraction_prompt_file = extraction_prompt_file,
         schema_file = schema_file,
-        refinement_prompt_file = refinement_prompt_file
+        refinement_prompt_file = refinement_prompt_file,
+        model = model
       )
       status_tracking$refinement_status <- refinement_result$status
     } else {
@@ -831,11 +855,17 @@ process_single_document <- function(pdf_file,
     }
   }
 
-  # Save refinement status to DB
+  # Save refinement status and log to DB
   tryCatch({
+    refinement_log <- if (exists("refinement_result") && !is.null(refinement_result$error_log)) {
+      refinement_result$error_log
+    } else {
+      NA_character_
+    }
+
     DBI::dbExecute(db_conn,
-      "UPDATE documents SET refinement_status = ? WHERE document_id = ?",
-      params = list(status_tracking$refinement_status, doc_id))
+      "UPDATE documents SET refinement_status = ?, refinement_log = ? WHERE document_id = ?",
+      params = list(status_tracking$refinement_status, refinement_log, doc_id))
   }, error = function(e) {
     status_tracking$refinement_status <<- paste("Failure: Could not save status -", e$message)
   })

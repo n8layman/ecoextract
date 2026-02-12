@@ -60,18 +60,19 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model
     context_template <- get_metadata_context()
     context <- glue::glue(context_template, .na = "", .null = "")
 
-    message(glue::glue("Calling {model} for metadata extraction"))
-
-    # Initialize metadata chat
-    metadata_chat <- ellmer::chat(
-      name = model,
+    # Execute metadata extraction with model fallback
+    llm_result <- try_models_with_fallback(
+      models = model,
       system_prompt = metadata_prompt,
-      echo = "none",
-      params = list(max_tokens = 16384)  # Increased to max for Claude Sonnet 4.5 to handle large bibliographies
+      context = context,
+      schema = schema,
+      max_tokens = 16384,
+      step_name = "Metadata extraction"
     )
 
-    # Execute metadata extraction with structured output
-    metadata_result <- metadata_chat$chat_structured(context, type = schema)
+    metadata_result <- llm_result$result
+    model_used <- llm_result$model_used
+    error_log <- llm_result$error_log
 
     # Extract results
     if (!is.list(metadata_result)) {
@@ -118,7 +119,9 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model
         publisher = pub_metadata$publisher,
         bibliography = references_json,
         language = pub_metadata$language
-      )
+      ),
+      metadata_llm_model = model_used,
+      metadata_log = error_log
     )
 
       # Log metadata extracted to console for user.
@@ -185,9 +188,12 @@ json_schema_to_ellmer_type_metadata <- function(schema_path) {
     language = ellmer::type_string(description = pub_meta_props$language$description, required = FALSE)
   )
 
-  # Build complete schema
+  # Build complete schema with publication_metadata as optional
+  pub_meta_type <- do.call(ellmer::type_object, pub_meta_fields)
+  pub_meta_type@required <- FALSE
+
   ellmer::type_object(
-    publication_metadata = do.call(ellmer::type_object, pub_meta_fields)
+    publication_metadata = pub_meta_type
   )
 }
 

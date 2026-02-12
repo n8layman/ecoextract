@@ -30,6 +30,7 @@
 ^tasks$
 ^resources$
 ^ecoextract$
+^bugfixes$
 
 # Database/test artifacts
 ^ecoextract_records\.db.*$
