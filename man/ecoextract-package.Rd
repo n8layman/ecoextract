@@ -17,4 +17,8 @@ Useful links:
 }
 
 }
+\author{
+\strong{Maintainer}: Nathan C Layman \email{n8layman@gmail.com}
+
+}
 \keyword{internal}

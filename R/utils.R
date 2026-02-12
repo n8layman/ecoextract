@@ -265,9 +265,13 @@ try_models_with_fallback <- function(
   }
 
   # All models failed - construct informative error message
+  error_messages <- sapply(names(errors), function(model) {
+    paste(model, "-", errors[[model]]$type, ":", errors[[model]]$message)
+  })
+
   error_summary <- paste(
     sprintf("All models failed for %s:", step_name),
-    paste(names(errors), purrr::map_chr(errors, ~paste(.x$type, ":", .x$message)), sep = " - ", collapse = "\n"),
+    paste(error_messages, collapse = "\n"),
     sep = "\n"
   )
 

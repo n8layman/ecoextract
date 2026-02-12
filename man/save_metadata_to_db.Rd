@@ -4,7 +4,14 @@
 \alias{save_metadata_to_db}
 \title{Save publication metadata to EcoExtract database (internal)}
 \usage{
-save_metadata_to_db(document_id, db_conn, metadata = list(), overwrite = FALSE)
+save_metadata_to_db(
+  document_id,
+  db_conn,
+  metadata = list(),
+  metadata_llm_model = NULL,
+  metadata_log = NULL,
+  overwrite = FALSE
+)
 }
 \arguments{
 \item{document_id}{Document ID to update}
