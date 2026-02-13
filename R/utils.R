@@ -220,6 +220,23 @@ try_models_with_fallback <- function(
       # Attempt structured chat
       result <- chat$chat_structured(context, type = schema)
 
+      # Check if model refused despite returning structured output
+      turns <- chat$get_turns()
+      if (length(turns) > 0) {
+        last_turn <- turns[[length(turns)]]
+        if (!is.null(last_turn@json$stop_reason) && last_turn@json$stop_reason == "refusal") {
+          # Model refused - treat as error and try next model
+          stop("Model refused request (stop_reason: refusal)")
+        }
+      }
+
+      # Check if result has required reasoning field
+      if (is.list(result) && ("reasoning" %in% names(result))) {
+        if (is.null(result$reasoning) || (is.character(result$reasoning) && nchar(result$reasoning) == 0)) {
+          stop("Model returned NULL or empty reasoning field")
+        }
+      }
+
       # Success - return immediately with error log
       message(sprintf("%s completed successfully using %s", step_name, model))
 
