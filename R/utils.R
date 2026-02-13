@@ -237,27 +237,24 @@ try_models_with_fallback <- function(
       ))
 
     }, error = function(e) {
-      # Try to extract the actual model response content
-      model_response <- NULL
+      # Capture raw response from model
+      raw_content <- NULL
+      stop_reason <- NULL
       tryCatch({
         turns <- chat$get_turns()
         if (length(turns) > 0) {
           last_turn <- turns[[length(turns)]]
-          # Use ellmer's normalized contents field instead of provider-specific json
-          if (!is.null(last_turn@contents) && length(last_turn@contents) > 0) {
-            model_response <- last_turn@contents[[1]]@text
-          }
+          raw_content <- last_turn@json$content
+          stop_reason <- last_turn@json$stop_reason
         }
       }, error = function(e2) {})
 
-      # Display model response if available, otherwise R error
-      display_msg <- model_response %||% conditionMessage(e)
-      message(sprintf("%s failed with %s: %s", step_name, model, display_msg))
+      message(sprintf("%s failed with %s: %s", step_name, model, conditionMessage(e)))
 
-      # Store both model content and R error for audit log (use <<- to modify parent scope)
+      # Store for audit log (use <<- to modify parent scope)
       errors[[model]] <<- list(
-        content = model_response,
-        error = conditionMessage(e),
+        content = raw_content,
+        stop_reason = stop_reason,
         timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       )
     })
