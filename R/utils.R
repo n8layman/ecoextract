@@ -237,28 +237,27 @@ try_models_with_fallback <- function(
       ))
 
     }, error = function(e) {
-      # Check if this was a refusal
-      is_refusal <- FALSE
+      # Try to extract the actual model response content
+      model_response <- NULL
       tryCatch({
         turns <- chat$get_turns()
         if (length(turns) > 0) {
           last_turn <- turns[[length(turns)]]
-          if (!is.null(last_turn@json$stop_reason) &&
-              last_turn@json$stop_reason == "refusal") {
-            is_refusal <- TRUE
+          # Use ellmer's normalized contents field instead of provider-specific json
+          if (!is.null(last_turn@contents) && length(last_turn@contents) > 0) {
+            model_response <- last_turn@contents[[1]]@text
           }
         }
-      }, error = function(e2) {
-        # If we can't check turns, treat as regular error
-      })
+      }, error = function(e2) {})
 
-      error_type <- if (is_refusal) "refusal" else "error"
-      message(sprintf("%s %s with %s: %s", step_name, error_type, model, conditionMessage(e)))
+      # Display model response if available, otherwise R error
+      display_msg <- model_response %||% conditionMessage(e)
+      message(sprintf("%s failed with %s: %s", step_name, model, display_msg))
 
-      # Store error for audit log (use <<- to modify parent scope)
+      # Store both model content and R error for audit log (use <<- to modify parent scope)
       errors[[model]] <<- list(
-        type = error_type,
-        message = conditionMessage(e),
+        content = model_response,
+        error = conditionMessage(e),
         timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       )
     })
@@ -266,7 +265,9 @@ try_models_with_fallback <- function(
 
   # All models failed - construct informative error message
   error_messages <- sapply(names(errors), function(model) {
-    paste(model, "-", errors[[model]]$type, ":", errors[[model]]$message)
+    err <- errors[[model]]
+    msg <- err$content %||% err$error
+    paste(model, "-", msg)
   })
 
   error_summary <- paste(
