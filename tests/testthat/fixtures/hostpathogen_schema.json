@@ -92,10 +92,6 @@
             "maximum": 5,
             "description": "Source data quality score (5-point Likert scale)"
           },
-          "English": {
-            "type": "boolean",
-            "description": "Flag if language is not English - could affect extraction quality and should be reviewed by a human"
-          },
           "Supplemental_Material": {
             "type": "boolean",
             "description": "Does it seem like more information might be present in the supplemental data?"

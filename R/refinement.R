@@ -272,16 +272,18 @@ refine_records <- function(db_conn = NULL, document_id,
     }
     }  # Close the else block from skip check
 
-    # Save status and record count to DB
+    # Save status and record count to DB with retry logic
     status <- tryCatch({
       # Get current total record count for this document
       current_count <- DBI::dbGetQuery(con,
         "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
         params = list(document_id))$count[1]
 
-      DBI::dbExecute(con,
-        "UPDATE documents SET refinement_status = ?, records_extracted = ? WHERE document_id = ?",
-        params = list(status, current_count, document_id))
+      retry_db_operation({
+        DBI::dbExecute(con,
+          "UPDATE documents SET refinement_status = ?, records_extracted = ? WHERE document_id = ?",
+          params = list(status, current_count, document_id))
+      })
       status
     }, error = function(e) {
       paste("Refinement failed: Could not save status -", e$message)
@@ -291,7 +293,8 @@ refine_records <- function(db_conn = NULL, document_id,
       status = status,
       records_refined = records_count,
       document_id = document_id,
-      error_log = error_log  # Include error log for audit
+      error_log = error_log,  # Include error log for audit
+      model_used = model_used  # Model that succeeded
     ))
   }, error = function(e) {
     status <- paste("Refinement failed:", e$message)
@@ -299,9 +302,11 @@ refine_records <- function(db_conn = NULL, document_id,
     # Try to save error status (use con if it was created, otherwise db_conn)
     tryCatch({
       error_con <- if (exists("con")) con else db_conn
-      DBI::dbExecute(error_con,
-        "UPDATE documents SET refinement_status = ? WHERE document_id = ?",
-        params = list(status, document_id))
+      retry_db_operation({
+        DBI::dbExecute(error_con,
+          "UPDATE documents SET refinement_status = ? WHERE document_id = ?",
+          params = list(status, document_id))
+      })
     }, error = function(e2) {
       # Silently fail if can't save status
     })
@@ -310,7 +315,8 @@ refine_records <- function(db_conn = NULL, document_id,
       status = status,
       records_refined = 0,
       document_id = document_id,
-      error_log = NA_character_  # No error log available (error before LLM call)
+      error_log = NA_character_,  # No error log available (error before LLM call)
+      model_used = NA_character_  # No model used if failed before LLM call
     ))
   })
 }
@@ -396,7 +402,7 @@ calculate_fields_changed <- function(original_record, refined_record) {
 
   # Exclude metadata fields from comparison
   metadata_fields <- c("document_id", "record_id", "extraction_timestamp",
-                       "llm_model_version", "prompt_hash", "fields_changed_count",
+                       "prompt_hash", "fields_changed_count",
                        "human_edited", "deleted_by_user")
 
   # Get schema fields (all fields except metadata)

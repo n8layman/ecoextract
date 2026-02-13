@@ -486,7 +486,7 @@ export_db <- function(document_id = NULL,
     if (simple && nrow(result) > 0) {
       # Remove processing metadata columns
       metadata_cols <- c(
-        "extraction_timestamp", "llm_model_version", "prompt_hash",
+        "extraction_timestamp", "prompt_hash",
         "fields_changed_count", "human_edited", "deleted_by_user"
       )
       result <- result |>
@@ -521,7 +521,7 @@ diff_records <- function(original_df, records_df) {
   # Metadata columns to exclude from comparison
   metadata_cols <- c(
     "id", "document_id", "record_id", "extraction_timestamp",
-    "llm_model_version", "prompt_hash", "fields_changed_count",
+    "prompt_hash", "fields_changed_count",
     "human_edited", "deleted_by_user", "added_by_user"
   )
 
@@ -662,7 +662,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
         # Get schema columns (non-metadata) - include record_id since it may change
         metadata_cols <- c(
           "id", "document_id", "extraction_timestamp",
-          "llm_model_version", "prompt_hash", "fields_changed_count",
+          "prompt_hash", "fields_changed_count",
           "human_edited", "deleted_by_user", "added_by_user"
         )
         schema_cols <- setdiff(names(records_df), metadata_cols)
@@ -728,22 +728,18 @@ save_document <- function(document_id, records_df, original_df = NULL,
           exclude_cols <- c(
             "id",  # Auto-increment, don't insert
             "document_id",  # Added explicitly below
-            "extraction_timestamp", "llm_model_version", "prompt_hash",
-            "fields_changed_count", "deleted_by_user", "added_by_user",
+            "extraction_timestamp", "fields_changed_count", "deleted_by_user", "added_by_user",
             "human_edited"  # Derived column, not in database
           )
           insert_cols <- setdiff(names(new_row), exclude_cols)
-          insert_cols <- c(insert_cols, "document_id", "added_by_user",
-                           "extraction_timestamp", "llm_model_version", "prompt_hash")
+          insert_cols <- c(insert_cols, "document_id", "added_by_user", "extraction_timestamp")
 
           placeholders <- paste(rep("?", length(insert_cols)), collapse = ", ")
           query <- paste0("INSERT INTO records (", paste(insert_cols, collapse = ", "),
                           ") VALUES (", placeholders, ")")
 
           # Build params - get values for data columns (not the explicitly added ones)
-          data_cols <- setdiff(insert_cols, c("document_id", "added_by_user",
-                                               "extraction_timestamp", "llm_model_version",
-                                               "prompt_hash"))
+          data_cols <- setdiff(insert_cols, c("document_id", "added_by_user", "extraction_timestamp"))
           params <- lapply(data_cols, function(col) {
             val <- new_row[[col]]
             if (is.list(val)) {
@@ -755,9 +751,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
           params <- c(params, list(
             document_id,
             1L,           # added_by_user = TRUE
-            reviewed_at,  # extraction_timestamp
-            "human_review",  # llm_model_version
-            "human_review"   # prompt_hash
+            reviewed_at   # extraction_timestamp
           ))
 
           DBI::dbExecute(con, query, params = params)

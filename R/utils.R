@@ -82,7 +82,7 @@ build_existing_records_context <- function(existing_records, document_id = NULL,
   # Exclude metadata columns from display
   # record_id: show during refinement (so LLM preserves it), hide during extraction (LLM doesn't generate it)
   metadata_cols <- c("document_id", "extraction_timestamp",
-                     "llm_model_version", "prompt_hash",
+                     "prompt_hash",
                      "human_edited", "deleted_by_user", "fields_changed_count")
 
   # Add record_id to metadata_cols if we don't want to show it (extraction)

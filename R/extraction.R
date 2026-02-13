@@ -173,9 +173,11 @@ extract_records <- function(document_id = NA,
           "SELECT COUNT(*) as count FROM records WHERE document_id = ?",
           params = list(document_id))$count[1]
 
-        DBI::dbExecute(db_conn,
-          "UPDATE documents SET extraction_status = ?, records_extracted = ? WHERE document_id = ?",
-          params = list(status, current_count, document_id))
+        retry_db_operation({
+          DBI::dbExecute(db_conn,
+            "UPDATE documents SET extraction_status = ?, records_extracted = ? WHERE document_id = ?",
+            params = list(status, current_count, document_id))
+        })
         status
       }, error = function(e) {
         paste("Extraction failed: Could not save status -", e$message)
@@ -190,7 +192,8 @@ extract_records <- function(document_id = NA,
         records = extraction_df_no_db,
         document_id = if (!is.na(document_id)) document_id else NA,
         raw_llm_response = extract_result,  # Include raw LLM response
-        error_log = error_log  # Include error log for audit
+        error_log = error_log,  # Include error log for audit
+        model_used = model_used  # Model that succeeded
       ))
     } else {
       return(list(
@@ -198,7 +201,8 @@ extract_records <- function(document_id = NA,
         records_extracted = records_count,
         document_id = if (!is.na(document_id)) document_id else NA,
         raw_llm_response = extract_result,  # Include raw LLM response
-        error_log = error_log  # Include error log for audit
+        error_log = error_log,  # Include error log for audit
+        model_used = model_used  # Model that succeeded
       ))
     }
   }, error = function(e) {
@@ -207,9 +211,11 @@ extract_records <- function(document_id = NA,
     # Try to save error status if DB exists
     if (!inherits(db_conn, "logical") && !is.na(document_id)) {
       tryCatch({
-        DBI::dbExecute(db_conn,
-          "UPDATE documents SET extraction_status = ? WHERE document_id = ?",
-          params = list(status, document_id))
+        retry_db_operation({
+          DBI::dbExecute(db_conn,
+            "UPDATE documents SET extraction_status = ? WHERE document_id = ?",
+            params = list(status, document_id))
+        })
       }, error = function(e2) {
         # Silently fail if can't save status
       })

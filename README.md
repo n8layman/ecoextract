@@ -86,6 +86,38 @@ records <- get_records()
 export_db(filename = "extracted_data.csv")
 ```
 
+## Model Fallback
+
+EcoExtract supports tiered model fallback to handle content refusals (e.g., Claude refusing disease/biosecurity papers). Provide a vector of models to try sequentially:
+
+```r
+# Single model (default)
+process_documents(
+  pdf_path = "papers/",
+  model = "anthropic/claude-sonnet-4-5"
+)
+
+# Tiered fallback: try Claude, then GPT-4o, then Mistral
+process_documents(
+  pdf_path = "papers/",
+  model = c(
+    "anthropic/claude-sonnet-4-5",
+    "openai/gpt-4o",
+    "mistral/mistral-large-latest"
+  )
+)
+```
+
+**Audit logging**: The database tracks which model succeeded for each step (metadata, extraction, refinement) in `*_llm_model` columns. All failed attempts with error messages and timestamps are logged in `*_log` columns for debugging.
+
+**API keys**: Add keys for fallback providers to your `.env`:
+
+```bash
+ANTHROPIC_API_KEY=your_anthropic_key
+OPENAI_API_KEY=your_openai_key
+MISTRAL_API_KEY=your_mistral_key
+```
+
 ## Key Features
 
 - **Smart skip logic** -- Re-running `process_documents()` skips completed steps. Forced re-runs automatically invalidate downstream steps.

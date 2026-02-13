@@ -45,8 +45,7 @@ test_that("save_document marks modified records as human_edited", {
   # Modify a record
   edited <- original
   schema_cols <- setdiff(names(edited), c("id", "record_id", "document_id",
-    "extraction_timestamp", "llm_model_version", "prompt_hash",
-    "fields_changed_count", "human_edited", "deleted_by_user", "added_by_user"))
+    "extraction_timestamp", "fields_changed_count", "human_edited", "deleted_by_user", "added_by_user"))
   if (length(schema_cols) > 0) {
     edited[[schema_cols[1]]][1] <- "EDITED_VALUE"
   }
@@ -131,8 +130,7 @@ test_that("save_document populates record_edits for modified columns", {
   # Modify a record
   edited <- original
   schema_cols <- setdiff(names(edited), c("id", "record_id", "document_id",
-    "extraction_timestamp", "llm_model_version", "prompt_hash",
-    "fields_changed_count", "human_edited", "deleted_by_user", "added_by_user"))
+    "extraction_timestamp", "fields_changed_count", "human_edited", "deleted_by_user", "added_by_user"))
 
   if (length(schema_cols) > 0) {
     edited[[schema_cols[1]]][1] <- "MODIFIED_VALUE"

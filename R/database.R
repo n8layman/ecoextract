@@ -11,9 +11,9 @@
 #' @return The connection object (invisibly)
 #' @keywords internal
 configure_sqlite_connection <- function(con) {
-  # Set busy timeout to 30 seconds (retry on locked database)
-  # Increased from 10s to support parallel processing
-  DBI::dbExecute(con, "PRAGMA busy_timeout = 30000")
+  # Set busy timeout to 10 seconds (retry on locked database)
+  # Works with application-level retry_db_operation() for parallel processing
+  DBI::dbExecute(con, "PRAGMA busy_timeout = 10000")
 
   # Enable WAL mode for better concurrent read/write performance
   # WAL allows readers and writers to operate concurrently
@@ -21,6 +21,42 @@ configure_sqlite_connection <- function(con) {
   DBI::dbExecute(con, "PRAGMA journal_mode = WAL")
 
   invisible(con)
+}
+
+#' Retry database operation with exponential backoff
+#'
+#' Wraps a database operation with retry logic to handle temporary locks.
+#'
+#' @param expr Expression to evaluate (database operation)
+#' @param max_attempts Maximum number of retry attempts (default: 3)
+#' @param initial_wait Initial wait time in seconds (default: 0.5)
+#' @return Result of the expression
+#' @keywords internal
+retry_db_operation <- function(expr, max_attempts = 3, initial_wait = 0.5) {
+  for (attempt in seq_len(max_attempts)) {
+    result <- tryCatch(
+      {
+        force(expr)
+      },
+      error = function(e) {
+        if (grepl("database is locked", e$message, ignore.case = TRUE) && attempt < max_attempts) {
+          wait_time <- initial_wait * (2 ^ (attempt - 1))  # Exponential backoff: 0.5s, 1s, 2s
+          message(sprintf("Database locked, retrying in %.1fs (attempt %d/%d)",
+                        wait_time, attempt, max_attempts))
+          Sys.sleep(wait_time)
+          return(NULL)  # Signal retry
+        } else {
+          # Either not a lock error, or final attempt failed
+          stop(e)
+        }
+      }
+    )
+
+    # If no error or successful result, return it
+    if (!is.null(result)) {
+      return(result)
+    }
+  }
 }
 
 #' Get array field names from schema definition
@@ -125,6 +161,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     # Create documents table
     DBI::dbExecute(con, "
       CREATE TABLE IF NOT EXISTS documents (
+        -- File metadata
         document_id INTEGER PRIMARY KEY AUTOINCREMENT,
         file_name TEXT NOT NULL,
         file_path TEXT NOT NULL,
@@ -132,10 +169,15 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         file_size INTEGER,
         upload_timestamp TEXT NOT NULL,
 
-        -- Publication metadata
+        -- OCR step
+        document_content TEXT,      -- OCR markdown results
+        ocr_images TEXT,            -- OCR images (JSON array of base64 images)
+        ocr_status TEXT,            -- NULL | 'completed' | 'skipped' | 'OCR failed: <msg>'
+
+        -- Metadata extraction step
         title TEXT,
         first_author_lastname TEXT,
-        authors TEXT,  -- JSON array of author names
+        authors TEXT,               -- JSON array of author names
         publication_year INTEGER,
         doi TEXT,
         journal TEXT,
@@ -144,32 +186,27 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         pages TEXT,
         issn TEXT,
         publisher TEXT,
-        bibliography TEXT,  -- JSON array of bibliography citations
-        language TEXT,      -- ISO 639-1 two-letter language code (e.g., 'en', 'es', 'fr')
-
-        -- Content storage
-        document_content TEXT,  -- OCR markdown results
-        ocr_images TEXT,        -- OCR images (JSON array of base64 images)
-
-        -- Reasoning logs
-        extraction_reasoning TEXT,  -- Reasoning from extraction step
-        refinement_reasoning TEXT,  -- Reasoning from refinement step
-
-        -- Step status tracking
-        ocr_status TEXT,            -- NULL | 'completed' | 'skipped' | 'OCR failed: <msg>'
+        bibliography TEXT,          -- JSON array of bibliography citations
+        language TEXT,              -- ISO 639-1 two-letter language code (e.g., 'en', 'es', 'fr')
         metadata_status TEXT,       -- NULL | 'completed' | 'skipped' | 'Metadata extraction failed: <msg>'
-        metadata_llm_model TEXT,    -- Model used for metadata extraction (e.g., 'anthropic/claude-sonnet-4-5', 'mistral/mistral-large-latest')
+        metadata_llm_model TEXT,    -- Model used for metadata extraction (e.g., 'anthropic/claude-sonnet-4-5')
         metadata_log TEXT,          -- JSON array of all model attempts with errors/refusals (audit trail)
+
+        -- Extraction step
+        extraction_reasoning TEXT,  -- Reasoning from extraction step
+        records_extracted INTEGER DEFAULT 0,  -- Total number of records extracted from this document
         extraction_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Extraction failed: <msg>'
+        extraction_llm_model TEXT,  -- Model used for extraction (e.g., 'anthropic/claude-sonnet-4-5', 'openai/gpt-4o')
         extraction_log TEXT,        -- JSON array of all model attempts with errors/refusals (audit trail)
+
+        -- Refinement step
+        refinement_reasoning TEXT,  -- Reasoning from refinement step
         refinement_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Refinement failed: <msg>'
+        refinement_llm_model TEXT,  -- Model used for refinement (e.g., 'anthropic/claude-sonnet-4-5', 'openai/gpt-4o')
         refinement_log TEXT,        -- JSON array of all model attempts with errors/refusals (audit trail)
 
-        -- Extraction summary
-        records_extracted INTEGER DEFAULT 0,  -- Total number of records extracted from this document
-
         -- Human review tracking
-        reviewed_at TEXT  -- Timestamp when document was human-reviewed (NULL = not reviewed)
+        reviewed_at TEXT            -- Timestamp when document was human-reviewed (NULL = not reviewed)
       )
     ")
 
@@ -190,8 +227,6 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
 
         -- Processing metadata
         extraction_timestamp TEXT NOT NULL,
-        llm_model_version TEXT NOT NULL,
-        llm_refusals TEXT,  -- JSON array of models that refused during extraction/refinement (audit trail)
         prompt_hash TEXT NOT NULL,
         fields_changed_count INTEGER DEFAULT 0,
         deleted_by_user TEXT,  -- NULL = not deleted, timestamp = when deleted
@@ -339,42 +374,46 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
   timestamp <- as.character(Sys.time())
 
   # Handle overwrite: drop existing row by hash if requested
-  doc_id <- NULL
-  if (overwrite) {
-    existing <- DBI::dbGetQuery(db_conn, "SELECT document_id FROM documents WHERE file_hash = ?", params = list(file_hash))
-    if (nrow(existing) > 0) {
-      doc_id <- existing$document_id[1]
-      DBI::dbExecute(db_conn, "DELETE FROM records WHERE document_id = ?", params = list(doc_id))
-      DBI::dbExecute(db_conn, "DELETE FROM documents WHERE document_id = ?", params = list(doc_id))
+  # Use retry logic for parallel processing
+  doc_id <- retry_db_operation({
+    doc_id_inner <- NULL
+    if (overwrite) {
+      existing <- DBI::dbGetQuery(db_conn, "SELECT document_id FROM documents WHERE file_hash = ?", params = list(file_hash))
+      if (nrow(existing) > 0) {
+        doc_id_inner <- existing$document_id[1]
+        DBI::dbExecute(db_conn, "DELETE FROM records WHERE document_id = ?", params = list(doc_id_inner))
+        DBI::dbExecute(db_conn, "DELETE FROM documents WHERE document_id = ?", params = list(doc_id_inner))
+      }
     }
-  }
 
-  # Prepare metadata in correct order
-  meta_keys <- c("title", "first_author_lastname", "publication_year",
-                 "doi", "journal", "document_content", "ocr_images")
-  metadata_complete <- lapply(meta_keys, function(k) rlang::`%||%`(metadata[[k]], NA))
+    # Prepare metadata in correct order
+    meta_keys <- c("title", "first_author_lastname", "publication_year",
+                   "doi", "journal", "document_content", "ocr_images")
+    metadata_complete <- lapply(meta_keys, function(k) rlang::`%||%`(metadata[[k]], NA))
 
-  # Combine with file info
-  params <- c(list(file_name, file_path, file_hash, file_size, timestamp), metadata_complete)
+    # Combine with file info
+    params <- c(list(file_name, file_path, file_hash, file_size, timestamp), metadata_complete)
 
-  # Insert new row (autoincrement)
-  DBI::dbExecute(db_conn, "
-    INSERT INTO documents (
-      file_name, file_path, file_hash, file_size, upload_timestamp,
-      title, first_author_lastname, publication_year, doi, journal,
-      document_content, ocr_images
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  ", params = params)
+    # Insert new row (autoincrement)
+    DBI::dbExecute(db_conn, "
+      INSERT INTO documents (
+        file_name, file_path, file_hash, file_size, upload_timestamp,
+        title, first_author_lastname, publication_year, doi, journal,
+        document_content, ocr_images
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ", params = params)
 
-  # Get the rowid of the inserted row
-  last_id <- DBI::dbGetQuery(db_conn, "SELECT last_insert_rowid() AS rowid")$rowid
+    # Get the rowid of the inserted row
+    last_id <- DBI::dbGetQuery(db_conn, "SELECT last_insert_rowid() AS rowid")$rowid
 
-  # If old_id existed, overwrite document_id with old_id
-  if (!is.null(doc_id)) {
-    DBI::dbExecute(db_conn, "UPDATE documents SET document_id = ? WHERE rowid = ?", params = list(doc_id, last_id))
-  } else {
-    doc_id <- last_id
-  }
+    # If old_id existed, overwrite document_id with old_id
+    if (!is.null(doc_id_inner)) {
+      DBI::dbExecute(db_conn, "UPDATE documents SET document_id = ? WHERE rowid = ?", params = list(doc_id_inner, last_id))
+      doc_id_inner
+    } else {
+      last_id
+    }
+  })
 
   return(doc_id)
 }
@@ -461,8 +500,10 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), metadat
     WHERE document_id = ?
   ")
 
-  # Execute query
-  DBI::dbExecute(con, sql, params = params)
+  # Execute query with retry logic for parallel processing
+  retry_db_operation({
+    DBI::dbExecute(con, sql, params = params)
+  })
 
   return(document_id)
 }
@@ -591,7 +632,6 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   # Add required metadata columns
   interactions_df$document_id <- as.integer(document_id)
   interactions_df$extraction_timestamp <- as.character(Sys.time())
-  interactions_df$llm_model_version <- rlang::`%||%`(metadata$model, "unknown")
   interactions_df$prompt_hash <- rlang::`%||%`(metadata$prompt_hash, "unknown")
 
   # Get database column names dynamically
@@ -670,55 +710,58 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
   # - insert: Always insert new records (for extraction)
   # - update: Only update existing records (for refinement)
   # Wrap in transaction to prevent write conflicts
+  # Use retry logic for parallel processing
 
-  DBI::dbBegin(con)
-  tryCatch({
-    if (mode == "insert") {
-      # Insert mode: Simply append all records (extraction already deduplicated)
-      DBI::dbWriteTable(con, "records", interactions_clean, append = TRUE, row.names = FALSE)
-    } else if (mode == "update") {
-      # Update mode: Only update existing records (for refinement)
-      # Requires id column for stable identification
-      if (!"id" %in% names(interactions_clean) || all(is.na(interactions_clean$id))) {
-        stop("UPDATE mode requires id column with valid values")
-      }
+  retry_db_operation({
+    DBI::dbBegin(con)
+    tryCatch({
+      if (mode == "insert") {
+        # Insert mode: Simply append all records (extraction already deduplicated)
+        DBI::dbWriteTable(con, "records", interactions_clean, append = TRUE, row.names = FALSE)
+      } else if (mode == "update") {
+        # Update mode: Only update existing records (for refinement)
+        # Requires id column for stable identification
+        if (!"id" %in% names(interactions_clean) || all(is.na(interactions_clean$id))) {
+          stop("UPDATE mode requires id column with valid values")
+        }
 
-      updated_count <- 0
-      skipped_count <- 0
+        updated_count <- 0
+        skipped_count <- 0
 
-      for (i in 1:nrow(interactions_clean)) {
-        row <- interactions_clean[i, ]
+        for (i in 1:nrow(interactions_clean)) {
+          row <- interactions_clean[i, ]
 
-        # Update existing record (only if not human-edited and not rejected)
-        # Check record_edits table for human edits instead of human_edited column
-        cols_to_update <- setdiff(names(row), c("id", "document_id", "record_id"))
-        set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
+          # Update existing record (only if not human-edited and not rejected)
+          # Check record_edits table for human edits instead of human_edited column
+          cols_to_update <- setdiff(names(row), c("id", "document_id", "record_id"))
+          set_clause <- paste(paste0(cols_to_update, " = ?"), collapse = ", ")
 
-        update_sql <- paste0(
-          "UPDATE records SET ", set_clause,
-          " WHERE id = ? AND deleted_by_user IS NULL",
-          " AND id NOT IN (SELECT DISTINCT record_id FROM record_edits)"
-        )
-        params <- unname(c(as.list(row[cols_to_update]), list(row$id)))
+          update_sql <- paste0(
+            "UPDATE records SET ", set_clause,
+            " WHERE id = ? AND deleted_by_user IS NULL",
+            " AND id NOT IN (SELECT DISTINCT record_id FROM record_edits)"
+          )
+          params <- unname(c(as.list(row[cols_to_update]), list(row$id)))
 
-        rows_affected <- DBI::dbExecute(con, update_sql, params = params)
+          rows_affected <- DBI::dbExecute(con, update_sql, params = params)
 
-        if (rows_affected > 0) {
-          updated_count <- updated_count + rows_affected
-        } else {
-          # Record doesn't exist or is protected - skip
-          skipped_count <- skipped_count + 1
+          if (rows_affected > 0) {
+            updated_count <- updated_count + rows_affected
+          } else {
+            # Record doesn't exist or is protected - skip
+            skipped_count <- skipped_count + 1
+          }
+        }
+
+        if (skipped_count > 0) {
+          message(glue::glue("Skipped {skipped_count} records (not found or protected)"))
         }
       }
-
-      if (skipped_count > 0) {
-        message(glue::glue("Skipped {skipped_count} records (not found or protected)"))
-      }
-    }
-    DBI::dbCommit(con)
-  }, error = function(e) {
-    DBI::dbRollback(con)
-    stop("Error saving records: ", e$message)
+      DBI::dbCommit(con)
+    }, error = function(e) {
+      DBI::dbRollback(con)
+      stop("Error saving records: ", e$message)
+    })
   })
 
   message(glue::glue("Saved {nrow(interactions_clean)} records to database"))
