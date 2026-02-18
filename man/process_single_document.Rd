@@ -11,6 +11,8 @@ process_single_document(
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
+  ocr_provider = "tensorlake",
+  ocr_timeout = 60,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -36,6 +38,11 @@ process_single_document(
 \item{model}{LLM model(s) to use for metadata extraction, record extraction, and refinement.
 Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"}
 
+\item{ocr_provider}{OCR provider to use (default: "tensorlake").
+Options: "tensorlake", "mistral", "claude". Can also be a vector for fallback.}
+
+\item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 60)}
+
 \item{force_reprocess_ocr}{NULL, TRUE, or integer vector of document_ids to force OCR}
 
 \item{force_reprocess_metadata}{NULL, TRUE, or integer vector of document_ids to force metadata}
@@ -52,7 +59,7 @@ Can be a single model name or a vector of models for tiered fallback. Default: "
 
 \item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")}
 
-\item{...}{Additional arguments passed to underlying functions (e.g., max_wait_seconds for OCR timeout)}
+\item{...}{Additional arguments}
 }
 \value{
 List with processing result

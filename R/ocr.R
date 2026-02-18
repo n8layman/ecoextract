@@ -5,23 +5,25 @@
 #' Perform OCR on PDF
 #'
 #' @param pdf_file Path to PDF
-#' @param max_wait_seconds Maximum seconds to wait for OCR completion (default: 60)
+#' @param provider OCR provider to use (default: "tensorlake")
+#' @param timeout Maximum seconds to wait for OCR completion (default: 60)
 #' @return List with markdown content, images, and raw result
 #' @keywords internal
-perform_ocr <- function(pdf_file, max_wait_seconds = 60) {
-  # Perform OCR using Tensorlake via ohseer
-  ocr_result <- ohseer::tensorlake_ocr(pdf_file, max_wait_seconds = max_wait_seconds)
+perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 60) {
+  # Use unified ohseer interface
+  result <- ohseer::ohseer_ocr(
+    file_path = pdf_file,
+    provider = provider,
+    timeout = timeout
+  )
 
-  # Extract pages as structured JSON
-  pages <- ohseer::tensorlake_extract_pages(ocr_result)
-
-  # Convert pages to JSON string for storage
-  json_content <- jsonlite::toJSON(pages, auto_unbox = TRUE, pretty = TRUE)
+  # Extract pages and convert to JSON
+  json_content <- jsonlite::toJSON(result$pages, auto_unbox = TRUE, pretty = TRUE)
 
   list(
     json_content = json_content,
-    pages = pages,
-    raw = ocr_result
+    pages = result$pages,
+    raw = result$raw
   )
 }
 
@@ -33,12 +35,20 @@ perform_ocr <- function(pdf_file, max_wait_seconds = 60) {
 #' @param pdf_file Path to PDF file
 #' @param db_conn Database connection
 #' @param force_reprocess Ignored (kept for backward compatibility). Skip logic handled by workflow.
-#' @param max_wait_seconds Maximum seconds to wait for OCR completion (default: 60)
+#' @param provider OCR provider to use (default: "tensorlake")
+#' @param timeout Maximum seconds to wait for OCR completion (default: 60)
+#' @param max_wait_seconds Deprecated. Use timeout instead.
 #' @return List with status ("completed"/<error message>) and document_id
 #' @keywords internal
-ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, max_wait_seconds = 60) {
+ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "tensorlake", timeout = 60, max_wait_seconds = NULL) {
 
  document_id <- NA
+
+  # Handle deprecated parameter
+  if (!is.null(max_wait_seconds)) {
+    warning("Parameter 'max_wait_seconds' is deprecated. Use 'timeout' instead.", call. = FALSE)
+    timeout <- max_wait_seconds
+  }
 
   # Handle database connection - accept either connection object or path
   if (!inherits(db_conn, "DBIConnection")) {
@@ -54,16 +64,17 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, max_wait_sec
 
   # Run OCR
   ocr_response <- tryCatch({
-    message(glue::glue("Performing OCR on {basename(pdf_file)}..."))
-    ocr_result <- perform_ocr(pdf_file, max_wait_seconds = max_wait_seconds)
+    message(glue::glue("Performing OCR with {provider} on {basename(pdf_file)}..."))
+    ocr_result <- perform_ocr(pdf_file, provider = provider, timeout = timeout)
 
-    # Save document to database with JSON content
+    # Save document to database with JSON content and provider tracking
     saved_id <- save_document_to_db(
       db_conn = db_conn,
       file_path = pdf_file,
       overwrite = TRUE,
       metadata = list(
-        document_content = ocr_result$json_content
+        document_content = ocr_result$json_content,
+        ocr_provider = provider
       )
     )
 

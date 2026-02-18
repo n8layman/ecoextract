@@ -2,7 +2,7 @@
 % Please edit documentation in R/refinement.R
 \name{refine_records}
 \alias{refine_records}
-\title{Ecological Data Refinement Functions}
+\title{Refine extracted records with additional context}
 \usage{
 refine_records(
   db_conn = NULL,
@@ -33,7 +33,6 @@ refine_records(
 List with refinement results
 }
 \description{
-Refine and enhance extracted ecological interaction data
 Refine extracted records with additional context
 }
 \keyword{internal}

@@ -2814,7 +2814,7 @@
       "Source": "GitHub",
       "Title": "Multi-Provider OCR API Interface for R",
       "Authors@R": "person(\"First\", \"Last\", email = \"first.last@example.com\", role = c(\"aut\", \"cre\"))",
-      "Description": "Provides interfaces to multiple OCR and document parsing APIs including Mistral AI, AWS Textract, and Tensorlake for document processing in R. Supports text extraction, table detection, form parsing, and structured data extraction.",
+      "Description": "Provides interfaces to multiple OCR and document parsing APIs including Claude Opus 4.5 (#1 on OCR Arena), Mistral OCR 3, AWS Textract, and Tensorlake for document processing in R. Supports text extraction, table detection, form parsing, and structured data extraction. All providers return compatible output formats for seamless integration.",
       "License": "GPL-3",
       "Encoding": "UTF-8",
       "Roxygen": "list(markdown = TRUE)",
@@ -2842,7 +2842,7 @@
       "RemoteUsername": "n8layman",
       "RemoteRepo": "ohseer",
       "RemoteRef": "main",
-      "RemoteSha": "c881c325dfb892ff030c781463700c7d07ac4960",
+      "RemoteSha": "3ec60de6b8acfedf04b605a9b42fc147000cd728",
       "RemoteHost": "api.github.com"
     },
     "openssl": {

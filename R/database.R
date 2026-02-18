@@ -173,6 +173,8 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         document_content TEXT,      -- OCR markdown results
         ocr_images TEXT,            -- OCR images (JSON array of base64 images)
         ocr_status TEXT,            -- NULL | 'completed' | 'skipped' | 'OCR failed: <msg>'
+        ocr_provider TEXT,          -- Which OCR provider succeeded (tensorlake, mistral, claude)
+        ocr_log TEXT,               -- JSON array of failed OCR attempts (audit trail)
 
         -- Metadata extraction step
         title TEXT,
@@ -306,6 +308,15 @@ migrate_database <- function(con) {
     DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN added_by_user INTEGER DEFAULT 0")
   }
 
+  # Check for OCR provider tracking columns in documents table
+  documents_info <- DBI::dbGetQuery(con, "PRAGMA table_info(documents)")
+  if (!"ocr_provider" %in% documents_info$name) {
+    DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN ocr_provider TEXT")
+  }
+  if (!"ocr_log" %in% documents_info$name) {
+    DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN ocr_log TEXT")
+  }
+
   invisible(NULL)
 }
 
@@ -388,7 +399,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
 
     # Prepare metadata in correct order
     meta_keys <- c("title", "first_author_lastname", "publication_year",
-                   "doi", "journal", "document_content", "ocr_images")
+                   "doi", "journal", "document_content", "ocr_images", "ocr_provider", "ocr_log")
     metadata_complete <- lapply(meta_keys, function(k) rlang::`%||%`(metadata[[k]], NA))
 
     # Combine with file info
@@ -399,8 +410,8 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
       INSERT INTO documents (
         file_name, file_path, file_hash, file_size, upload_timestamp,
         title, first_author_lastname, publication_year, doi, journal,
-        document_content, ocr_images
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        document_content, ocr_images, ocr_provider, ocr_log
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ", params = params)
 
     # Get the rowid of the inserted row

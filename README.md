@@ -51,23 +51,30 @@ See the [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextra
 
 ## API Key Setup
 
-EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions and [ohseer](https://github.com/n8layman/ohseer) for OCR via Tensorlake.
+EcoExtract uses [ellmer](https://ellmer.tidyverse.org/) for LLM interactions and [ohseer](https://github.com/n8layman/ohseer) for OCR.
 
 **Required API keys:**
 
-- Tensorlake (OCR): <https://www.tensorlake.ai/>
+- Tensorlake (OCR, default): <https://www.tensorlake.ai/>
 - Anthropic Claude (extraction): <https://console.anthropic.com/>
+
+**Optional OCR providers** (via ohseer):
+
+- Mistral: <https://console.mistral.ai/>
+- Claude: <https://console.anthropic.com/> (uses same key as extraction)
 
 Create a `.env` file in your project root (make sure it's in `.gitignore` first!):
 
 ```bash
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 TENSORLAKE_API_KEY=your_tensorlake_api_key_here
+# Optional for alternative OCR providers
+MISTRAL_API_KEY=your_mistral_api_key_here
 ```
 
 The `.env` file is automatically loaded when R starts in the project directory. See the [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html#api-key-setup) for detailed setup instructions.
 
-By default, ecoextract uses `anthropic/claude-sonnet-4-5`. To use a different provider, pass the `model` parameter to `process_documents()`. Note: non-Anthropic providers have not been fully tested.
+By default, ecoextract uses `anthropic/claude-sonnet-4-5` for extraction and `tensorlake` for OCR. To use different providers, pass the `model` or `ocr_provider` parameters to `process_documents()`. Note: non-Anthropic LLM providers have not been fully tested.
 
 ## Quick Start
 
@@ -117,6 +124,41 @@ ANTHROPIC_API_KEY=your_anthropic_key
 OPENAI_API_KEY=your_openai_key
 MISTRAL_API_KEY=your_mistral_key
 ```
+
+## OCR Provider Selection
+
+EcoExtract supports multiple OCR providers through [ohseer](https://github.com/n8layman/ohseer). By default it uses Tensorlake, but you can switch to Mistral or Claude:
+
+```r
+# Use default provider (Tensorlake)
+process_documents("papers/")
+
+# Use Mistral OCR
+process_documents(
+  pdf_path = "papers/",
+  ocr_provider = "mistral"
+)
+
+# Use Claude OCR
+process_documents(
+  pdf_path = "papers/",
+  ocr_provider = "claude"
+)
+
+# OCR fallback: try Mistral, then Tensorlake if Mistral fails
+process_documents(
+  pdf_path = "papers/",
+  ocr_provider = c("mistral", "tensorlake")
+)
+
+# Increase OCR timeout for large documents
+process_documents(
+  pdf_path = "papers/",
+  ocr_timeout = 300  # 5 minutes
+)
+```
+
+**Provider fallback**: When multiple providers are specified, ohseer automatically tries each in order until one succeeds. The OCR provider used for each document is tracked in the `ocr_provider` column of the documents table.
 
 ## Key Features
 

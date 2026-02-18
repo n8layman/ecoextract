@@ -11,6 +11,8 @@ process_documents(
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
+  ocr_provider = "tensorlake",
+  ocr_timeout = 60,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -44,6 +46,11 @@ When a vector is provided, models are tried sequentially until one succeeds.
 Default: "anthropic/claude-sonnet-4-5".
 Examples: "openai/gpt-4o", c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest")}
 
+\item{ocr_provider}{OCR provider to use (default: "tensorlake").
+Options: "tensorlake", "mistral", "claude"}
+
+\item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 60)}
+
 \item{force_reprocess_ocr}{Controls OCR reprocessing. NULL (default) uses normal skip logic,
 TRUE forces all documents, or an integer vector of document_ids to force specific documents.}
 
@@ -74,7 +81,7 @@ Values > 1 require the crew package and db_conn must be a file path (not a conne
 to an auto-generated log file (e.g., ecoextract_20240129_143052.log). Default FALSE.
 Ignored for sequential processing. Useful for troubleshooting errors.}
 
-\item{...}{Additional arguments passed to underlying functions (e.g., max_wait_seconds for OCR timeout)}
+\item{...}{Additional arguments (deprecated: use explicit parameters instead)}
 }
 \value{
 Tibble with processing results
@@ -134,7 +141,10 @@ process_documents("pdfs/", workers = 4)
 # Parallel with logging for troubleshooting
 process_documents("pdfs/", workers = 4, log = TRUE)
 
+# Use different OCR provider
+process_documents("pdfs/", ocr_provider = "mistral")
+
 # Increase OCR timeout to 5 minutes for large documents
-process_documents("pdfs/", max_wait_seconds = 300)
+process_documents("pdfs/", ocr_timeout = 300)
 }
 }

@@ -1,6 +1,9 @@
 #' Ecological Data Refinement Functions
-#' 
+#'
 #' Refine and enhance extracted ecological interaction data
+
+# Global variable bindings for R CMD check
+utils::globalVariables(c("record_id", "id"))
 
 #' Refine extracted records with additional context
 #' @param db_conn Database connection or path to SQLite database file

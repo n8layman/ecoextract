@@ -74,12 +74,15 @@ validate_force_param <- function(param, param_name) {
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
 #' @param recursive If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.
+#' @param ocr_provider OCR provider to use (default: "tensorlake").
+#'   Options: "tensorlake", "mistral", "claude"
+#' @param ocr_timeout Maximum seconds to wait for OCR completion (default: 60)
 #' @param workers Number of parallel workers. NULL (default) or 1 for sequential processing.
 #'   Values > 1 require the crew package and db_conn must be a file path (not a connection object).
 #' @param log If TRUE and using parallel processing (workers > 1), write detailed output
 #'   to an auto-generated log file (e.g., ecoextract_20240129_143052.log). Default FALSE.
 #'   Ignored for sequential processing. Useful for troubleshooting errors.
-#' @param ... Additional arguments passed to underlying functions (e.g., max_wait_seconds for OCR timeout)
+#' @param ... Additional arguments (deprecated: use explicit parameters instead)
 #' @return Tibble with processing results
 #' @export
 #'
@@ -135,8 +138,11 @@ validate_force_param <- function(param, param_name) {
 #' # Parallel with logging for troubleshooting
 #' process_documents("pdfs/", workers = 4, log = TRUE)
 #'
+#' # Use different OCR provider
+#' process_documents("pdfs/", ocr_provider = "mistral")
+#'
 #' # Increase OCR timeout to 5 minutes for large documents
-#' process_documents("pdfs/", max_wait_seconds = 300)
+#' process_documents("pdfs/", ocr_timeout = 300)
 #' }
 process_documents <- function(pdf_path,
                              db_conn = "ecoextract_records.db",
@@ -144,6 +150,8 @@ process_documents <- function(pdf_path,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
                              model = "anthropic/claude-sonnet-4-5",
+                             ocr_provider = "tensorlake",
+                             ocr_timeout = 60,
                              force_reprocess_ocr = NULL,
                              force_reprocess_metadata = NULL,
                              force_reprocess_extraction = NULL,
@@ -340,6 +348,8 @@ process_documents <- function(pdf_path,
                     extraction_prompt_file = extraction_prompt_file,
                     refinement_prompt_file = refinement_prompt_file,
                     model = model,
+                    ocr_provider = ocr_provider,
+                    ocr_timeout = ocr_timeout,
                     force_reprocess_ocr = force_reprocess_ocr,
                     force_reprocess_metadata = force_reprocess_metadata,
                     force_reprocess_extraction = force_reprocess_extraction,
@@ -367,6 +377,8 @@ process_documents <- function(pdf_path,
                 extraction_prompt_file = extraction_prompt_file,
                 refinement_prompt_file = refinement_prompt_file,
                 model = model,
+                ocr_provider = ocr_provider,
+                ocr_timeout = ocr_timeout,
                 force_reprocess_ocr = force_reprocess_ocr,
                 force_reprocess_metadata = force_reprocess_metadata,
                 force_reprocess_extraction = force_reprocess_extraction,
@@ -386,6 +398,8 @@ process_documents <- function(pdf_path,
           extraction_prompt_file = extraction_prompt_file,
           refinement_prompt_file = refinement_prompt_file,
           model = model,
+          ocr_provider = ocr_provider,
+          ocr_timeout = ocr_timeout,
           force_reprocess_ocr = force_reprocess_ocr,
           force_reprocess_metadata = force_reprocess_metadata,
           force_reprocess_extraction = force_reprocess_extraction,
@@ -523,6 +537,8 @@ process_documents <- function(pdf_path,
         extraction_prompt_file = extraction_prompt_file,
         refinement_prompt_file = refinement_prompt_file,
         model = model,
+        ocr_provider = ocr_provider,
+        ocr_timeout = ocr_timeout,
         force_reprocess_ocr = force_reprocess_ocr,
         force_reprocess_metadata = force_reprocess_metadata,
         force_reprocess_extraction = force_reprocess_extraction,
@@ -610,6 +626,9 @@ process_documents <- function(pdf_path,
 #' @param refinement_prompt_file Optional custom refinement prompt
 #' @param model LLM model(s) to use for metadata extraction, record extraction, and refinement.
 #'   Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"
+#' @param ocr_provider OCR provider to use (default: "tensorlake").
+#'   Options: "tensorlake", "mistral", "claude". Can also be a vector for fallback.
+#' @param ocr_timeout Maximum seconds to wait for OCR completion (default: 60)
 #' @param force_reprocess_ocr NULL, TRUE, or integer vector of document_ids to force OCR
 #' @param force_reprocess_metadata NULL, TRUE, or integer vector of document_ids to force metadata
 #' @param force_reprocess_extraction NULL, TRUE, or integer vector of document_ids to force extraction
@@ -618,7 +637,7 @@ process_documents <- function(pdf_path,
 #' @param min_similarity Minimum cosine similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
-#' @param ... Additional arguments passed to underlying functions (e.g., max_wait_seconds for OCR timeout)
+#' @param ... Additional arguments
 #' @return List with processing result
 #' @export
 process_single_document <- function(pdf_file,
@@ -627,6 +646,8 @@ process_single_document <- function(pdf_file,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
                                     model = "anthropic/claude-sonnet-4-5",
+                                    ocr_provider = "tensorlake",
+                                    ocr_timeout = 60,
                                     force_reprocess_ocr = NULL,
                                     force_reprocess_metadata = NULL,
                                     force_reprocess_extraction = NULL,
@@ -727,7 +748,8 @@ process_single_document <- function(pdf_file,
   message("\n[1/4] OCR Processing...")
 
   if (should_run_step(doc$ocr_status[1], ocr_data_exists)) {
-    ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = TRUE, ...)
+    ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = TRUE,
+                               provider = ocr_provider, timeout = ocr_timeout)
     status_tracking$ocr_status <- ocr_result$status
 
     # Cascade: nullify metadata_status with retry logic
