@@ -6,7 +6,14 @@ handled by the workflow - this function always runs OCR when called.
 ## Usage
 
 ``` r
-ocr_document(pdf_file, db_conn, force_reprocess = TRUE, max_wait_seconds = 60)
+ocr_document(
+  pdf_file,
+  db_conn,
+  force_reprocess = TRUE,
+  provider = "tensorlake",
+  timeout = 60,
+  max_wait_seconds = NULL
+)
 ```
 
 ## Arguments
@@ -24,9 +31,17 @@ ocr_document(pdf_file, db_conn, force_reprocess = TRUE, max_wait_seconds = 60)
   Ignored (kept for backward compatibility). Skip logic handled by
   workflow.
 
-- max_wait_seconds:
+- provider:
+
+  OCR provider to use (default: "tensorlake")
+
+- timeout:
 
   Maximum seconds to wait for OCR completion (default: 60)
+
+- max_wait_seconds:
+
+  Deprecated. Use timeout instead.
 
 ## Value
 

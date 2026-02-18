@@ -1,7 +1,6 @@
-# Ecological Data Refinement Functions
+# Refine extracted records with additional context
 
-Refine and enhance extracted ecological interaction data Refine
-extracted records with additional context
+Refine extracted records with additional context
 
 ## Usage
 

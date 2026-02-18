@@ -13,6 +13,8 @@ process_documents(
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
+  ocr_provider = "tensorlake",
+  ocr_timeout = 60,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -62,6 +64,15 @@ process_documents(
   tried sequentially until one succeeds. Default:
   "anthropic/claude-sonnet-4-5". Examples: "openai/gpt-4o",
   c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest")
+
+- ocr_provider:
+
+  OCR provider to use (default: "tensorlake"). Options: "tensorlake",
+  "mistral", "claude"
+
+- ocr_timeout:
+
+  Maximum seconds to wait for OCR completion (default: 60)
 
 - force_reprocess_ocr:
 
@@ -125,8 +136,7 @@ process_documents(
 
 - ...:
 
-  Additional arguments passed to underlying functions (e.g.,
-  max_wait_seconds for OCR timeout)
+  Additional arguments (deprecated: use explicit parameters instead)
 
 ## Value
 
@@ -186,7 +196,10 @@ process_documents("pdfs/", workers = 4)
 # Parallel with logging for troubleshooting
 process_documents("pdfs/", workers = 4, log = TRUE)
 
+# Use different OCR provider
+process_documents("pdfs/", ocr_provider = "mistral")
+
 # Increase OCR timeout to 5 minutes for large documents
-process_documents("pdfs/", max_wait_seconds = 300)
+process_documents("pdfs/", ocr_timeout = 300)
 } # }
 ```
