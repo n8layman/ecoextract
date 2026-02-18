@@ -10,11 +10,11 @@ process PDFs, review extraction results, and calculate accuracy metrics.
 
 EcoExtract works as part of three packages:
 
-| Package                                              | Purpose                                                                  |
-|------------------------------------------------------|--------------------------------------------------------------------------|
-| [ohseer](https://github.com/n8layman/ohseer)         | OCR processing – converts PDFs to markdown via Tensorlake                |
-| [ecoextract](https://github.com/n8layman/ecoextract) | Data extraction pipeline – metadata, records, refinement, SQLite storage |
-| [ecoreview](https://github.com/n8layman/ecoreview)   | Human review – Shiny app for editing, adding, deleting records           |
+| Package                                              | Purpose                                                                           |
+|------------------------------------------------------|-----------------------------------------------------------------------------------|
+| [ohseer](https://github.com/n8layman/ohseer)         | OCR processing – converts PDFs to markdown (supports Tensorlake, Mistral, Claude) |
+| [ecoextract](https://github.com/n8layman/ecoextract) | Data extraction pipeline – metadata, records, refinement, SQLite storage          |
+| [ecoreview](https://github.com/n8layman/ecoreview)   | Human review – Shiny app for editing, adding, deleting records                    |
 
 ### Prerequisites
 
@@ -49,13 +49,17 @@ library(ecoextract)
 
 ### API Key Setup
 
-EcoExtract requires API keys for OCR (Tensorlake) and data extraction
-(Anthropic Claude).
+EcoExtract requires API keys for OCR and data extraction.
 
-**Get API keys from:**
+**Required API keys:**
 
-- Tensorlake (for OCR): <https://www.tensorlake.ai/>
-- Anthropic Claude (for extraction): <https://console.anthropic.com/>
+- Tensorlake (OCR, default): <https://www.tensorlake.ai/>
+- Anthropic Claude (extraction): <https://console.anthropic.com/>
+
+**Optional OCR providers** (via ohseer):
+
+- Mistral: <https://console.mistral.ai/>
+- Claude: <https://console.anthropic.com/> (uses same key as extraction)
 
 **Before creating your `.env` file, verify it’s in `.gitignore`:**
 
@@ -72,6 +76,8 @@ echo ".env" >> .gitignore
 ``` bash
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 TENSORLAKE_API_KEY=your-tensorlake-key-here
+# Optional for alternative OCR providers
+MISTRAL_API_KEY=your-mistral-key-here
 ```
 
 The `.env` file is automatically loaded when R starts in the project
@@ -207,6 +213,55 @@ columns for debugging.
 ANTHROPIC_API_KEY=your_anthropic_key
 OPENAI_API_KEY=your_openai_key
 MISTRAL_API_KEY=your_mistral_key
+```
+
+### OCR Provider Selection
+
+EcoExtract supports multiple OCR providers through
+[ohseer](https://github.com/n8layman/ohseer). By default it uses
+Tensorlake, but you can switch to Mistral or Claude, or use provider
+fallback:
+
+``` r
+# Use default provider (Tensorlake)
+process_documents("papers/")
+
+# Use Mistral OCR (better structure preservation)
+process_documents(
+  pdf_path = "papers/",
+  ocr_provider = "mistral"
+)
+
+# Use Claude OCR
+process_documents(
+  pdf_path = "papers/",
+  ocr_provider = "claude"
+)
+
+# OCR fallback: try Mistral, then Tensorlake if Mistral fails
+process_documents(
+  pdf_path = "papers/",
+  ocr_provider = c("mistral", "tensorlake")
+)
+
+# Increase OCR timeout for large documents
+process_documents(
+  pdf_path = "papers/",
+  ocr_timeout = 300  # 5 minutes
+)
+```
+
+**Provider tracking**: The OCR provider that succeeded for each document
+is tracked in the `ocr_provider` column of the documents table. When
+using provider fallback, ohseer automatically tries each provider in
+order and records which one succeeded.
+
+**API keys**: OCR providers require API keys in your `.env`:
+
+``` bash
+TENSORLAKE_API_KEY=your_tensorlake_key  # Required for default
+MISTRAL_API_KEY=your_mistral_key        # Optional
+ANTHROPIC_API_KEY=your_anthropic_key    # For both extraction and Claude OCR
 ```
 
 ### Skip Logic
@@ -529,10 +584,12 @@ The SQLite database has two main tables:
 - `document_content` – OCR markdown text
 - `ocr_status`, `metadata_status`, `extraction_status`,
   `refinement_status` – Processing status for each workflow step
+- `ocr_provider` – Which OCR provider succeeded (tensorlake, mistral,
+  claude)
 - `metadata_llm_model`, `extraction_llm_model`, `refinement_llm_model` –
   Which model succeeded for each LLM step
-- `metadata_log`, `extraction_log`, `refinement_log` – Audit trail of
-  failed model attempts with error messages and timestamps (JSON)
+- `ocr_log`, `metadata_log`, `extraction_log`, `refinement_log` – Audit
+  trail of failed attempts with error messages and timestamps (JSON)
 - `records_extracted` – Count of records extracted
 
 **records** – Stores extracted data records:

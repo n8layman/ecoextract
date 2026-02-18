@@ -85,7 +85,8 @@ metrics.</p>
 <tbody>
 <tr class="odd">
 <td><a href="https://github.com/n8layman/ohseer" class="external-link">ohseer</a></td>
-<td>OCR processing – converts PDFs to markdown via Tensorlake</td>
+<td>OCR processing – converts PDFs to markdown (supports Tensorlake,
+Mistral, Claude)</td>
 </tr>
 <tr class="even">
 <td><a href="https://github.com/n8layman/ecoextract" class="external-link">ecoextract</a></td>
@@ -136,14 +137,20 @@ storage</td>
 <div class="section level3">
 <h3 id="api-key-setup">API Key Setup<a class="anchor" aria-label="anchor" href="#api-key-setup"></a>
 </h3>
-<p>EcoExtract requires API keys for OCR (Tensorlake) and data extraction
-(Anthropic Claude).</p>
-<p><strong>Get API keys from:</strong></p>
+<p>EcoExtract requires API keys for OCR and data extraction.</p>
+<p><strong>Required API keys:</strong></p>
 <ul>
-<li>Tensorlake (for OCR): <a href="https://www.tensorlake.ai/" class="external-link uri">https://www.tensorlake.ai/</a>
+<li>Tensorlake (OCR, default): <a href="https://www.tensorlake.ai/" class="external-link uri">https://www.tensorlake.ai/</a>
 </li>
-<li>Anthropic Claude (for extraction): <a href="https://console.anthropic.com/" class="external-link uri">https://console.anthropic.com/</a>
+<li>Anthropic Claude (extraction): <a href="https://console.anthropic.com/" class="external-link uri">https://console.anthropic.com/</a>
 </li>
+</ul>
+<p><strong>Optional OCR providers</strong> (via ohseer):</p>
+<ul>
+<li>Mistral: <a href="https://console.mistral.ai/" class="external-link uri">https://console.mistral.ai/</a>
+</li>
+<li>Claude: <a href="https://console.anthropic.com/" class="external-link uri">https://console.anthropic.com/</a> (uses same key as
+extraction)</li>
 </ul>
 <p><strong>Before creating your <code>.env</code> file, verify it’s in
 <code>.gitignore</code>:</strong></p>
@@ -155,7 +162,9 @@ storage</td>
 <p><strong>Create a <code>.env</code> file in your project
 root:</strong></p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="va">ANTHROPIC_API_KEY</span><span class="op">=</span>sk-ant-api03-your-key-here</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="va">TENSORLAKE_API_KEY</span><span class="op">=</span>your-tensorlake-key-here</span></code></pre></div>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="va">TENSORLAKE_API_KEY</span><span class="op">=</span>your-tensorlake-key-here</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co"># Optional for alternative OCR providers</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your-mistral-key-here</span></code></pre></div>
 <p>The <code>.env</code> file is automatically loaded when R starts in
 the project directory. You can also load it manually:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -291,6 +300,49 @@ debugging.</p>
 <span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your_mistral_key</span></code></pre></div>
 </div>
 <div class="section level3">
+<h3 id="ocr-provider-selection">OCR Provider Selection<a class="anchor" aria-label="anchor" href="#ocr-provider-selection"></a>
+</h3>
+<p>EcoExtract supports multiple OCR providers through <a href="https://github.com/n8layman/ohseer" class="external-link">ohseer</a>. By default it uses
+Tensorlake, but you can switch to Mistral or Claude, or use provider
+fallback:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Use default provider (Tensorlake)</span></span>
+<span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span><span class="st">"papers/"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Use Mistral OCR (better structure preservation)</span></span>
+<span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
+<span>  pdf_path <span class="op">=</span> <span class="st">"papers/"</span>,</span>
+<span>  ocr_provider <span class="op">=</span> <span class="st">"mistral"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Use Claude OCR</span></span>
+<span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
+<span>  pdf_path <span class="op">=</span> <span class="st">"papers/"</span>,</span>
+<span>  ocr_provider <span class="op">=</span> <span class="st">"claude"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># OCR fallback: try Mistral, then Tensorlake if Mistral fails</span></span>
+<span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
+<span>  pdf_path <span class="op">=</span> <span class="st">"papers/"</span>,</span>
+<span>  ocr_provider <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mistral"</span>, <span class="st">"tensorlake"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Increase OCR timeout for large documents</span></span>
+<span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
+<span>  pdf_path <span class="op">=</span> <span class="st">"papers/"</span>,</span>
+<span>  ocr_timeout <span class="op">=</span> <span class="fl">300</span>  <span class="co"># 5 minutes</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><strong>Provider tracking</strong>: The OCR provider that succeeded
+for each document is tracked in the <code>ocr_provider</code> column of
+the documents table. When using provider fallback, ohseer automatically
+tries each provider in order and records which one succeeded.</p>
+<p><strong>API keys</strong>: OCR providers require API keys in your
+<code>.env</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="va">TENSORLAKE_API_KEY</span><span class="op">=</span>your_tensorlake_key  <span class="co"># Required for default</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your_mistral_key        <span class="co"># Optional</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="va">ANTHROPIC_API_KEY</span><span class="op">=</span>your_anthropic_key    <span class="co"># For both extraction and Claude OCR</span></span></code></pre></div>
+</div>
+<div class="section level3">
 <h3 id="skip-logic">Skip Logic<a class="anchor" aria-label="anchor" href="#skip-logic"></a>
 </h3>
 <p>When you re-run <code><a href="../reference/process_documents.html">process_documents()</a></code>, it automatically
@@ -364,7 +416,7 @@ invalidated:</p>
 <h4 id="force-reprocessing">Force Reprocessing<a class="anchor" aria-label="anchor" href="#force-reprocessing"></a>
 </h4>
 <p>Override skip logic to force reprocessing:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Force reprocess all documents from OCR onward</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
 <span>  pdf_path <span class="op">=</span> <span class="st">"pdfs/"</span>,</span>
@@ -395,7 +447,7 @@ specific document IDs</li>
 <p>During extraction, records are automatically deduplicated against
 existing records in the database. Three similarity methods are
 available:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Default: LLM-based deduplication (most accurate)</span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span><span class="st">"pdfs/"</span>, db_conn <span class="op">=</span> <span class="st">"records.db"</span>,</span>
 <span>                            similarity_method <span class="op">=</span> <span class="st">"llm"</span><span class="op">)</span></span>
@@ -431,7 +483,7 @@ extraction prompt.</p>
 <div class="section level3">
 <h3 id="initialize-custom-configuration">Initialize Custom Configuration<a class="anchor" aria-label="anchor" href="#initialize-custom-configuration"></a>
 </h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Creates ecoextract/ directory with template files</span></span>
 <span><span class="fu"><a href="../reference/init_ecoextract.html">init_ecoextract</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -442,7 +494,7 @@ extraction prompt.</p>
 <p>Edit the files in <code>ecoextract/</code> for your research domain,
 then process as usual – the package automatically detects configuration
 files in this directory:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Automatically uses ecoextract/schema.json and ecoextract/extraction_prompt.md</span></span>
 <span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span><span class="st">"pdfs/"</span>, <span class="st">"ecoextract_records.db"</span><span class="op">)</span></span>
 <span></span>
@@ -462,7 +514,7 @@ files in this directory:</p>
 <div class="section level3">
 <h3 id="query-records">Query Records<a class="anchor" aria-label="anchor" href="#query-records"></a>
 </h3>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get all records from all documents</span></span>
 <span><span class="va">all_records</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_records.html">get_records</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -475,7 +527,7 @@ files in this directory:</p>
 <div class="section level3">
 <h3 id="query-documents">Query Documents<a class="anchor" aria-label="anchor" href="#query-documents"></a>
 </h3>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get all documents and their metadata</span></span>
 <span><span class="va">all_docs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_documents.html">get_documents</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -489,7 +541,7 @@ files in this directory:</p>
 </h3>
 <p>The <code><a href="../reference/export_db.html">export_db()</a></code> function joins records with document
 metadata:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get all records with metadata as a tibble</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export_db.html">export_db</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -511,7 +563,7 @@ processing status with timestamps.</p>
 <div class="section level3">
 <h3 id="view-ocr-results">View OCR Results<a class="anchor" aria-label="anchor" href="#view-ocr-results"></a>
 </h3>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get OCR markdown text</span></span>
 <span><span class="va">markdown</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_ocr_markdown.html">get_ocr_markdown</a></span><span class="op">(</span>document_id <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">markdown</span><span class="op">)</span></span>
@@ -531,7 +583,7 @@ processing status with timestamps.</p>
 <div class="section level3">
 <h3 id="launch-the-review-app">Launch the Review App<a class="anchor" aria-label="anchor" href="#launch-the-review-app"></a>
 </h3>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">ecoreview</span><span class="op">)</span></span>
 <span><span class="fu">run_review_app</span><span class="op">(</span>db_path <span class="op">=</span> <span class="st">"ecoextract_records.db"</span><span class="op">)</span></span></code></pre></div>
 <p>The app provides:</p>
@@ -597,7 +649,7 @@ repository</a>.</p>
 </h3>
 <p>After reviewing documents, calculate comprehensive accuracy
 metrics:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">accuracy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_accuracy.html">calculate_accuracy</a></span><span class="op">(</span><span class="st">"ecoextract_records.db"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># View key metrics</span></span>
@@ -627,7 +679,7 @@ app.</p>
 <h2 id="complete-example">Complete Example<a class="anchor" aria-label="anchor" href="#complete-example"></a>
 </h2>
 <p>End-to-end workflow from processing through review and export:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/n8layman/ecoextract" class="external-link">ecoextract</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 1. Initialize custom configuration (first time only)</span></span>
@@ -683,13 +735,16 @@ Publication metadata</li>
 <code>extraction_status</code>, <code>refinement_status</code> –
 Processing status for each workflow step</li>
 <li>
+<code>ocr_provider</code> – Which OCR provider succeeded
+(tensorlake, mistral, claude)</li>
+<li>
 <code>metadata_llm_model</code>, <code>extraction_llm_model</code>,
 <code>refinement_llm_model</code> – Which model succeeded for each LLM
 step</li>
 <li>
-<code>metadata_log</code>, <code>extraction_log</code>,
-<code>refinement_log</code> – Audit trail of failed model attempts with
-error messages and timestamps (JSON)</li>
+<code>ocr_log</code>, <code>metadata_log</code>,
+<code>extraction_log</code>, <code>refinement_log</code> – Audit trail
+of failed attempts with error messages and timestamps (JSON)</li>
 <li>
 <code>records_extracted</code> – Count of records extracted</li>
 </ul>
@@ -739,7 +794,7 @@ OCR ~2-5K tokens, metadata ~1-2K, extraction ~5-10K, refinement
 <div class="section level3">
 <h3 id="api-key-not-found">API Key Not Found<a class="anchor" aria-label="anchor" href="#api-key-not-found"></a>
 </h3>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Reload from .env file</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRenviron.html" class="external-link">readRenviron</a></span><span class="op">(</span><span class="st">".env"</span><span class="op">)</span></span>
 <span></span>
@@ -754,7 +809,7 @@ OCR ~2-5K tokens, metadata ~1-2K, extraction ~5-10K, refinement
 </h3>
 <p>If you get “database is locked” during parallel processing, this
 usually resolves automatically. Verify WAL mode is enabled:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dbi.r-dbi.org" class="external-link">DBI</a></span><span class="op">)</span></span>
 <span><span class="va">db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dbi.r-dbi.org/reference/dbConnect.html" class="external-link">dbConnect</a></span><span class="op">(</span><span class="fu">RSQLite</span><span class="fu">::</span><span class="fu"><a href="https://rsqlite.r-dbi.org/reference/SQLite.html" class="external-link">SQLite</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"records.db"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">db</span>, <span class="st">"PRAGMA journal_mode"</span><span class="op">)</span>  <span class="co"># Should return "wal"</span></span>
@@ -764,7 +819,7 @@ usually resolves automatically. Verify WAL mode is enabled:</p>
 <div class="section level3">
 <h3 id="schema-validation-errors">Schema Validation Errors<a class="anchor" aria-label="anchor" href="#schema-validation-errors"></a>
 </h3>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Validate JSON syntax</span></span>
 <span><span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://jeroen.r-universe.dev/jsonlite/reference/validate.html" class="external-link">validate</a></span><span class="op">(</span><span class="st">"ecoextract/schema.json"</span><span class="op">)</span></span>
 <span></span>
@@ -778,7 +833,7 @@ usually resolves automatically. Verify WAL mode is enabled:</p>
 <div class="section level3">
 <h3 id="ocr-failures">OCR Failures<a class="anchor" aria-label="anchor" href="#ocr-failures"></a>
 </h3>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Check which documents failed</span></span>
 <span><span class="va">docs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_documents.html">get_documents</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">failed</span> <span class="op">&lt;-</span> <span class="va">docs</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">ocr_status</span> <span class="op">==</span> <span class="st">"failed"</span><span class="op">)</span></span>
