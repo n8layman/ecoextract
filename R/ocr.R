@@ -23,7 +23,9 @@ perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 60) {
   list(
     json_content = json_content,
     pages = result$pages,
-    raw = result$raw
+    raw = result$raw,
+    provider_used = result$provider,  # Actual provider that succeeded
+    error_log = result$error_log      # Failed attempts (if any)
   )
 }
 
@@ -64,7 +66,12 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "
 
   # Run OCR
   ocr_response <- tryCatch({
-    message(glue::glue("Performing OCR with {provider} on {basename(pdf_file)}..."))
+    providers_msg <- if (length(provider) > 1) {
+      paste0("providers: ", paste(provider, collapse = ", "))
+    } else {
+      paste0("provider: ", provider)
+    }
+    message(glue::glue("Performing OCR with {providers_msg} on {basename(pdf_file)}..."))
     ocr_result <- perform_ocr(pdf_file, provider = provider, timeout = timeout)
 
     # Save document to database with JSON content and provider tracking
@@ -74,7 +81,8 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "
       overwrite = TRUE,
       metadata = list(
         document_content = ocr_result$json_content,
-        ocr_provider = provider
+        ocr_provider = ocr_result$provider_used,  # Use actual provider that succeeded
+        ocr_log = if (!is.na(ocr_result$error_log)) ocr_result$error_log else NA
       )
     )
 
