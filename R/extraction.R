@@ -226,7 +226,7 @@ extract_records <- function(document_id = NA,
       records_extracted = 0,
       document_id = if (!is.na(document_id)) document_id else NA,
       raw_llm_response = NULL,  # No response on error
-      error_log = NA_character_  # No error log available (error before LLM call)
+      error_log = e$error_log %||% NA_character_
     ))
   })
 }

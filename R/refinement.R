@@ -318,7 +318,7 @@ refine_records <- function(db_conn = NULL, document_id,
       status = status,
       records_refined = 0,
       document_id = document_id,
-      error_log = NA_character_,  # No error log available (error before LLM call)
+      error_log = e$error_log %||% NA_character_,
       model_used = NA_character_  # No model used if failed before LLM call
     ))
   })

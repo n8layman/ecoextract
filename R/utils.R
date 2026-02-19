@@ -270,6 +270,7 @@ try_models_with_fallback <- function(
 
       # Store for audit log (use <<- to modify parent scope)
       errors[[model]] <<- list(
+        error = conditionMessage(e),
         content = raw_content,
         stop_reason = stop_reason,
         timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
@@ -280,8 +281,7 @@ try_models_with_fallback <- function(
   # All models failed - construct informative error message
   error_messages <- sapply(names(errors), function(model) {
     err <- errors[[model]]
-    msg <- err$content %||% err$error
-    paste(model, "-", msg)
+    paste(model, "-", err$error)
   })
 
   error_summary <- paste(
@@ -290,5 +290,9 @@ try_models_with_fallback <- function(
     sep = "\n"
   )
 
-  stop(error_summary)
+  error_log_json <- jsonlite::toJSON(errors, auto_unbox = TRUE, pretty = TRUE)
+
+  cnd <- simpleError(error_summary)
+  cnd$error_log <- error_log_json
+  stop(cnd)
 }
