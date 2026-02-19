@@ -85,6 +85,7 @@ refine_records <- function(db_conn = NULL, document_id,
     # Step 2: Convert raw text to R object using jsonlite
     schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
     schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+    schema_list <- inject_additional_properties(schema_list)
 
     # Step 3: Convert to ellmer type schema
     schema <- ellmer::TypeJsonSchema(

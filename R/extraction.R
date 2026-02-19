@@ -45,6 +45,7 @@ extract_records <- function(document_id = NA,
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
     schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
     schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+    schema_list <- inject_additional_properties(schema_list)
     schema <- ellmer::TypeJsonSchema(
       description = rlang::`%||%`(schema_list$description, "Record schema"),
       json = schema_list

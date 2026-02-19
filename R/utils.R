@@ -183,6 +183,30 @@ check_api_keys_for_models <- function(models) {
 #'
 #' @param models Character vector of model names (e.g., c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest"))
 #' @param system_prompt System prompt for the LLM
+#' Inject additionalProperties: false into a JSON schema
+#'
+#' Recursively adds `additionalProperties = FALSE` to every object definition
+#' in a parsed JSON schema. Required by OpenAI's structured outputs API.
+#' Safe for all providers.
+#'
+#' @param schema_list Parsed JSON schema as an R list
+#' @return The schema list with additionalProperties: false injected
+#' @keywords internal
+inject_additional_properties <- function(schema_list) {
+  if (!is.list(schema_list)) return(schema_list)
+
+  if (identical(schema_list$type, "object") && !is.null(schema_list$properties)) {
+    schema_list$additionalProperties <- FALSE
+    schema_list$properties <- lapply(schema_list$properties, inject_additional_properties)
+  }
+
+  if (!is.null(schema_list$items)) {
+    schema_list$items <- inject_additional_properties(schema_list$items)
+  }
+
+  schema_list
+}
+
 #' @param context User context/input for the LLM
 #' @param schema ellmer type schema for structured output
 #' @param max_tokens Maximum tokens for response (default 16384)
