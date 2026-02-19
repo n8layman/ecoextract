@@ -758,21 +758,21 @@ process_single_document <- function(pdf_file,
         "UPDATE documents SET metadata_status = NULL WHERE document_id = ?",
         params = list(doc_id))
     })
+
+    # Save OCR status to DB with retry logic
+    tryCatch({
+      retry_db_operation({
+        DBI::dbExecute(db_conn,
+          "UPDATE documents SET ocr_status = ? WHERE document_id = ?",
+          params = list(status_tracking$ocr_status, doc_id))
+      })
+    }, error = function(e) {
+      status_tracking$ocr_status <<- paste("Failure: Could not save status -", e$message)
+    })
   } else {
     message(glue::glue("OCR already completed for {basename(pdf_file)}, skipping"))
     status_tracking$ocr_status <- "skipped"
   }
-
-  # Save OCR status to DB with retry logic
-  tryCatch({
-    retry_db_operation({
-      DBI::dbExecute(db_conn,
-        "UPDATE documents SET ocr_status = ? WHERE document_id = ?",
-        params = list(status_tracking$ocr_status, doc_id))
-    })
-  }, error = function(e) {
-    status_tracking$ocr_status <<- paste("Failure: Could not save status -", e$message)
-  })
 
   # Check for failure before continuing
  failure <- !status_tracking$ocr_status %in% c("skipped", "completed")
@@ -800,22 +800,22 @@ process_single_document <- function(pdf_file,
           "UPDATE documents SET extraction_status = NULL WHERE document_id = ?",
           params = list(doc_id))
       })
+
+      # Save metadata status to DB with retry logic
+      tryCatch({
+        retry_db_operation({
+          DBI::dbExecute(db_conn,
+            "UPDATE documents SET metadata_status = ? WHERE document_id = ?",
+            params = list(status_tracking$metadata_status, doc_id))
+        })
+      }, error = function(e) {
+        status_tracking$metadata_status <<- paste("Failure: Could not save status -", e$message)
+      })
     } else {
       message("Metadata already exists, skipping")
       status_tracking$metadata_status <- "skipped"
     }
   }
-
-  # Save metadata status to DB with retry logic
-  tryCatch({
-    retry_db_operation({
-      DBI::dbExecute(db_conn,
-        "UPDATE documents SET metadata_status = ? WHERE document_id = ?",
-        params = list(status_tracking$metadata_status, doc_id))
-    })
-  }, error = function(e) {
-    status_tracking$metadata_status <<- paste("Failure: Could not save status -", e$message)
-  })
 
  failure <- !status_tracking$ocr_status %in% c("skipped", "completed") ||
              !status_tracking$metadata_status %in% c("skipped", "completed")
@@ -843,34 +843,34 @@ process_single_document <- function(pdf_file,
       )
       status_tracking$extraction_status <- extraction_result$status
       status_tracking$records_extracted <- rlang::`%||%`(extraction_result$records_extracted, 0)
+
+      # Save extraction status, model, and log to DB with retry logic
+      tryCatch({
+        extraction_log <- if (!is.null(extraction_result$error_log)) {
+          extraction_result$error_log
+        } else {
+          NA_character_
+        }
+
+        extraction_model <- if (!is.null(extraction_result$model_used)) {
+          extraction_result$model_used
+        } else {
+          NA_character_
+        }
+
+        retry_db_operation({
+          DBI::dbExecute(db_conn,
+            "UPDATE documents SET extraction_status = ?, extraction_llm_model = ?, extraction_log = ? WHERE document_id = ?",
+            params = list(status_tracking$extraction_status, extraction_model, extraction_log, doc_id))
+        })
+      }, error = function(e) {
+        status_tracking$extraction_status <<- paste("Failure: Could not save status -", e$message)
+      })
     } else {
       message("Extraction already completed, skipping")
       status_tracking$extraction_status <- "skipped"
     }
   }
-
-  # Save extraction status, model, and log to DB with retry logic
-  tryCatch({
-    extraction_log <- if (exists("extraction_result") && !is.null(extraction_result$error_log)) {
-      extraction_result$error_log
-    } else {
-      NA_character_
-    }
-
-    extraction_model <- if (exists("extraction_result") && !is.null(extraction_result$model_used)) {
-      extraction_result$model_used
-    } else {
-      NA_character_
-    }
-
-    retry_db_operation({
-      DBI::dbExecute(db_conn,
-        "UPDATE documents SET extraction_status = ?, extraction_llm_model = ?, extraction_log = ? WHERE document_id = ?",
-        params = list(status_tracking$extraction_status, extraction_model, extraction_log, doc_id))
-    })
-  }, error = function(e) {
-    status_tracking$extraction_status <<- paste("Failure: Could not save status -", e$message)
-  })
 
  failure <- !status_tracking$ocr_status %in% c("skipped", "completed") ||
              !status_tracking$metadata_status %in% c("skipped", "completed") ||
@@ -899,30 +899,30 @@ process_single_document <- function(pdf_file,
       message("No existing records found. Skipping refinement (no records to refine).")
       status_tracking$refinement_status <- "skipped: no records"
     }
-  }
 
-  # Save refinement status, model, and log to DB with retry logic
-  tryCatch({
-    refinement_log <- if (exists("refinement_result") && !is.null(refinement_result$error_log)) {
-      refinement_result$error_log
-    } else {
-      NA_character_
-    }
+    # Save refinement status, model, and log to DB with retry logic
+    tryCatch({
+      refinement_log <- if (exists("refinement_result") && !is.null(refinement_result$error_log)) {
+        refinement_result$error_log
+      } else {
+        NA_character_
+      }
 
-    refinement_model <- if (exists("refinement_result") && !is.null(refinement_result$model_used)) {
-      refinement_result$model_used
-    } else {
-      NA_character_
-    }
+      refinement_model <- if (exists("refinement_result") && !is.null(refinement_result$model_used)) {
+        refinement_result$model_used
+      } else {
+        NA_character_
+      }
 
-    retry_db_operation({
-      DBI::dbExecute(db_conn,
-        "UPDATE documents SET refinement_status = ?, refinement_llm_model = ?, refinement_log = ? WHERE document_id = ?",
-        params = list(status_tracking$refinement_status, refinement_model, refinement_log, doc_id))
+      retry_db_operation({
+        DBI::dbExecute(db_conn,
+          "UPDATE documents SET refinement_status = ?, refinement_llm_model = ?, refinement_log = ? WHERE document_id = ?",
+          params = list(status_tracking$refinement_status, refinement_model, refinement_log, doc_id))
+      })
+    }, error = function(e) {
+      status_tracking$refinement_status <<- paste("Failure: Could not save status -", e$message)
     })
-  }, error = function(e) {
-    status_tracking$refinement_status <<- paste("Failure: Could not save status -", e$message)
-  })
+  }
 
   # Get final record count from database (after extraction + refinement)
   final_count <- DBI::dbGetQuery(db_conn,
