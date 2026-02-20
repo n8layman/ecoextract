@@ -50,7 +50,6 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/index.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/init_ecoextract.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/init_ecoextract_database.html</loc></url>
-<url><loc>https://n8layman.github.io/ecoextract/reference/inject_additional_properties.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/is_forced.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/jaccard_similarity.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/json_schema_to_ellmer_type_metadata.html</loc></url>
@@ -76,6 +75,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/save_reasoning_to_db.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/save_records_to_db.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/should_run_step.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/try_models_with_fallback.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/validate_force_param.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/validate_schema_with_db.html</loc></url>
 </urlset>

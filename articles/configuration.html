@@ -57,7 +57,7 @@
                         <h4 data-toc-skip class="author">EcoExtract
 Team</h4>
             
-            <h4 data-toc-skip class="date">2026-02-19</h4>
+            <h4 data-toc-skip class="date">2026-02-20</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/n8layman/ecoextract/blob/main/vignettes/configuration.Rmd" class="external-link"><code>vignettes/configuration.Rmd</code></a></small>
       <div class="d-none name"><code>configuration.Rmd</code></div>
@@ -127,29 +127,35 @@ for the refinement step (validating and enhancing data)</li>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="dt">"$schema"</span><span class="fu">:</span> <span class="st">"http://json-schema.org/draft-07/schema#"</span><span class="fu">,</span></span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="dt">"title"</span><span class="fu">:</span> <span class="st">"Your Domain Schema Title"</span><span class="fu">,</span></span>
 <span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>    <span class="dt">"records"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>      <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Array of extracted records"</span><span class="fu">,</span></span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>      <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>        <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>        <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"field1"</span><span class="ot">,</span> <span class="st">"field2"</span><span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>        <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>          <span class="dt">"field1"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Description of field1"</span></span>
-<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>          <span class="dt">"field2"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"integer"</span><span class="fu">,</span></span>
-<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Description of field2"</span></span>
-<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>          <span class="fu">}</span></span>
-<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>        <span class="fu">},</span></span>
-<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>        <span class="dt">"x-unique-fields"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"field1"</span><span class="ot">,</span> <span class="st">"field2"</span><span class="ot">]</span></span>
-<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a>      <span class="fu">}</span></span>
-<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"records"</span><span class="ot">]</span></span>
-<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"records"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>    <span class="dt">"records"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>      <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Array of extracted records"</span><span class="fu">,</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>      <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>        <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>        <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>        <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"field1"</span><span class="ot">,</span> <span class="st">"field2"</span><span class="ot">,</span> <span class="st">"optional_field"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>        <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>          <span class="dt">"field1"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"A required string field"</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>          <span class="dt">"field2"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"integer"</span><span class="fu">,</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"A required integer field"</span></span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a>          <span class="dt">"optional_field"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"string"</span><span class="ot">,</span> <span class="st">"null"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Optional - returns null when not available"</span></span>
+<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb1-28"><a href="#cb1-28" tabindex="-1"></a>        <span class="fu">},</span></span>
+<span id="cb1-29"><a href="#cb1-29" tabindex="-1"></a>        <span class="dt">"x-unique-fields"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"field1"</span><span class="ot">,</span> <span class="st">"field2"</span><span class="ot">]</span></span>
+<span id="cb1-30"><a href="#cb1-30" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb1-31"><a href="#cb1-31" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb1-32"><a href="#cb1-32" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb1-33"><a href="#cb1-33" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Key requirements:</p>
 <ul>
 <li>Top-level must have a <code>records</code> property (array of
@@ -157,9 +163,17 @@ objects)</li>
 <li>Each field should have a <code>type</code> and
 <code>description</code>
 </li>
-<li>Use <code>required</code> array to specify required fields</li>
+<li>Every object must have
+<code>"additionalProperties": false</code>
+</li>
+<li>
+<strong>All</strong> properties must be listed in
+<code>required</code> – use nullable types
+(<code>["string", "null"]</code>) for optional fields</li>
 <li>Use <code>x-unique-fields</code> to identify fields that define
 uniqueness (used for deduplication and accuracy)</li>
+<li>See <a href="#cross-provider-compatibility">Cross-Provider
+Compatibility</a> below for full details</li>
 </ul>
 </div>
 <div class="section level3">
@@ -269,54 +283,58 @@ domain.</p>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="dt">"title"</span><span class="fu">:</span> <span class="st">"Disease Outbreak Schema"</span><span class="fu">,</span></span>
 <span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Schema for extracting disease outbreak data from epidemiological literature"</span><span class="fu">,</span></span>
 <span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>    <span class="dt">"records"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>      <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Array of disease outbreak records"</span><span class="fu">,</span></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>      <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>        <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>        <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>          <span class="st">"disease_name"</span><span class="ot">,</span></span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>          <span class="st">"location"</span><span class="ot">,</span></span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>          <span class="st">"year"</span><span class="ot">,</span></span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>          <span class="st">"all_supporting_source_sentences"</span></span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>        <span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>        <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>          <span class="dt">"disease_name"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Name of the disease (e.g., 'COVID-19', 'Influenza A(H1N1)')"</span></span>
-<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>          <span class="dt">"location"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Geographic location of outbreak (city, region, or country)"</span></span>
-<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>          <span class="dt">"year"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"integer"</span><span class="fu">,</span></span>
-<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Year the outbreak occurred"</span></span>
-<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>          <span class="dt">"cases"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"integer"</span><span class="fu">,</span></span>
-<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Total number of cases reported"</span></span>
-<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>          <span class="dt">"deaths"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"integer"</span><span class="fu">,</span></span>
-<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Total number of deaths reported"</span></span>
-<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a>          <span class="dt">"all_supporting_source_sentences"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
-<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"All sentences from the document that support this record"</span><span class="fu">,</span></span>
-<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a>            <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a>              <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a>              <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Individual supporting sentence"</span></span>
-<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a>            <span class="fu">}</span></span>
-<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a>          <span class="fu">}</span></span>
-<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a>        <span class="fu">},</span></span>
-<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a>        <span class="dt">"x-unique-fields"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"disease_name"</span><span class="ot">,</span> <span class="st">"location"</span><span class="ot">,</span> <span class="st">"year"</span><span class="ot">]</span></span>
-<span id="cb3-49"><a href="#cb3-49" tabindex="-1"></a>      <span class="fu">}</span></span>
-<span id="cb3-50"><a href="#cb3-50" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb3-51"><a href="#cb3-51" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb3-52"><a href="#cb3-52" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"records"</span><span class="ot">]</span></span>
-<span id="cb3-53"><a href="#cb3-53" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"records"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>    <span class="dt">"records"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>      <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Array of disease outbreak records"</span><span class="fu">,</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>      <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>        <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>        <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>        <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>          <span class="st">"disease_name"</span><span class="ot">,</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>          <span class="st">"location"</span><span class="ot">,</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>          <span class="st">"year"</span><span class="ot">,</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>          <span class="st">"cases"</span><span class="ot">,</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>          <span class="st">"deaths"</span><span class="ot">,</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>          <span class="st">"all_supporting_source_sentences"</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>        <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>        <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>          <span class="dt">"disease_name"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Name of the disease (e.g., 'COVID-19', 'Influenza A(H1N1)')"</span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>          <span class="dt">"location"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Geographic location of outbreak (city, region, or country)"</span></span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>          <span class="dt">"year"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"integer"</span><span class="fu">,</span></span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Year the outbreak occurred"</span></span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>          <span class="dt">"cases"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"integer"</span><span class="ot">,</span> <span class="st">"null"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Total number of cases reported (null if not stated)"</span></span>
+<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a>          <span class="dt">"deaths"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"integer"</span><span class="ot">,</span> <span class="st">"null"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Total number of deaths reported (null if not stated)"</span></span>
+<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a>          <span class="dt">"all_supporting_source_sentences"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
+<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"All sentences from the document that support this record"</span><span class="fu">,</span></span>
+<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a>            <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a>              <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
+<span id="cb3-49"><a href="#cb3-49" tabindex="-1"></a>              <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Individual supporting sentence"</span></span>
+<span id="cb3-50"><a href="#cb3-50" tabindex="-1"></a>            <span class="fu">}</span></span>
+<span id="cb3-51"><a href="#cb3-51" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb3-52"><a href="#cb3-52" tabindex="-1"></a>        <span class="fu">},</span></span>
+<span id="cb3-53"><a href="#cb3-53" tabindex="-1"></a>        <span class="dt">"x-unique-fields"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"disease_name"</span><span class="ot">,</span> <span class="st">"location"</span><span class="ot">,</span> <span class="st">"year"</span><span class="ot">]</span></span>
+<span id="cb3-54"><a href="#cb3-54" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb3-55"><a href="#cb3-55" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb3-56"><a href="#cb3-56" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb3-57"><a href="#cb3-57" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="example-2-complex-schema-with-arrays-host-pathogen-interactions">Example 2: Complex Schema with Arrays (Host-Pathogen
@@ -326,64 +344,69 @@ Interactions)<a class="anchor" aria-label="anchor" href="#example-2-complex-sche
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="dt">"$schema"</span><span class="fu">:</span> <span class="st">"http://json-schema.org/draft-07/schema#"</span><span class="fu">,</span></span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="dt">"title"</span><span class="fu">:</span> <span class="st">"Host-Pathogen Interaction Schema"</span><span class="fu">,</span></span>
 <span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>    <span class="dt">"records"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>      <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>        <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>        <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>          <span class="st">"Pathogen_Name"</span><span class="ot">,</span></span>
-<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>          <span class="st">"Host_Name"</span><span class="ot">,</span></span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>          <span class="st">"Detection_Method"</span><span class="ot">,</span></span>
-<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>          <span class="st">"all_supporting_source_sentences"</span></span>
-<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>        <span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>        <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>          <span class="dt">"Pathogen_Name"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Scientific name of the pathogen"</span></span>
-<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>          <span class="dt">"Host_Name"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Scientific name of the host organism"</span></span>
-<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>          <span class="dt">"Detection_Method"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
-<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Methods used to detect the pathogen (can be multiple)"</span><span class="fu">,</span></span>
-<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>            <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>              <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>              <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Individual detection method (e.g., 'PCR', 'culture', 'serology')"</span></span>
-<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a>            <span class="fu">}</span></span>
-<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a>          <span class="dt">"Sample_type"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
-<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Types of samples collected (can be multiple)"</span><span class="fu">,</span></span>
-<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a>            <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a>              <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a>              <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Individual sample type (e.g., 'blood', 'tissue', 'fecal swab')"</span></span>
-<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a>            <span class="fu">}</span></span>
-<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a>          <span class="dt">"Location"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
-<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Geographic location where interaction was documented"</span></span>
-<span id="cb4-44"><a href="#cb4-44" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb4-45"><a href="#cb4-45" tabindex="-1"></a>          <span class="dt">"all_supporting_source_sentences"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-46"><a href="#cb4-46" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
-<span id="cb4-47"><a href="#cb4-47" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"All sentences from document supporting this record"</span><span class="fu">,</span></span>
-<span id="cb4-48"><a href="#cb4-48" tabindex="-1"></a>            <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-49"><a href="#cb4-49" tabindex="-1"></a>              <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span></span>
-<span id="cb4-50"><a href="#cb4-50" tabindex="-1"></a>            <span class="fu">}</span></span>
-<span id="cb4-51"><a href="#cb4-51" tabindex="-1"></a>          <span class="fu">},</span></span>
-<span id="cb4-52"><a href="#cb4-52" tabindex="-1"></a>          <span class="dt">"Confidence_Score"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-53"><a href="#cb4-53" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"integer"</span><span class="fu">,</span></span>
-<span id="cb4-54"><a href="#cb4-54" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Confidence in extraction accuracy (1-5 scale)"</span></span>
-<span id="cb4-55"><a href="#cb4-55" tabindex="-1"></a>          <span class="fu">}</span></span>
-<span id="cb4-56"><a href="#cb4-56" tabindex="-1"></a>        <span class="fu">},</span></span>
-<span id="cb4-57"><a href="#cb4-57" tabindex="-1"></a>        <span class="dt">"x-unique-fields"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"Pathogen_Name"</span><span class="ot">,</span> <span class="st">"Host_Name"</span><span class="ot">]</span></span>
-<span id="cb4-58"><a href="#cb4-58" tabindex="-1"></a>      <span class="fu">}</span></span>
-<span id="cb4-59"><a href="#cb4-59" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb4-60"><a href="#cb4-60" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb4-61"><a href="#cb4-61" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"records"</span><span class="ot">]</span></span>
-<span id="cb4-62"><a href="#cb4-62" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"records"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>    <span class="dt">"records"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>      <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>        <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>        <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>        <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>          <span class="st">"Pathogen_Name"</span><span class="ot">,</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>          <span class="st">"Host_Name"</span><span class="ot">,</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>          <span class="st">"Detection_Method"</span><span class="ot">,</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>          <span class="st">"Sample_type"</span><span class="ot">,</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>          <span class="st">"Location"</span><span class="ot">,</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>          <span class="st">"all_supporting_source_sentences"</span><span class="ot">,</span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>          <span class="st">"Confidence_Score"</span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>        <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>        <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>          <span class="dt">"Pathogen_Name"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Scientific name of the pathogen"</span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>          <span class="dt">"Host_Name"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Scientific name of the host organism"</span></span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a>          <span class="dt">"Detection_Method"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
+<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Methods used to detect the pathogen (can be multiple)"</span><span class="fu">,</span></span>
+<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>            <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a>              <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
+<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a>              <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Individual detection method (e.g., 'PCR', 'culture', 'serology')"</span></span>
+<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a>            <span class="fu">}</span></span>
+<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a>          <span class="dt">"Sample_type"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
+<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Types of samples collected (empty array if not mentioned)"</span><span class="fu">,</span></span>
+<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a>            <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a>              <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span></span>
+<span id="cb4-44"><a href="#cb4-44" tabindex="-1"></a>              <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Individual sample type (e.g., 'blood', 'tissue', 'fecal swab')"</span></span>
+<span id="cb4-45"><a href="#cb4-45" tabindex="-1"></a>            <span class="fu">}</span></span>
+<span id="cb4-46"><a href="#cb4-46" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb4-47"><a href="#cb4-47" tabindex="-1"></a>          <span class="dt">"Location"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-48"><a href="#cb4-48" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"string"</span><span class="ot">,</span> <span class="st">"null"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb4-49"><a href="#cb4-49" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Geographic location where interaction was documented"</span></span>
+<span id="cb4-50"><a href="#cb4-50" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb4-51"><a href="#cb4-51" tabindex="-1"></a>          <span class="dt">"all_supporting_source_sentences"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-52"><a href="#cb4-52" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span></span>
+<span id="cb4-53"><a href="#cb4-53" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"All sentences from document supporting this record"</span><span class="fu">,</span></span>
+<span id="cb4-54"><a href="#cb4-54" tabindex="-1"></a>            <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-55"><a href="#cb4-55" tabindex="-1"></a>              <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span></span>
+<span id="cb4-56"><a href="#cb4-56" tabindex="-1"></a>            <span class="fu">}</span></span>
+<span id="cb4-57"><a href="#cb4-57" tabindex="-1"></a>          <span class="fu">},</span></span>
+<span id="cb4-58"><a href="#cb4-58" tabindex="-1"></a>          <span class="dt">"Confidence_Score"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-59"><a href="#cb4-59" tabindex="-1"></a>            <span class="dt">"type"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"integer"</span><span class="ot">,</span> <span class="st">"null"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb4-60"><a href="#cb4-60" tabindex="-1"></a>            <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Confidence in extraction accuracy (1-5 scale)"</span></span>
+<span id="cb4-61"><a href="#cb4-61" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb4-62"><a href="#cb4-62" tabindex="-1"></a>        <span class="fu">},</span></span>
+<span id="cb4-63"><a href="#cb4-63" tabindex="-1"></a>        <span class="dt">"x-unique-fields"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"Pathogen_Name"</span><span class="ot">,</span> <span class="st">"Host_Name"</span><span class="ot">]</span></span>
+<span id="cb4-64"><a href="#cb4-64" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb4-65"><a href="#cb4-65" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb4-66"><a href="#cb4-66" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb4-67"><a href="#cb4-67" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -585,55 +608,119 @@ values, 0 values</li>
 </div>
 </div>
 <div class="section level2">
-<h2 id="required-vs-optional-fields">Required vs Optional Fields<a class="anchor" aria-label="anchor" href="#required-vs-optional-fields"></a>
+<h2 id="structural-vs-data-requirements">Structural vs Data Requirements<a class="anchor" aria-label="anchor" href="#structural-vs-data-requirements"></a>
 </h2>
+<p>The <code>required</code> array in JSON Schema serves two purposes
+that are important to distinguish:</p>
 <div class="section level3">
-<h3 id="marking-required-fields">Marking Required Fields<a class="anchor" aria-label="anchor" href="#marking-required-fields"></a>
+<h3 id="structural-requirement-for-openai">Structural Requirement (for OpenAI)<a class="anchor" aria-label="anchor" href="#structural-requirement-for-openai"></a>
 </h3>
-<p>Use the <code>required</code> array in your schema:</p>
+<p>OpenAI’s structured outputs API requires <strong>every</strong>
+property to be listed in <code>required</code>. This is a structural
+constraint – it ensures the model always returns all fields in its
+response. It does NOT mean every field must contain meaningful data.</p>
+</div>
+<div class="section level3">
+<h3 id="data-requirements-for-your-domain">Data Requirements (for your domain)<a class="anchor" aria-label="anchor" href="#data-requirements-for-your-domain"></a>
+</h3>
+<p>The <strong>type</strong> of each field controls whether it must
+contain data:</p>
+<table class="table">
+<colgroup>
+<col width="17%">
+<col width="17%">
+<col width="46%">
+<col width="19%">
+</colgroup>
+<thead><tr class="header">
+<th>Pattern</th>
+<th>Meaning</th>
+<th>LLM returns when empty</th>
+<th>Database</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>"type": "string"</code></td>
+<td>Must have data</td>
+<td>Always a string value</td>
+<td>NOT NULL</td>
+</tr>
+<tr class="even">
+<td><code>"type": ["string", "null"]</code></td>
+<td>Data optional</td>
+<td><code>null</code></td>
+<td>NULL allowed</td>
+</tr>
+<tr class="odd">
+<td><code>"type": "array"</code></td>
+<td>May be empty</td>
+<td>
+<code>[]</code> (empty array)</td>
+<td><code>"[]"</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
+</h3>
 <div class="sourceCode" id="cb11"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>    <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>    <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>      <span class="st">"pathogen_name"</span><span class="ot">,</span></span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>      <span class="st">"host_name"</span><span class="ot">,</span></span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>      <span class="st">"all_supporting_source_sentences"</span></span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>    <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>      <span class="dt">"pathogen_name"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span></span>
-<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>      <span class="dt">"host_name"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span></span>
-<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>      <span class="dt">"location"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span>  <span class="er">//</span> <span class="er">optional</span></span>
-<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>      <span class="dt">"all_supporting_source_sentences"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span> <span class="fu">}</span></span>
-<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>    <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>    <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>      <span class="st">"pathogen_name"</span><span class="ot">,</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>      <span class="st">"host_name"</span><span class="ot">,</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>      <span class="st">"location"</span><span class="ot">,</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>      <span class="st">"detection_methods"</span><span class="ot">,</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>      <span class="st">"all_supporting_source_sentences"</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>    <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>      <span class="dt">"pathogen_name"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Always present"</span> <span class="fu">},</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>      <span class="dt">"host_name"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Always present"</span> <span class="fu">},</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>      <span class="dt">"location"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"string"</span><span class="ot">,</span> <span class="st">"null"</span><span class="ot">]</span><span class="fu">,</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Null if not mentioned"</span> <span class="fu">},</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a>      <span class="dt">"detection_methods"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span> <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Empty array if not mentioned"</span> <span class="fu">},</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>      <span class="dt">"all_supporting_source_sentences"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span><span class="fu">,</span> <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Supporting evidence"</span> <span class="fu">}</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>All five fields are structurally required (in <code>required</code>),
+but only <code>pathogen_name</code> and <code>host_name</code> must have
+data. <code>location</code> can be <code>null</code>, and
+<code>detection_methods</code> can be <code>[]</code>.</p>
+<p><strong>Important</strong>: Do NOT use <code>["array", "null"]</code>
+for optional arrays. Use plain <code>"array"</code> and instruct the
+model to return <code>[]</code> when no data is available.</p>
 </div>
 <div class="section level3">
-<h3 id="impact-of-required-fields">Impact of Required Fields<a class="anchor" aria-label="anchor" href="#impact-of-required-fields"></a>
+<h3 id="impact-on-downstream-processing">Impact on Downstream Processing<a class="anchor" aria-label="anchor" href="#impact-on-downstream-processing"></a>
 </h3>
-<p>Required fields affect:</p>
-<ol style="list-style-type: decimal">
+<ul>
 <li>
-<strong>Extraction validation</strong> - LLM must provide these
-fields</li>
+<strong>Accuracy calculation</strong> - Edits to non-nullable fields
+are “major edits”</li>
 <li>
-<strong>Accuracy calculation</strong> - Edits to required fields are
-“major edits”</li>
+<strong>Deduplication</strong> - Fields in
+<code>x-unique-fields</code> should generally be non-nullable</li>
 <li>
-<strong>Record completeness</strong> - Records without required
-fields may be rejected</li>
-</ol>
+<strong>Database constraints</strong> - Non-nullable fields get
+<code>NOT NULL</code> constraints; nullable fields allow NULL</li>
+</ul>
 </div>
 <div class="section level3">
-<h3 id="guidelines-for-required-fields">Guidelines for Required Fields<a class="anchor" aria-label="anchor" href="#guidelines-for-required-fields"></a>
+<h3 id="guidelines">Guidelines<a class="anchor" aria-label="anchor" href="#guidelines"></a>
 </h3>
-<p><strong>Mark as required:</strong> - Core identifying information
-(organism names, dates, locations) - Evidence fields
+<p><strong>Non-nullable (truly required):</strong> - Core identifying
+information (organism names) - Evidence fields
 (<code>all_supporting_source_sentences</code>) - Fields needed for
 deduplication</p>
-<p><strong>Mark as optional:</strong> - Descriptive details that may not
-always be present - Quantitative measurements (counts, concentrations) -
-Contextual information</p>
+<p><strong>Nullable (optional):</strong> - Descriptive details that may
+not always be present - Quantitative measurements (counts,
+concentrations) - Contextual information (dates, locations, page
+numbers)</p>
+<p><strong>Array fields (may be empty):</strong> - Multi-valued fields
+like detection methods, sample types, vector names - Use the field
+description to indicate when empty arrays are acceptable</p>
 </div>
 </div>
 <div class="section level2">
@@ -647,15 +734,17 @@ record uniqueness:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>    <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>    <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>      <span class="dt">"pathogen_name"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span></span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>      <span class="dt">"host_name"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span></span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>      <span class="dt">"location"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span></span>
-<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>      <span class="dt">"sample_date"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">}</span></span>
-<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>    <span class="fu">},</span></span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>    <span class="dt">"x-unique-fields"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"pathogen_name"</span><span class="ot">,</span> <span class="st">"host_name"</span><span class="ot">,</span> <span class="st">"location"</span><span class="ot">]</span></span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>    <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>    <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"pathogen_name"</span><span class="ot">,</span> <span class="st">"host_name"</span><span class="ot">,</span> <span class="st">"location"</span><span class="ot">,</span> <span class="st">"sample_date"</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>    <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>      <span class="dt">"pathogen_name"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Pathogen name"</span> <span class="fu">},</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>      <span class="dt">"host_name"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Host name"</span> <span class="fu">},</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>      <span class="dt">"location"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"string"</span><span class="ot">,</span> <span class="st">"null"</span><span class="ot">]</span><span class="fu">,</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Location"</span> <span class="fu">},</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>      <span class="dt">"sample_date"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"string"</span><span class="ot">,</span> <span class="st">"null"</span><span class="ot">]</span><span class="fu">,</span> <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Date"</span> <span class="fu">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>    <span class="dt">"x-unique-fields"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"pathogen_name"</span><span class="ot">,</span> <span class="st">"host_name"</span><span class="ot">,</span> <span class="st">"location"</span><span class="ot">]</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="how-unique-fields-are-used">How Unique Fields Are Used<a class="anchor" aria-label="anchor" href="#how-unique-fields-are-used"></a>
@@ -682,6 +771,40 @@ interactions</strong>: species1 + species2 + interaction_type -
 date - <strong>Observations</strong>: organism + location + date +
 observer</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="cross-provider-compatibility">Cross-Provider Compatibility<a class="anchor" aria-label="anchor" href="#cross-provider-compatibility"></a>
+</h2>
+<p>ecoextract supports multiple LLM providers (Anthropic Claude, OpenAI
+GPT, Mistral). Schemas must follow <a href="https://platform.openai.com/docs/guides/structured-outputs/supported-schemas" class="external-link">OpenAI’s
+structured output requirements</a> to work across all providers:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong><code>additionalProperties: false</code></strong> on every
+object definition</li>
+<li>
+<strong>All properties listed in <code>required</code></strong> –
+every field in <code>properties</code> must also appear in
+<code>required</code>
+</li>
+<li>
+<strong>Nullable types for optional fields</strong> – use
+<code>"type": ["string", "null"]</code> instead of omitting from
+<code>required</code>. The model returns <code>null</code> when no data
+is available</li>
+<li>
+<strong>No <code>minimum</code>/<code>maximum</code>
+constraints</strong> – put range info in the <code>description</code>
+instead (e.g.,
+<code>"description": "Confidence score (1-5 scale)"</code>)</li>
+<li>
+<strong>No <code>$ref</code></strong> – inline all definitions</li>
+<li><strong>Max 100 properties, 5 nesting levels</strong></li>
+</ol>
+<p>These rules are safe for all providers – Claude and Mistral handle
+them without issues.</p>
+<p>For full details, see <a href="https://platform.openai.com/docs/guides/structured-outputs/supported-schemas" class="external-link">OpenAI’s
+Structured Outputs documentation</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="advanced-configuration">Advanced Configuration<a class="anchor" aria-label="anchor" href="#advanced-configuration"></a>
@@ -774,54 +897,58 @@ observed) - Supporting evidence</p>
 <span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  <span class="st">"$schema"</span><span class="sc">:</span> <span class="st">"http://json-schema.org/draft-07/schema#"</span>,</span>
 <span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>  <span class="st">"title"</span><span class="sc">:</span> <span class="st">"Plant-Pollinator Interaction Schema"</span>,</span>
 <span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>  <span class="st">"type"</span><span class="sc">:</span> <span class="st">"object"</span>,</span>
-<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  <span class="st">"properties"</span><span class="sc">:</span> {</span>
-<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>    <span class="st">"records"</span><span class="sc">:</span> {</span>
-<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a>      <span class="st">"type"</span><span class="sc">:</span> <span class="st">"array"</span>,</span>
-<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a>      <span class="st">"items"</span><span class="sc">:</span> {</span>
-<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>        <span class="st">"type"</span><span class="sc">:</span> <span class="st">"object"</span>,</span>
-<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a>        <span class="st">"required"</span><span class="sc">:</span> [</span>
-<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a>          <span class="st">"plant_species"</span>,</span>
-<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a>          <span class="st">"pollinator_species"</span>,</span>
-<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a>          <span class="st">"interaction_type"</span>,</span>
-<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a>          <span class="st">"all_supporting_source_sentences"</span></span>
-<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a>        ],</span>
-<span id="cb16-17"><a href="#cb16-17" tabindex="-1"></a>        <span class="st">"properties"</span><span class="sc">:</span> {</span>
-<span id="cb16-18"><a href="#cb16-18" tabindex="-1"></a>          <span class="st">"plant_species"</span><span class="sc">:</span> {</span>
-<span id="cb16-19"><a href="#cb16-19" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span>,</span>
-<span id="cb16-20"><a href="#cb16-20" tabindex="-1"></a>            <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Scientific name of plant species"</span></span>
-<span id="cb16-21"><a href="#cb16-21" tabindex="-1"></a>          },</span>
-<span id="cb16-22"><a href="#cb16-22" tabindex="-1"></a>          <span class="st">"pollinator_species"</span><span class="sc">:</span> {</span>
-<span id="cb16-23"><a href="#cb16-23" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span>,</span>
-<span id="cb16-24"><a href="#cb16-24" tabindex="-1"></a>            <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Scientific name of pollinator species"</span></span>
-<span id="cb16-25"><a href="#cb16-25" tabindex="-1"></a>          },</span>
-<span id="cb16-26"><a href="#cb16-26" tabindex="-1"></a>          <span class="st">"interaction_type"</span><span class="sc">:</span> {</span>
-<span id="cb16-27"><a href="#cb16-27" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"array"</span>,</span>
-<span id="cb16-28"><a href="#cb16-28" tabindex="-1"></a>            <span class="st">"items"</span><span class="sc">:</span> {</span>
-<span id="cb16-29"><a href="#cb16-29" tabindex="-1"></a>              <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span>,</span>
-<span id="cb16-30"><a href="#cb16-30" tabindex="-1"></a>              <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Type of interaction: pollination, nectar_robbing, etc."</span></span>
-<span id="cb16-31"><a href="#cb16-31" tabindex="-1"></a>            }</span>
-<span id="cb16-32"><a href="#cb16-32" tabindex="-1"></a>          },</span>
-<span id="cb16-33"><a href="#cb16-33" tabindex="-1"></a>          <span class="st">"location"</span><span class="sc">:</span> {</span>
-<span id="cb16-34"><a href="#cb16-34" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span>,</span>
-<span id="cb16-35"><a href="#cb16-35" tabindex="-1"></a>            <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Geographic location of observation"</span></span>
-<span id="cb16-36"><a href="#cb16-36" tabindex="-1"></a>          },</span>
-<span id="cb16-37"><a href="#cb16-37" tabindex="-1"></a>          <span class="st">"season"</span><span class="sc">:</span> {</span>
-<span id="cb16-38"><a href="#cb16-38" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span>,</span>
-<span id="cb16-39"><a href="#cb16-39" tabindex="-1"></a>            <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Season or months when interaction observed"</span></span>
-<span id="cb16-40"><a href="#cb16-40" tabindex="-1"></a>          },</span>
-<span id="cb16-41"><a href="#cb16-41" tabindex="-1"></a>          <span class="st">"all_supporting_source_sentences"</span><span class="sc">:</span> {</span>
-<span id="cb16-42"><a href="#cb16-42" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"array"</span>,</span>
-<span id="cb16-43"><a href="#cb16-43" tabindex="-1"></a>            <span class="st">"items"</span><span class="sc">:</span> {</span>
-<span id="cb16-44"><a href="#cb16-44" tabindex="-1"></a>              <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span></span>
-<span id="cb16-45"><a href="#cb16-45" tabindex="-1"></a>            }</span>
-<span id="cb16-46"><a href="#cb16-46" tabindex="-1"></a>          }</span>
-<span id="cb16-47"><a href="#cb16-47" tabindex="-1"></a>        },</span>
-<span id="cb16-48"><a href="#cb16-48" tabindex="-1"></a>        <span class="st">"x-unique-fields"</span><span class="sc">:</span> [<span class="st">"plant_species"</span>, <span class="st">"pollinator_species"</span>, <span class="st">"location"</span>]</span>
-<span id="cb16-49"><a href="#cb16-49" tabindex="-1"></a>      }</span>
-<span id="cb16-50"><a href="#cb16-50" tabindex="-1"></a>    }</span>
-<span id="cb16-51"><a href="#cb16-51" tabindex="-1"></a>  },</span>
-<span id="cb16-52"><a href="#cb16-52" tabindex="-1"></a>  <span class="st">"required"</span><span class="sc">:</span> [<span class="st">"records"</span>]</span>
-<span id="cb16-53"><a href="#cb16-53" tabindex="-1"></a>}</span></code></pre></div>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  <span class="st">"additionalProperties"</span><span class="sc">:</span> false,</span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>  <span class="st">"required"</span><span class="sc">:</span> [<span class="st">"records"</span>],</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a>  <span class="st">"properties"</span><span class="sc">:</span> {</span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a>    <span class="st">"records"</span><span class="sc">:</span> {</span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>      <span class="st">"type"</span><span class="sc">:</span> <span class="st">"array"</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a>      <span class="st">"items"</span><span class="sc">:</span> {</span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a>        <span class="st">"type"</span><span class="sc">:</span> <span class="st">"object"</span>,</span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a>        <span class="st">"additionalProperties"</span><span class="sc">:</span> false,</span>
+<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a>        <span class="st">"required"</span><span class="sc">:</span> [</span>
+<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a>          <span class="st">"plant_species"</span>,</span>
+<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a>          <span class="st">"pollinator_species"</span>,</span>
+<span id="cb16-17"><a href="#cb16-17" tabindex="-1"></a>          <span class="st">"interaction_type"</span>,</span>
+<span id="cb16-18"><a href="#cb16-18" tabindex="-1"></a>          <span class="st">"location"</span>,</span>
+<span id="cb16-19"><a href="#cb16-19" tabindex="-1"></a>          <span class="st">"season"</span>,</span>
+<span id="cb16-20"><a href="#cb16-20" tabindex="-1"></a>          <span class="st">"all_supporting_source_sentences"</span></span>
+<span id="cb16-21"><a href="#cb16-21" tabindex="-1"></a>        ],</span>
+<span id="cb16-22"><a href="#cb16-22" tabindex="-1"></a>        <span class="st">"properties"</span><span class="sc">:</span> {</span>
+<span id="cb16-23"><a href="#cb16-23" tabindex="-1"></a>          <span class="st">"plant_species"</span><span class="sc">:</span> {</span>
+<span id="cb16-24"><a href="#cb16-24" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span>,</span>
+<span id="cb16-25"><a href="#cb16-25" tabindex="-1"></a>            <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Scientific name of plant species"</span></span>
+<span id="cb16-26"><a href="#cb16-26" tabindex="-1"></a>          },</span>
+<span id="cb16-27"><a href="#cb16-27" tabindex="-1"></a>          <span class="st">"pollinator_species"</span><span class="sc">:</span> {</span>
+<span id="cb16-28"><a href="#cb16-28" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span>,</span>
+<span id="cb16-29"><a href="#cb16-29" tabindex="-1"></a>            <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Scientific name of pollinator species"</span></span>
+<span id="cb16-30"><a href="#cb16-30" tabindex="-1"></a>          },</span>
+<span id="cb16-31"><a href="#cb16-31" tabindex="-1"></a>          <span class="st">"interaction_type"</span><span class="sc">:</span> {</span>
+<span id="cb16-32"><a href="#cb16-32" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"array"</span>,</span>
+<span id="cb16-33"><a href="#cb16-33" tabindex="-1"></a>            <span class="st">"items"</span><span class="sc">:</span> {</span>
+<span id="cb16-34"><a href="#cb16-34" tabindex="-1"></a>              <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span>,</span>
+<span id="cb16-35"><a href="#cb16-35" tabindex="-1"></a>              <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Type of interaction: pollination, nectar_robbing, etc."</span></span>
+<span id="cb16-36"><a href="#cb16-36" tabindex="-1"></a>            }</span>
+<span id="cb16-37"><a href="#cb16-37" tabindex="-1"></a>          },</span>
+<span id="cb16-38"><a href="#cb16-38" tabindex="-1"></a>          <span class="st">"location"</span><span class="sc">:</span> {</span>
+<span id="cb16-39"><a href="#cb16-39" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> [<span class="st">"string"</span>, <span class="st">"null"</span>],</span>
+<span id="cb16-40"><a href="#cb16-40" tabindex="-1"></a>            <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Geographic location of observation"</span></span>
+<span id="cb16-41"><a href="#cb16-41" tabindex="-1"></a>          },</span>
+<span id="cb16-42"><a href="#cb16-42" tabindex="-1"></a>          <span class="st">"season"</span><span class="sc">:</span> {</span>
+<span id="cb16-43"><a href="#cb16-43" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> [<span class="st">"string"</span>, <span class="st">"null"</span>],</span>
+<span id="cb16-44"><a href="#cb16-44" tabindex="-1"></a>            <span class="st">"description"</span><span class="sc">:</span> <span class="st">"Season or months when interaction observed"</span></span>
+<span id="cb16-45"><a href="#cb16-45" tabindex="-1"></a>          },</span>
+<span id="cb16-46"><a href="#cb16-46" tabindex="-1"></a>          <span class="st">"all_supporting_source_sentences"</span><span class="sc">:</span> {</span>
+<span id="cb16-47"><a href="#cb16-47" tabindex="-1"></a>            <span class="st">"type"</span><span class="sc">:</span> <span class="st">"array"</span>,</span>
+<span id="cb16-48"><a href="#cb16-48" tabindex="-1"></a>            <span class="st">"items"</span><span class="sc">:</span> {</span>
+<span id="cb16-49"><a href="#cb16-49" tabindex="-1"></a>              <span class="st">"type"</span><span class="sc">:</span> <span class="st">"string"</span></span>
+<span id="cb16-50"><a href="#cb16-50" tabindex="-1"></a>            }</span>
+<span id="cb16-51"><a href="#cb16-51" tabindex="-1"></a>          }</span>
+<span id="cb16-52"><a href="#cb16-52" tabindex="-1"></a>        },</span>
+<span id="cb16-53"><a href="#cb16-53" tabindex="-1"></a>        <span class="st">"x-unique-fields"</span><span class="sc">:</span> [<span class="st">"plant_species"</span>, <span class="st">"pollinator_species"</span>, <span class="st">"location"</span>]</span>
+<span id="cb16-54"><a href="#cb16-54" tabindex="-1"></a>      }</span>
+<span id="cb16-55"><a href="#cb16-55" tabindex="-1"></a>    }</span>
+<span id="cb16-56"><a href="#cb16-56" tabindex="-1"></a>  }</span>
+<span id="cb16-57"><a href="#cb16-57" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="write-the-prompt">3. Write the Prompt<a class="anchor" aria-label="anchor" href="#write-the-prompt"></a>
@@ -966,6 +1093,10 @@ metrics</li>
 <li>
 <a href="../inst/extdata/SCHEMA_GUIDE.html">SCHEMA_GUIDE.md</a> -
 Detailed schema specification</li>
+<li>
+<a href="https://platform.openai.com/docs/guides/structured-outputs/supported-schemas" class="external-link">OpenAI
+Structured Outputs</a> - Schema requirements for cross-provider
+compatibility</li>
 </ul>
 </div>
 </div>
