@@ -45,7 +45,6 @@ extract_records <- function(document_id = NA,
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
     schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
     schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
-    schema_list <- inject_additional_properties(schema_list)
     schema <- ellmer::TypeJsonSchema(
       description = rlang::`%||%`(schema_list$description, "Record schema"),
       json = schema_list
@@ -98,9 +97,12 @@ extract_records <- function(document_id = NA,
         # Already a dataframe
         extraction_df <- tibble::as_tibble(records_data)
       } else if (is.list(records_data) && length(records_data) > 0) {
-        # List of lists - use jsonlite to preserve array structure
-        # Convert to JSON and back to ensure arrays stay as list columns
-        json_str <- jsonlite::toJSON(records_data, auto_unbox = TRUE)
+        # List of lists - convert to dataframe via JSON round-trip to preserve array structure
+        # Replace NULL with NA first: toJSON serializes NULL as {} (object), not null
+        records_data <- lapply(records_data, function(record) {
+          lapply(record, function(val) if (is.null(val)) NA else val)
+        })
+        json_str <- jsonlite::toJSON(records_data, auto_unbox = TRUE, na = "null")
         extraction_df <- jsonlite::fromJSON(json_str, simplifyDataFrame = TRUE)
       } else {
         extraction_df <- tibble::tibble()

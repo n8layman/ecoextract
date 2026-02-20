@@ -3,17 +3,28 @@
   "title": "Host-Pathogen Relationship Data Schema",
   "description": "Schema for extracted host-pathogen relationships from scientific literature for One Health PROTECT",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "records": {
       "type": "array",
       "description": "Array of host-pathogen relationship records",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
+          "OHP_Pathogen_Name",
+          "PDF_Name",
+          "DOI",
           "Pathogen_Name",
           "Host_Name",
           "Detection_Method",
-          "all_supporting_source_sentences"
+          "Sample_type",
+          "all_supporting_source_sentences",
+          "Confidence_Score",
+          "Vector_Name",
+          "GenBank_Accession",
+          "Extraction_quality_score",
+          "Supplemental_Material"
         ],
         "x-unique-fields": [
           "Pathogen_Name",
@@ -21,16 +32,16 @@
         ],
         "properties": {
           "OHP_Pathogen_Name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Currently the name of each PDF folder - the pathogen of interest that was queried in PubMed"
           },
           "PDF_Name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "PDF file name"
           },
           "DOI": {
-            "type": "string",
-            "description": "DOI from PDF (optional)"
+            "type": ["string", "null"],
+            "description": "DOI from PDF"
           },
           "Pathogen_Name": {
             "type": "string",
@@ -50,7 +61,7 @@
           },
           "Sample_type": {
             "type": "array",
-            "description": "Array of sample types that were tested (e.g., blood, tissue, tick midgut)",
+            "description": "Array of sample types that were tested (empty array if not mentioned)",
             "items": {
               "type": "string",
               "description": "Individual sample type"
@@ -65,14 +76,12 @@
             }
           },
           "Confidence_Score": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5,
-            "description": "Model confidence score (5-point Likert scale)"
+            "type": ["integer", "null"],
+            "description": "Model confidence score (1-5 scale)"
           },
           "Vector_Name": {
             "type": "array",
-            "description": "Optional: Array of vector names from PDF (e.g., tick species)",
+            "description": "Array of vector names from PDF (e.g., tick species). Empty array if not mentioned.",
             "items": {
               "type": "string",
               "description": "Individual vector name"
@@ -80,20 +89,18 @@
           },
           "GenBank_Accession": {
             "type": "array",
-            "description": "Optional: Array of GenBank Accession numbers reported in PDF",
+            "description": "Array of GenBank Accession numbers reported in PDF. Empty array if not mentioned.",
             "items": {
               "type": "string",
               "description": "Individual GenBank accession number"
             }
           },
           "Extraction_quality_score": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5,
-            "description": "Source data quality score (5-point Likert scale)"
+            "type": ["integer", "null"],
+            "description": "Source data quality score (1-5 scale)"
           },
           "Supplemental_Material": {
-            "type": "boolean",
+            "type": ["boolean", "null"],
             "description": "Does it seem like more information might be present in the supplemental data?"
           }
         }

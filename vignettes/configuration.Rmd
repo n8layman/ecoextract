@@ -67,28 +67,34 @@ Your schema **must** follow this structure:
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Your Domain Schema Title",
   "type": "object",
+  "additionalProperties": false,
+  "required": ["records"],
   "properties": {
     "records": {
       "type": "array",
       "description": "Array of extracted records",
       "items": {
         "type": "object",
-        "required": ["field1", "field2"],
+        "additionalProperties": false,
+        "required": ["field1", "field2", "optional_field"],
         "properties": {
           "field1": {
             "type": "string",
-            "description": "Description of field1"
+            "description": "A required string field"
           },
           "field2": {
             "type": "integer",
-            "description": "Description of field2"
+            "description": "A required integer field"
+          },
+          "optional_field": {
+            "type": ["string", "null"],
+            "description": "Optional - returns null when not available"
           }
         },
         "x-unique-fields": ["field1", "field2"]
       }
     }
-  },
-  "required": ["records"]
+  }
 }
 ```
 
@@ -96,8 +102,10 @@ Key requirements:
 
 - Top-level must have a `records` property (array of objects)
 - Each field should have a `type` and `description`
-- Use `required` array to specify required fields
+- Every object must have `"additionalProperties": false`
+- **All** properties must be listed in `required` -- use nullable types (`["string", "null"]`) for optional fields
 - Use `x-unique-fields` to identify fields that define uniqueness (used for deduplication and accuracy)
+- See [Cross-Provider Compatibility](#cross-provider-compatibility) below for full details
 
 ## Field Types
 
@@ -152,16 +160,21 @@ Open `ecoextract/schema.json` and customize for your domain.
   "title": "Disease Outbreak Schema",
   "description": "Schema for extracting disease outbreak data from epidemiological literature",
   "type": "object",
+  "additionalProperties": false,
+  "required": ["records"],
   "properties": {
     "records": {
       "type": "array",
       "description": "Array of disease outbreak records",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "disease_name",
           "location",
           "year",
+          "cases",
+          "deaths",
           "all_supporting_source_sentences"
         ],
         "properties": {
@@ -178,12 +191,12 @@ Open `ecoextract/schema.json` and customize for your domain.
             "description": "Year the outbreak occurred"
           },
           "cases": {
-            "type": "integer",
-            "description": "Total number of cases reported"
+            "type": ["integer", "null"],
+            "description": "Total number of cases reported (null if not stated)"
           },
           "deaths": {
-            "type": "integer",
-            "description": "Total number of deaths reported"
+            "type": ["integer", "null"],
+            "description": "Total number of deaths reported (null if not stated)"
           },
           "all_supporting_source_sentences": {
             "type": "array",
@@ -197,8 +210,7 @@ Open `ecoextract/schema.json` and customize for your domain.
         "x-unique-fields": ["disease_name", "location", "year"]
       }
     }
-  },
-  "required": ["records"]
+  }
 }
 ```
 
@@ -209,16 +221,22 @@ Open `ecoextract/schema.json` and customize for your domain.
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Host-Pathogen Interaction Schema",
   "type": "object",
+  "additionalProperties": false,
+  "required": ["records"],
   "properties": {
     "records": {
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "Pathogen_Name",
           "Host_Name",
           "Detection_Method",
-          "all_supporting_source_sentences"
+          "Sample_type",
+          "Location",
+          "all_supporting_source_sentences",
+          "Confidence_Score"
         ],
         "properties": {
           "Pathogen_Name": {
@@ -239,14 +257,14 @@ Open `ecoextract/schema.json` and customize for your domain.
           },
           "Sample_type": {
             "type": "array",
-            "description": "Types of samples collected (can be multiple)",
+            "description": "Types of samples collected (empty array if not mentioned)",
             "items": {
               "type": "string",
               "description": "Individual sample type (e.g., 'blood', 'tissue', 'fecal swab')"
             }
           },
           "Location": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Geographic location where interaction was documented"
           },
           "all_supporting_source_sentences": {
@@ -257,15 +275,14 @@ Open `ecoextract/schema.json` and customize for your domain.
             }
           },
           "Confidence_Score": {
-            "type": "integer",
+            "type": ["integer", "null"],
             "description": "Confidence in extraction accuracy (1-5 scale)"
           }
         },
         "x-unique-fields": ["Pathogen_Name", "Host_Name"]
       }
     }
-  },
-  "required": ["records"]
+  }
 }
 ```
 
@@ -446,50 +463,74 @@ records |>
 3. **Always include descriptions** - Help the LLM understand what belongs in the array
 4. **Test with edge cases** - Papers with 1 value, 5 values, 0 values
 
-# Required vs Optional Fields
+# Structural vs Data Requirements
 
-## Marking Required Fields
+The `required` array in JSON Schema serves two purposes that are important to distinguish:
 
-Use the `required` array in your schema:
+## Structural Requirement (for OpenAI)
+
+OpenAI's structured outputs API requires **every** property to be listed in `required`. This is a structural constraint -- it ensures the model always returns all fields in its response. It does NOT mean every field must contain meaningful data.
+
+## Data Requirements (for your domain)
+
+The **type** of each field controls whether it must contain data:
+
+| Pattern | Meaning | LLM returns when empty | Database |
+|---------|---------|------------------------|----------|
+| `"type": "string"` | Must have data | Always a string value | NOT NULL |
+| `"type": ["string", "null"]` | Data optional | `null` | NULL allowed |
+| `"type": "array"` | May be empty | `[]` (empty array) | `"[]"` |
+
+## Example
 
 ```json
 {
   "items": {
     "type": "object",
+    "additionalProperties": false,
     "required": [
       "pathogen_name",
       "host_name",
+      "location",
+      "detection_methods",
       "all_supporting_source_sentences"
     ],
     "properties": {
-      "pathogen_name": { "type": "string" },
-      "host_name": { "type": "string" },
-      "location": { "type": "string" },  // optional
-      "all_supporting_source_sentences": { "type": "array" }
+      "pathogen_name": { "type": "string", "description": "Always present" },
+      "host_name": { "type": "string", "description": "Always present" },
+      "location": { "type": ["string", "null"], "description": "Null if not mentioned" },
+      "detection_methods": { "type": "array", "items": { "type": "string" }, "description": "Empty array if not mentioned" },
+      "all_supporting_source_sentences": { "type": "array", "items": { "type": "string" }, "description": "Supporting evidence" }
     }
   }
 }
 ```
 
-## Impact of Required Fields
+All five fields are structurally required (in `required`), but only `pathogen_name` and `host_name` must have data. `location` can be `null`, and `detection_methods` can be `[]`.
 
-Required fields affect:
+**Important**: Do NOT use `["array", "null"]` for optional arrays. Use plain `"array"` and instruct the model to return `[]` when no data is available.
 
-1. **Extraction validation** - LLM must provide these fields
-2. **Accuracy calculation** - Edits to required fields are "major edits"
-3. **Record completeness** - Records without required fields may be rejected
+## Impact on Downstream Processing
 
-## Guidelines for Required Fields
+- **Accuracy calculation** - Edits to non-nullable fields are "major edits"
+- **Deduplication** - Fields in `x-unique-fields` should generally be non-nullable
+- **Database constraints** - Non-nullable fields get `NOT NULL` constraints; nullable fields allow NULL
 
-**Mark as required:**
-- Core identifying information (organism names, dates, locations)
+## Guidelines
+
+**Non-nullable (truly required):**
+- Core identifying information (organism names)
 - Evidence fields (`all_supporting_source_sentences`)
 - Fields needed for deduplication
 
-**Mark as optional:**
+**Nullable (optional):**
 - Descriptive details that may not always be present
 - Quantitative measurements (counts, concentrations)
-- Contextual information
+- Contextual information (dates, locations, page numbers)
+
+**Array fields (may be empty):**
+- Multi-valued fields like detection methods, sample types, vector names
+- Use the field description to indicate when empty arrays are acceptable
 
 # Unique Fields and Deduplication
 
@@ -501,11 +542,13 @@ Use `x-unique-fields` to specify which fields define record uniqueness:
 {
   "items": {
     "type": "object",
+    "additionalProperties": false,
+    "required": ["pathogen_name", "host_name", "location", "sample_date"],
     "properties": {
-      "pathogen_name": { "type": "string" },
-      "host_name": { "type": "string" },
-      "location": { "type": "string" },
-      "sample_date": { "type": "string" }
+      "pathogen_name": { "type": "string", "description": "Pathogen name" },
+      "host_name": { "type": "string", "description": "Host name" },
+      "location": { "type": ["string", "null"], "description": "Location" },
+      "sample_date": { "type": ["string", "null"], "description": "Date" }
     },
     "x-unique-fields": ["pathogen_name", "host_name", "location"]
   }
@@ -525,6 +568,21 @@ Good unique field combinations:
 - **Disease outbreaks**: disease + location + year
 - **Chemical measurements**: chemical + sample_location + date
 - **Observations**: organism + location + date + observer
+
+# Cross-Provider Compatibility
+
+ecoextract supports multiple LLM providers (Anthropic Claude, OpenAI GPT, Mistral). Schemas must follow [OpenAI's structured output requirements](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas) to work across all providers:
+
+1. **`additionalProperties: false`** on every object definition
+2. **All properties listed in `required`** -- every field in `properties` must also appear in `required`
+3. **Nullable types for optional fields** -- use `"type": ["string", "null"]` instead of omitting from `required`. The model returns `null` when no data is available
+4. **No `minimum`/`maximum` constraints** -- put range info in the `description` instead (e.g., `"description": "Confidence score (1-5 scale)"`)
+5. **No `$ref`** -- inline all definitions
+6. **Max 100 properties, 5 nesting levels**
+
+These rules are safe for all providers -- Claude and Mistral handle them without issues.
+
+For full details, see [OpenAI's Structured Outputs documentation](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas).
 
 # Advanced Configuration
 
@@ -612,15 +670,20 @@ What information do we need?
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Plant-Pollinator Interaction Schema",
   "type": "object",
+  "additionalProperties": false,
+  "required": ["records"],
   "properties": {
     "records": {
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "plant_species",
           "pollinator_species",
           "interaction_type",
+          "location",
+          "season",
           "all_supporting_source_sentences"
         ],
         "properties": {
@@ -640,11 +703,11 @@ What information do we need?
             }
           },
           "location": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Geographic location of observation"
           },
           "season": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Season or months when interaction observed"
           },
           "all_supporting_source_sentences": {
@@ -657,8 +720,7 @@ What information do we need?
         "x-unique-fields": ["plant_species", "pollinator_species", "location"]
       }
     }
-  },
-  "required": ["records"]
+  }
 }
 ```
 
@@ -778,3 +840,4 @@ class(records$your_array_field)  # Should be "list"
 - [Complete Workflow Guide](ecoextract-workflow.html) - Full workflow reference
 - [ACCURACY.md](../ACCURACY.md) - Understanding accuracy metrics
 - [SCHEMA_GUIDE.md](../inst/extdata/SCHEMA_GUIDE.md) - Detailed schema specification
+- [OpenAI Structured Outputs](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas) - Schema requirements for cross-provider compatibility

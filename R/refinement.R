@@ -85,7 +85,6 @@ refine_records <- function(db_conn = NULL, document_id,
     # Step 2: Convert raw text to R object using jsonlite
     schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
     schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
-    schema_list <- inject_additional_properties(schema_list)
 
     # Step 3: Convert to ellmer type schema
     schema <- ellmer::TypeJsonSchema(
@@ -162,8 +161,12 @@ refine_records <- function(db_conn = NULL, document_id,
       if (is.data.frame(records_data) && nrow(records_data) > 0) {
         refined_df <- tibble::as_tibble(records_data)
       } else if (is.list(records_data) && length(records_data) > 0) {
-        # Convert list of records to dataframe using jsonlite (handles nested structures better)
-        refined_df <- tibble::as_tibble(jsonlite::fromJSON(jsonlite::toJSON(records_data, auto_unbox = TRUE)))
+        # Convert list of records to dataframe via JSON round-trip (preserves array structure)
+        # Replace NULL with NA first: toJSON serializes NULL as {} (object), not null
+        records_data <- lapply(records_data, function(record) {
+          lapply(record, function(val) if (is.null(val)) NA else val)
+        })
+        refined_df <- tibble::as_tibble(jsonlite::fromJSON(jsonlite::toJSON(records_data, auto_unbox = TRUE, na = "null")))
 
         # Fix any columns that came through as dataframes or weird structures
         # Integer columns that need special handling

@@ -3,6 +3,7 @@
   "title": "Ecological Interaction Schema",
   "description": "Schema for extracting ecological interaction data from scientific literature",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "reasoning": {
       "type": "string",
@@ -14,8 +15,19 @@
       "items": {
         "type": "object",
         "description": "Ecological interaction between bats and other identifiable organisms",
+        "additionalProperties": false,
         "required": [
-          "all_supporting_source_sentences"
+          "organisms_identifiable",
+          "bat_species_scientific_name",
+          "bat_species_common_name",
+          "interacting_organism_scientific_name",
+          "interacting_organism_common_name",
+          "interaction_start_date",
+          "interaction_end_date",
+          "location",
+          "all_supporting_source_sentences",
+          "page_number",
+          "publication_year"
         ],
         "x-unique-fields": [
           "bat_species_scientific_name",
@@ -25,35 +37,35 @@
         ],
         "properties": {
           "organisms_identifiable": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Whether both bat and interacting organism can be identified by scientific name, genus, or specific common name (set to 'true' only when both are identifiable)"
           },
           "bat_species_scientific_name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Scientific name of bat species"
           },
           "bat_species_common_name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Common name of bat species"
           },
           "interacting_organism_scientific_name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Scientific name of interacting organism"
           },
           "interacting_organism_common_name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Common name of interacting organism"
           },
           "interaction_start_date": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Start date of interaction"
           },
           "interaction_end_date": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "End date of interaction"
           },
           "location": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Geographic location of interaction"
           },
           "all_supporting_source_sentences": {
@@ -65,11 +77,11 @@
             }
           },
           "page_number": {
-            "type": "integer",
+            "type": ["integer", "null"],
             "description": "Page number in document"
           },
           "publication_year": {
-            "type": "integer",
+            "type": ["integer", "null"],
             "description": "Year of publication"
           }
         }

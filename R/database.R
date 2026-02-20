@@ -115,8 +115,7 @@ normalize_array_fields <- function(df, schema_list) {
       value <- df[[field]][[i]]
 
       is_missing <- is.null(value) ||
-                   (is.atomic(value) && length(value) == 1 && is.na(value)) ||
-                   (is.atomic(value) && length(value) == 0)
+                   (is.atomic(value) && length(value) == 1 && is.na(value))
 
       if (is_missing) {
         stop(glue::glue(
@@ -676,7 +675,8 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
 
       # Handle NULL or empty
       if (is.null(x) || length(x) == 0) {
-        result[i] <- NA_character_
+        # Empty arrays serialize as "[]", not NULL (preserves NOT NULL constraint)
+        result[i] <- if (is_array_field) "[]" else NA_character_
         next
       }
 
@@ -1210,9 +1210,12 @@ extract_fields_from_json_schema <- function(schema_json_list) {
       "TEXT" # Default fallback
     )
 
+    # A field is nullable if its type includes "null" (e.g., ["string", "null"])
+    is_nullable <- length(field_spec$type) > 1 && "null" %in% field_spec$type
+
     fields[[field_name]] <- list(
       sql_type = sql_type,
-      required = field_name %in% required_fields,
+      required = field_name %in% required_fields && !is_nullable,
       description = rlang::`%||%`(field_spec$description, "")
     )
   }

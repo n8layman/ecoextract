@@ -1,46 +1,68 @@
 {
   "description": "Schema for extracting plant-pollinator interaction data from scientific literature",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "records": {
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "organisms_identifiable",
+          "plant_species_scientific_name",
+          "plant_species_common_name",
+          "pollinator_species_scientific_name",
+          "pollinator_species_common_name",
+          "pollinator_type",
+          "observation_start_date",
+          "observation_end_date",
+          "location",
+          "all_supporting_source_sentences",
+          "page_number",
+          "publication_year"
+        ],
+        "x-unique-fields": [
+          "plant_species_scientific_name",
+          "plant_species_common_name",
+          "pollinator_species_scientific_name",
+          "pollinator_species_common_name"
+        ],
         "properties": {
           "organisms_identifiable": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Whether both plant and pollinator can be identified to species level ('true' or 'false')"
           },
           "plant_species_scientific_name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Scientific name of the plant species"
           },
           "plant_species_common_name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Common name of the plant species"
           },
           "pollinator_species_scientific_name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Scientific name of the pollinator species"
           },
           "pollinator_species_common_name": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Common name of the pollinator species"
           },
           "pollinator_type": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Type of pollinator (e.g., bee, butterfly, hummingbird, moth, beetle, fly, bat, wind)"
           },
           "observation_start_date": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Start date of observation period (YYYY-MM-DD format)"
           },
           "observation_end_date": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "End date of observation period (YYYY-MM-DD format)"
           },
           "location": {
-            "type": "string",
+            "type": ["string", "null"],
             "description": "Geographic location where pollination was observed"
           },
           "all_supporting_source_sentences": {
@@ -51,21 +73,14 @@
             "description": "Array of verbatim sentences from the document that support this pollination record"
           },
           "page_number": {
-            "type": "integer",
+            "type": ["integer", "null"],
             "description": "Page number where this information appears"
           },
           "publication_year": {
-            "type": "integer",
+            "type": ["integer", "null"],
             "description": "Year of publication"
           }
-        },
-        "required": ["organisms_identifiable", "plant_species_scientific_name", "pollinator_species_scientific_name", "all_supporting_source_sentences"],
-        "x-unique-fields": [
-          "plant_species_scientific_name",
-          "plant_species_common_name",
-          "pollinator_species_scientific_name",
-          "pollinator_species_common_name"
-        ]
+        }
       }
     }
   },
