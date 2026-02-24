@@ -17,12 +17,22 @@ perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 60) {
     timeout = timeout
   )
 
+  # Strip image_base64 fields from pages before storing - base64 blobs bloat
+  # document_content and waste LLM context without adding extraction value.
+  # image_annotation (text description) is preserved.
+  pages <- lapply(result$pages, function(page) {
+    if (!is.null(page$images) && length(page$images) > 0) {
+      page$images <- lapply(page$images, function(img) img[names(img) != "image_base64"])
+    }
+    page
+  })
+
   # Extract pages and convert to JSON
-  json_content <- jsonlite::toJSON(result$pages, auto_unbox = TRUE, pretty = TRUE)
+  json_content <- jsonlite::toJSON(pages, auto_unbox = TRUE, pretty = TRUE)
 
   list(
     json_content = json_content,
-    pages = result$pages,
+    pages = pages,
     raw = result$raw,
     provider_used = result$provider,  # Actual provider that succeeded
     error_log = result$error_log      # Failed attempts (if any)
