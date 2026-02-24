@@ -6,10 +6,10 @@
 #'
 #' @param pdf_file Path to PDF
 #' @param provider OCR provider to use (default: "tensorlake")
-#' @param timeout Maximum seconds to wait for OCR completion (default: 60)
+#' @param timeout Maximum seconds to wait for OCR completion (default: 300)
 #' @return List with markdown content, images, and raw result
 #' @keywords internal
-perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 60) {
+perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 300) {
   # Use unified ohseer interface
   result <- ohseer::ohseer_ocr(
     file_path = pdf_file,
@@ -48,11 +48,11 @@ perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 60) {
 #' @param db_conn Database connection
 #' @param force_reprocess Ignored (kept for backward compatibility). Skip logic handled by workflow.
 #' @param provider OCR provider to use (default: "tensorlake")
-#' @param timeout Maximum seconds to wait for OCR completion (default: 60)
+#' @param timeout Maximum seconds to wait for OCR completion (default: 300)
 #' @param max_wait_seconds Deprecated. Use timeout instead.
 #' @return List with status ("completed"/<error message>) and document_id
 #' @keywords internal
-ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "tensorlake", timeout = 60, max_wait_seconds = NULL) {
+ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "tensorlake", timeout = 300, max_wait_seconds = NULL) {
 
  document_id <- NA
 

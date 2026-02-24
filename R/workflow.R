@@ -76,7 +76,7 @@ validate_force_param <- function(param, param_name) {
 #' @param recursive If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.
 #' @param ocr_provider OCR provider to use (default: "tensorlake").
 #'   Options: "tensorlake", "mistral", "claude"
-#' @param ocr_timeout Maximum seconds to wait for OCR completion (default: 60)
+#' @param ocr_timeout Maximum seconds to wait for OCR completion (default: 300)
 #' @param workers Number of parallel workers. NULL (default) or 1 for sequential processing.
 #'   Values > 1 require the crew package and db_conn must be a file path (not a connection object).
 #' @param log If TRUE and using parallel processing (workers > 1), write detailed output
@@ -151,7 +151,7 @@ process_documents <- function(pdf_path,
                              refinement_prompt_file = NULL,
                              model = "anthropic/claude-sonnet-4-5",
                              ocr_provider = "tensorlake",
-                             ocr_timeout = 60,
+                             ocr_timeout = 300,
                              force_reprocess_ocr = NULL,
                              force_reprocess_metadata = NULL,
                              force_reprocess_extraction = NULL,
@@ -628,7 +628,7 @@ process_documents <- function(pdf_path,
 #'   Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"
 #' @param ocr_provider OCR provider to use (default: "tensorlake").
 #'   Options: "tensorlake", "mistral", "claude". Can also be a vector for fallback.
-#' @param ocr_timeout Maximum seconds to wait for OCR completion (default: 60)
+#' @param ocr_timeout Maximum seconds to wait for OCR completion (default: 300)
 #' @param force_reprocess_ocr NULL, TRUE, or integer vector of document_ids to force OCR
 #' @param force_reprocess_metadata NULL, TRUE, or integer vector of document_ids to force metadata
 #' @param force_reprocess_extraction NULL, TRUE, or integer vector of document_ids to force extraction
@@ -647,7 +647,7 @@ process_single_document <- function(pdf_file,
                                     refinement_prompt_file = NULL,
                                     model = "anthropic/claude-sonnet-4-5",
                                     ocr_provider = "tensorlake",
-                                    ocr_timeout = 60,
+                                    ocr_timeout = 300,
                                     force_reprocess_ocr = NULL,
                                     force_reprocess_metadata = NULL,
                                     force_reprocess_extraction = NULL,
