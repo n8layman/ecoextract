@@ -191,12 +191,13 @@ process_documents(
   model = "anthropic/claude-sonnet-4-5"
 )
 
-# Tiered fallback: try Claude, then GPT-4o, then Mistral
+# Tiered fallback: try Claude, then GPT-4.1 (1M context), then Mistral
+# Use GPT-4.1 as second model for large documents (>128k tokens) where Claude hits its 200k limit
 process_documents(
   pdf_path = "papers/",
   model = c(
     "anthropic/claude-sonnet-4-5",
-    "openai/gpt-4o",
+    "openai/gpt-4.1",
     "mistral/mistral-large-latest"
   )
 )

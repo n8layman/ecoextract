@@ -279,12 +279,13 @@ models to try sequentially:</p>
 <span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-4-5"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Tiered fallback: try Claude, then GPT-4o, then Mistral</span></span>
+<span><span class="co"># Tiered fallback: try Claude, then GPT-4.1 (1M context), then Mistral</span></span>
+<span><span class="co"># Use GPT-4.1 as second model for large documents (&gt;128k tokens) where Claude hits its 200k limit</span></span>
 <span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
 <span>  pdf_path <span class="op">=</span> <span class="st">"papers/"</span>,</span>
 <span>  model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>    <span class="st">"anthropic/claude-sonnet-4-5"</span>,</span>
-<span>    <span class="st">"openai/gpt-4o"</span>,</span>
+<span>    <span class="st">"openai/gpt-4.1"</span>,</span>
 <span>    <span class="st">"mistral/mistral-large-latest"</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
