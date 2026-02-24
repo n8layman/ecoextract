@@ -222,33 +222,3 @@ get_metadata_context <- function(context_file = NULL) {
     return_content = TRUE
   )
 }
-
-#' Limit document content to first N pages
-#' @param content Full document content (markdown from OCR)
-#' @param n Number of pages to keep (default: 3)
-#' @return Content limited to first n pages
-#' @keywords internal
-limit_to_first_n_pages <- function(content, n = 3) {
-  # Split on page markers (format: "--- PAGE N ---")
-  # Note: Markers appear AFTER each page, so "--- PAGE 1 ---" comes after page 1 content
-  page_pattern <- "--- PAGE \\d+ ---"
-  page_positions <- gregexpr(page_pattern, content)[[1]]
-
-  # If no page markers found, document has only 1 page
-  if (page_positions[1] == -1) {
-    return(content)
-  }
-
-  # Number of pages = number of markers (since each page now has a marker after it)
-  num_pages <- length(page_positions)
-
-  # If document has n or fewer pages, return all content
-  if (num_pages <= n) {
-    return(content)
-  }
-
-  # To get first n pages, find the marker after page n and cut there
-  # e.g., for n=3, find "--- PAGE 3 ---" and include everything up to end of that marker
-  end_pos <- page_positions[n] + attr(page_positions, "match.length")[n]
-  substr(content, 1, end_pos)
-}
