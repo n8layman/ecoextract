@@ -17,9 +17,23 @@ perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 300) {
     timeout = timeout
   )
 
-  # Strip image_base64 fields from pages before storing - base64 blobs bloat
-  # document_content and waste LLM context without adding extraction value.
-  # image_annotation (text description) is preserved.
+  # Separate image base64 data from page content.
+  # Images stored in ocr_images for HTML preview; stripped from document_content
+  # to keep LLM extraction context lean.
+  has_images <- any(vapply(result$pages, function(p) {
+    !is.null(p$images) && length(p$images) > 0
+  }, logical(1)))
+
+  ocr_images <- if (has_images) {
+    images_by_page <- lapply(result$pages, function(page) {
+      list(images = if (!is.null(page$images)) page$images else list())
+    })
+    jsonlite::toJSON(list(pages = images_by_page), auto_unbox = TRUE)
+  } else {
+    NA_character_
+  }
+
+  # Strip image_base64 from pages for document_content
   pages <- lapply(result$pages, function(page) {
     if (!is.null(page$images) && length(page$images) > 0) {
       page$images <- lapply(page$images, function(img) img[names(img) != "image_base64"])
@@ -27,15 +41,15 @@ perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 300) {
     page
   })
 
-  # Extract pages and convert to JSON
   json_content <- jsonlite::toJSON(pages, auto_unbox = TRUE, pretty = TRUE)
 
   list(
     json_content = json_content,
+    ocr_images = ocr_images,
     pages = pages,
     raw = result$raw,
-    provider_used = result$provider,  # Actual provider that succeeded
-    error_log = result$error_log      # Failed attempts (if any)
+    provider_used = result$provider,
+    error_log = result$error_log
   )
 }
 
@@ -91,7 +105,8 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "
       overwrite = TRUE,
       metadata = list(
         document_content = ocr_result$json_content,
-        ocr_provider = ocr_result$provider_used,  # Use actual provider that succeeded
+        ocr_images = ocr_result$ocr_images,
+        ocr_provider = ocr_result$provider_used,
         ocr_log = if (!is.na(ocr_result$error_log)) ocr_result$error_log else NA
       )
     )
