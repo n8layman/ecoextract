@@ -57,7 +57,7 @@
                         <h4 data-toc-skip class="author">EcoExtract
 Team</h4>
             
-            <h4 data-toc-skip class="date">2026-03-07</h4>
+            <h4 data-toc-skip class="date">2026-03-08</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/n8layman/ecoextract/blob/main/vignettes/configuration.Rmd" class="external-link"><code>vignettes/configuration.Rmd</code></a></small>
       <div class="d-none name"><code>configuration.Rmd</code></div>
@@ -776,7 +776,7 @@ observer</p>
 <h2 id="cross-provider-compatibility">Cross-Provider Compatibility<a class="anchor" aria-label="anchor" href="#cross-provider-compatibility"></a>
 </h2>
 <p>ecoextract supports multiple LLM providers (Anthropic Claude, OpenAI
-GPT, Mistral). Schemas must follow <a href="https://platform.openai.com/docs/guides/structured-outputs/supported-schemas" class="external-link">OpenAI’s
+GPT, Google Gemini, Mistral). Schemas must follow <a href="https://platform.openai.com/docs/guides/structured-outputs/supported-schemas" class="external-link">OpenAI’s
 structured output requirements</a> to work across all providers:</p>
 <ol style="list-style-type: decimal">
 <li>
@@ -801,8 +801,9 @@ instead (e.g.,
 <strong>No <code>$ref</code></strong> – inline all definitions</li>
 <li><strong>Max 100 properties, 5 nesting levels</strong></li>
 </ol>
-<p>These rules are safe for all providers – Claude and Mistral handle
-them without issues.</p>
+<p>These rules are safe for all providers – Claude, Gemini, and Mistral
+handle them without issues. Note: <code>additionalProperties</code> is
+automatically stripped for Gemini, which does not support it.</p>
 <p>For full details, see <a href="https://platform.openai.com/docs/guides/structured-outputs/supported-schemas" class="external-link">OpenAI’s
 Structured Outputs documentation</a>.</p>
 </div>
