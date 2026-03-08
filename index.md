@@ -94,7 +94,9 @@ By default, ecoextract uses `anthropic/claude-sonnet-4-5` for extraction
 and `tensorlake` for OCR. To use different providers, pass the `model`
 or `ocr_provider` parameters to
 [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md).
-Note: non-Anthropic LLM providers have not been fully tested.
+Supported LLM providers: Anthropic (`anthropic/`), Google Gemini
+(`google_gemini/`), OpenAI (`openai/`), Mistral (`mistral/`), Groq
+(`groq/`).
 
 ## Quick Start
 
@@ -126,12 +128,12 @@ process_documents(
   model = "anthropic/claude-sonnet-4-5"
 )
 
-# Tiered fallback: try Claude, then GPT-4o, then Mistral
+# Tiered fallback: try Claude, then Gemini (1M context), then Mistral
 process_documents(
   pdf_path = "papers/",
   model = c(
     "anthropic/claude-sonnet-4-5",
-    "openai/gpt-4o",
+    "google_gemini/gemini-2.5-flash",
     "mistral/mistral-large-latest"
   )
 )
@@ -146,6 +148,7 @@ columns for debugging.
 
 ``` bash
 ANTHROPIC_API_KEY=your_anthropic_key
+GOOGLE_API_KEY=your_google_key
 OPENAI_API_KEY=your_openai_key
 MISTRAL_API_KEY=your_mistral_key
 ```
