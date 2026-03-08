@@ -1,5 +1,5 @@
 # Integration Tests
-# All tests that require API keys (ANTHROPIC_API_KEY, MISTRAL_API_KEY, OPENAI_API_KEY)
+# All tests that require API keys (ANTHROPIC_API_KEY, GOOGLE_API_KEY, MISTRAL_API_KEY, OPENAI_API_KEY)
 # These are automatically skipped when keys are not set
 
 # Full Pipeline ----------------------------------------------------------------
@@ -274,6 +274,42 @@ test_that("host-pathogen schema works end-to-end", {
   # Verify record IDs were generated correctly
   expect_true(all(grepl("^[A-Za-z]+_[0-9]+_1_r[0-9]+$", records$record_id)),
               "All record_ids should match pattern Author_2024_1_r1")
+})
+
+# Gemini Provider (requires GOOGLE_API_KEY) ------------------------------------
+
+test_that("Gemini extraction works with additionalProperties stripping", {
+  cat("\n========== TEST: Gemini extraction works ==========\n")
+  skip_if(Sys.getenv("GOOGLE_API_KEY") == "", "GOOGLE_API_KEY not set")
+  skip_if(Sys.getenv("TENSORLAKE_API_KEY") == "", "TENSORLAKE_API_KEY not set")
+
+  test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
+  skip_if_not(file.exists(test_pdf), "Test PDF not found")
+
+  db_path <- withr::local_tempfile(fileext = ".sqlite")
+
+  schema_file <- system.file("extdata", "schema.json", package = "ecoextract")
+  prompt_file <- system.file("prompts", "extraction_prompt.md", package = "ecoextract")
+
+  result <- process_documents(
+    test_pdf,
+    db_conn = db_path,
+    schema_file = schema_file,
+    extraction_prompt_file = prompt_file,
+    model = "google_gemini/gemini-2.5-flash"
+  )
+
+  expect_s3_class(result, "tbl_df")
+  expect_equal(nrow(result), 1)
+  expect_equal(result$ocr_status[1], "completed")
+  expect_equal(result$metadata_status[1], "completed")
+  expect_equal(result$extraction_status[1], "completed")
+
+  # Verify records were extracted
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  records <- DBI::dbReadTable(con, "records")
+  expect_true(nrow(records) >= 1, "Gemini should extract at least 1 record")
 })
 
 # Deduplication with Embeddings (requires OPENAI_API_KEY) ----------------------

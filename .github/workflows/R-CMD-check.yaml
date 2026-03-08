@@ -12,6 +12,7 @@ jobs:
     env:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
       TENSORLAKE_API_KEY: ${{ secrets.TENSORLAKE_API_KEY }}
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
