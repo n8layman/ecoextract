@@ -571,7 +571,7 @@ Good unique field combinations:
 
 # Cross-Provider Compatibility
 
-ecoextract supports multiple LLM providers (Anthropic Claude, OpenAI GPT, Mistral). Schemas must follow [OpenAI's structured output requirements](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas) to work across all providers:
+ecoextract supports multiple LLM providers (Anthropic Claude, OpenAI GPT, Google Gemini, Mistral). Schemas must follow [OpenAI's structured output requirements](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas) to work across all providers:
 
 1. **`additionalProperties: false`** on every object definition
 2. **All properties listed in `required`** -- every field in `properties` must also appear in `required`
@@ -580,7 +580,7 @@ ecoextract supports multiple LLM providers (Anthropic Claude, OpenAI GPT, Mistra
 5. **No `$ref`** -- inline all definitions
 6. **Max 100 properties, 5 nesting levels**
 
-These rules are safe for all providers -- Claude and Mistral handle them without issues.
+These rules are safe for all providers -- Claude, Gemini, and Mistral handle them without issues. Note: `additionalProperties` is automatically stripped for Gemini, which does not support it.
 
 For full details, see [OpenAI's Structured Outputs documentation](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas).
 

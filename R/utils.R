@@ -129,6 +129,32 @@ build_existing_records_context <- function(existing_records, document_id = NULL,
   return(paste(context_lines, collapse = "\n"))
 }
 
+#' Remove additionalProperties from a JSON schema recursively
+#'
+#' Gemini does not support additionalProperties in schemas.
+#' This strips it at all levels so the schema can be used with Gemini.
+#'
+#' @param x List representing a JSON schema
+#' @return List with additionalProperties removed
+#' @keywords internal
+remove_additional_properties <- function(x) {
+  if (is.list(x)) {
+    x[["additionalProperties"]] <- NULL
+    x <- lapply(x, remove_additional_properties)
+  }
+  x
+}
+
+#' Strip additionalProperties from a TypeJsonSchema for Gemini compatibility
+#'
+#' @param schema An ellmer TypeJsonSchema object
+#' @return A new TypeJsonSchema with additionalProperties removed
+#' @keywords internal
+strip_additional_properties <- function(schema) {
+  json <- remove_additional_properties(schema@json)
+  ellmer::TypeJsonSchema(description = schema@description, json = json)
+}
+
 #' Check that API keys exist for specified models
 #'
 #' @param models Character vector of model names
@@ -141,7 +167,7 @@ check_api_keys_for_models <- function(models) {
     "openai" = "OPENAI_API_KEY",
     "mistral" = "MISTRAL_API_KEY",
     "groq" = "GROQ_API_KEY",
-    "google" = "GOOGLE_API_KEY"
+    "google_gemini" = "GOOGLE_API_KEY"
   )
 
   # Extract unique providers from model list
@@ -217,8 +243,15 @@ try_models_with_fallback <- function(
         params = list(max_tokens = max_tokens)
       )
 
+      # Gemini does not support additionalProperties in schemas
+      model_schema <- if (startsWith(model, "google_gemini/")) {
+        strip_additional_properties(schema)
+      } else {
+        schema
+      }
+
       # Attempt structured chat
-      result <- chat$chat_structured(context, type = schema)
+      result <- chat$chat_structured(context, type = model_schema)
 
       # Check if model refused despite returning structured output
       turns <- chat$get_turns()

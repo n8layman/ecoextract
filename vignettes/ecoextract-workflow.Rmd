@@ -194,13 +194,13 @@ process_documents(
   model = "anthropic/claude-sonnet-4-5"
 )
 
-# Tiered fallback: try Claude, then GPT-4.1 (1M context), then Mistral
-# Use GPT-4.1 as second model for large documents (>128k tokens) where Claude hits its 200k limit
+# Tiered fallback: try Claude, then Gemini (1M context), then Mistral
+# Gemini 2.5 Flash handles large documents where Claude hits its 200k limit
 process_documents(
   pdf_path = "papers/",
   model = c(
     "anthropic/claude-sonnet-4-5",
-    "openai/gpt-4.1",
+    "google_gemini/gemini-2.5-flash",
     "mistral/mistral-large-latest"
   )
 )
@@ -212,6 +212,7 @@ process_documents(
 
 ```bash
 ANTHROPIC_API_KEY=your_anthropic_key
+GOOGLE_API_KEY=your_google_key
 OPENAI_API_KEY=your_openai_key
 MISTRAL_API_KEY=your_mistral_key
 ```
