@@ -243,11 +243,14 @@ try_models_with_fallback <- function(
         params = list(max_tokens = max_tokens)
       )
 
-      # Gemini does not support additionalProperties in schemas
-      model_schema <- if (startsWith(model, "google_gemini/")) {
-        strip_additional_properties(schema)
-      } else {
-        schema
+      # Gemini does not support additionalProperties in JSON schemas.
+      # Only applies to TypeJsonSchema; native TypeObject is handled by ellmer.
+      model_schema <- schema
+      if (startsWith(model, "google_gemini/")) {
+        model_schema <- tryCatch(
+          strip_additional_properties(schema),
+          error = function(e) schema
+        )
       }
 
       # Attempt structured chat
