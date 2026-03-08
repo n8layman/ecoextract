@@ -129,29 +129,61 @@ build_existing_records_context <- function(existing_records, document_id = NULL,
   return(paste(context_lines, collapse = "\n"))
 }
 
-#' Remove additionalProperties from a JSON schema recursively
+#' Strip non-standard JSON Schema properties recursively
 #'
-#' Gemini does not support additionalProperties in schemas.
-#' This strips it at all levels so the schema can be used with Gemini.
+#' Removes properties that waste tokens and some providers reject:
+#' additionalProperties, $schema, _comment, and x-* extensions.
 #'
 #' @param x List representing a JSON schema
-#' @return List with additionalProperties removed
+#' @return List with non-standard properties removed
 #' @keywords internal
-remove_additional_properties <- function(x) {
+strip_non_standard_schema_properties <- function(x) {
   if (is.list(x)) {
     x[["additionalProperties"]] <- NULL
-    x <- lapply(x, remove_additional_properties)
+    x[["$schema"]] <- NULL
+    x[["_comment"]] <- NULL
+    x_names <- grep("^x-", names(x), value = TRUE)
+    for (nm in x_names) x[[nm]] <- NULL
+    x <- lapply(x, strip_non_standard_schema_properties)
   }
   x
 }
 
-#' Strip additionalProperties from a TypeJsonSchema for Gemini compatibility
+#' Convert nullable type arrays to Gemini's nullable format
+#'
+#' JSON Schema uses \code{"type": ["string", "null"]} for nullable fields.
+#' Gemini requires \code{"type": "string", "nullable": true} instead.
+#'
+#' @param x List representing a JSON schema
+#' @return List with nullable types converted
+#' @keywords internal
+convert_nullable_for_gemini <- function(x) {
+  if (is.list(x)) {
+    type_val <- x[["type"]]
+    if (!is.null(type_val) && length(type_val) > 1) {
+      types <- unlist(type_val)
+      if ("null" %in% types) {
+        non_null <- setdiff(types, "null")
+        x[["type"]] <- if (length(non_null) == 1) non_null else non_null
+        x[["nullable"]] <- TRUE
+      }
+    }
+    x <- lapply(x, convert_nullable_for_gemini)
+  }
+  x
+}
+
+#' Clean a TypeJsonSchema for API use
+#'
+#' Strips non-standard properties. For Gemini, also converts nullable types.
 #'
 #' @param schema An ellmer TypeJsonSchema object
-#' @return A new TypeJsonSchema with additionalProperties removed
+#' @param gemini Logical. If TRUE, also convert nullable type arrays.
+#' @return A new TypeJsonSchema with properties cleaned
 #' @keywords internal
-strip_additional_properties <- function(schema) {
-  json <- remove_additional_properties(schema@json)
+clean_schema_for_api <- function(schema, gemini = FALSE) {
+  json <- strip_non_standard_schema_properties(schema@json)
+  if (gemini) json <- convert_nullable_for_gemini(json)
   ellmer::TypeJsonSchema(description = schema@description, json = json)
 }
 
@@ -243,15 +275,15 @@ try_models_with_fallback <- function(
         params = list(max_tokens = max_tokens)
       )
 
-      # Gemini does not support additionalProperties in JSON schemas.
-      # Only applies to TypeJsonSchema; native TypeObject is handled by ellmer.
-      model_schema <- schema
-      if (startsWith(model, "google_gemini/")) {
-        model_schema <- tryCatch(
-          strip_additional_properties(schema),
-          error = function(e) schema
-        )
-      }
+      # Strip non-standard JSON Schema properties ($schema, x-*, _comment,
+      # additionalProperties) that waste tokens and some providers reject.
+      # For Gemini, also convert nullable type arrays to nullable format.
+      # Only applies to TypeJsonSchema; native TypeObject falls through via tryCatch.
+      is_gemini <- startsWith(model, "google_gemini/")
+      model_schema <- tryCatch(
+        clean_schema_for_api(schema, gemini = is_gemini),
+        error = function(e) schema
+      )
 
       # Attempt structured chat
       result <- chat$chat_structured(context, type = model_schema)
