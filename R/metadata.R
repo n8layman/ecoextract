@@ -66,7 +66,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model
       system_prompt = metadata_prompt,
       context = context,
       schema = schema,
-      max_tokens = 16384,
+      max_tokens = 64000,
       step_name = "Metadata extraction"
     )
 

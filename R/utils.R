@@ -182,7 +182,11 @@ convert_nullable_for_gemini <- function(x) {
 #' @return A new TypeJsonSchema with properties cleaned
 #' @keywords internal
 clean_schema_for_api <- function(schema, gemini = FALSE) {
-  json <- strip_non_standard_schema_properties(schema@json)
+  # Only process TypeJsonSchema (extraction/refinement schemas).
+  # Native TypeObject (metadata) is handled directly by ellmer.
+  json <- tryCatch(schema@json, error = function(e) NULL)
+  if (is.null(json)) return(schema)
+  json <- strip_non_standard_schema_properties(json)
   if (gemini) json <- convert_nullable_for_gemini(json)
   ellmer::TypeJsonSchema(description = schema@description, json = json)
 }
@@ -243,7 +247,7 @@ check_api_keys_for_models <- function(models) {
 #' @param system_prompt System prompt for the LLM
 #' @param context User context/input for the LLM
 #' @param schema ellmer type schema for structured output
-#' @param max_tokens Maximum tokens for response (default 16384)
+#' @param max_tokens Maximum tokens for response (default 64000)
 #' @param step_name Name of the step for logging (default "LLM call")
 #' @return List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)
 #' @keywords internal
@@ -252,7 +256,7 @@ try_models_with_fallback <- function(
   system_prompt,
   context,
   schema,
-  max_tokens = 16384,
+  max_tokens = 64000,
   step_name = "LLM call"
 ) {
   # Ensure models is a character vector
@@ -268,22 +272,24 @@ try_models_with_fallback <- function(
   for (model in models) {
     tryCatch({
       # Create chat instance
+      is_gemini <- startsWith(model, "google_gemini/")
       chat <- ellmer::chat(
         name = model,
         system_prompt = system_prompt,
         echo = "none",
-        params = list(max_tokens = max_tokens)
+        params = if (is_gemini) {
+          # Limit Gemini thinking budget to avoid truncating structured output.
+          ellmer::params(max_tokens = max_tokens, reasoning_tokens = 2048)
+        } else {
+          list(max_tokens = max_tokens)
+        }
       )
 
       # Strip non-standard JSON Schema properties ($schema, x-*, _comment,
       # additionalProperties) that waste tokens and some providers reject.
       # For Gemini, also convert nullable type arrays to nullable format.
-      # Only applies to TypeJsonSchema; native TypeObject falls through via tryCatch.
-      is_gemini <- startsWith(model, "google_gemini/")
-      model_schema <- tryCatch(
-        clean_schema_for_api(schema, gemini = is_gemini),
-        error = function(e) schema
-      )
+      # Native TypeObject (metadata) passes through unchanged.
+      model_schema <- clean_schema_for_api(schema, gemini = is_gemini)
 
       # Attempt structured chat
       result <- chat$chat_structured(context, type = model_schema)

@@ -128,7 +128,7 @@ refine_records <- function(db_conn = NULL, document_id,
       system_prompt = refinement_prompt,
       context = refinement_context,
       schema = schema,
-      max_tokens = 16384,
+      max_tokens = 64000,
       step_name = "Refinement"
     )
 

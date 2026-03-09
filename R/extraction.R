@@ -72,7 +72,7 @@ extract_records <- function(document_id = NA,
       system_prompt = extraction_prompt,
       context = extraction_context,
       schema = schema,
-      max_tokens = 16384,
+      max_tokens = 64000,
       step_name = "Extraction"
     )
 
