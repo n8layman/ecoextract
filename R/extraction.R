@@ -80,11 +80,18 @@ extract_records <- function(document_id = NA,
     model_used <- llm_result$model_used
     error_log <- llm_result$error_log
 
-    # Extract and save reasoning
+    # Extract and save reasoning — always save, even if empty.
+    # Empty reasoning with 0 records is diagnostic info.
+    reasoning_text <- NULL
     if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
       reasoning_text <- extract_result$reasoning
-      if (!is.na(document_id) && !inherits(db_conn, "logical") && !is.null(reasoning_text) && nchar(reasoning_text) > 0) {
+    }
+    if (!is.na(document_id) && !inherits(db_conn, "logical")) {
+      if (!is.null(reasoning_text) && nchar(reasoning_text) > 0) {
         save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "extraction")
+      } else {
+        # Save NA to make missing reasoning explicit in the DB
+        save_reasoning_to_db(document_id, db_conn, NA_character_, step = "extraction")
       }
     }
 
@@ -164,8 +171,14 @@ extract_records <- function(document_id = NA,
         extraction_df_no_db <- extraction_df  # Save for return
       }
     } else {
-      status <- "completed"
       records_count <- 0
+      # 0 records with no reasoning means the model violated the schema —
+      # flag as error so the document gets retried or reviewed.
+      if (is.null(reasoning_text) || is.na(reasoning_text) || nchar(reasoning_text) == 0) {
+        status <- "Extraction failed: Model returned 0 records with no reasoning"
+      } else {
+        status <- "completed"
+      }
     }
 
     # Save status and record count to DB (only if DB connection exists)
@@ -185,6 +198,46 @@ extract_records <- function(document_id = NA,
       }, error = function(e) {
         paste("Extraction failed: Could not save status -", e$message)
       })
+    }
+
+    # Post-write validation: verify reasoning and required fields in DB
+    if (!inherits(db_conn, "logical") && !is.na(document_id) && status == "completed") {
+      validation_errors <- character(0)
+
+      # Check reasoning was stored (only if schema requires it)
+      if ("reasoning" %in% schema_list$required) {
+        doc_row <- DBI::dbGetQuery(db_conn,
+          "SELECT extraction_reasoning FROM documents WHERE document_id = ?",
+          params = list(document_id))
+        if (nrow(doc_row) > 0 && (is.na(doc_row$extraction_reasoning[1]) || nchar(doc_row$extraction_reasoning[1]) == 0)) {
+          validation_errors <- c(validation_errors, "extraction_reasoning is missing in DB")
+        }
+      }
+
+      # Check non-nullable required fields on stored records.
+      # Nullable fields ("type": ["string", "null"]) are allowed to be NA.
+      stored_records <- get_records(document_id, db_conn)
+      if (!is.null(stored_records) && nrow(stored_records) > 0) {
+        record_props <- schema_list$properties$records$items$properties
+        required_fields <- schema_list$properties$records$items$required
+        if (!is.null(required_fields) && !is.null(record_props)) {
+          for (field in intersect(required_fields, names(stored_records))) {
+            field_type <- record_props[[field]]$type
+            is_nullable <- is.list(field_type) && "null" %in% unlist(field_type)
+            if (!is_nullable) {
+              n_missing <- sum(is.na(stored_records[[field]]) | stored_records[[field]] == "")
+              if (n_missing > 0) {
+                validation_errors <- c(validation_errors,
+                  sprintf("non-nullable field '%s' has %d missing value(s)", field, n_missing))
+              }
+            }
+          }
+        }
+      }
+
+      if (length(validation_errors) > 0) {
+        warning("Post-write validation: ", paste(validation_errors, collapse = "; "))
+      }
     }
 
     # Return appropriate structure based on DB connection

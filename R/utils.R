@@ -278,8 +278,8 @@ try_models_with_fallback <- function(
         system_prompt = system_prompt,
         echo = "none",
         params = if (is_gemini) {
-          # Limit Gemini thinking budget to avoid truncating structured output.
-          ellmer::params(max_tokens = max_tokens, reasoning_tokens = 2048)
+          # Disable Gemini thinking to avoid truncating structured output.
+          ellmer::params(max_tokens = max_tokens, reasoning_tokens = 0)
         } else {
           list(max_tokens = max_tokens)
         }
