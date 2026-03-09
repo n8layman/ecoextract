@@ -24,6 +24,8 @@ Your reasoning should address challenges like:
 
 **Output the `reasoning` field FIRST, then the `records` array.**
 
+**IMPORTANT: The `reasoning` field is ALWAYS required, even if you find zero extractable records.** If no records can be extracted, explain why in the reasoning (e.g., document is not about ecological interactions, organisms cannot be identified to genus level, etc.) and return an empty `records` array. Never return empty reasoning.
+
 ## Document Format
 
 The OCR content you receive is structured as a JSON array of page objects. Each page contains:

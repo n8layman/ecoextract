@@ -248,6 +248,7 @@ check_api_keys_for_models <- function(models) {
 #' @param context User context/input for the LLM
 #' @param schema ellmer type schema for structured output
 #' @param max_tokens Maximum tokens for response (default 64000)
+#' @param max_retries Maximum retry attempts per model for stochastic failures (default 2)
 #' @param step_name Name of the step for logging (default "LLM call")
 #' @return List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)
 #' @keywords internal
@@ -257,6 +258,7 @@ try_models_with_fallback <- function(
   context,
   schema,
   max_tokens = 64000,
+  max_retries = 2,
   step_name = "LLM call"
 ) {
   # Ensure models is a character vector
@@ -270,7 +272,9 @@ try_models_with_fallback <- function(
   errors <- list()
 
   for (model in models) {
+    for (attempt in seq_len(max_retries)) {
     tryCatch({
+      if (attempt > 1) message(sprintf("  Retry %d/%d for %s", attempt, max_retries, model))
       # Create chat instance
       is_gemini <- startsWith(model, "google_gemini/")
       chat <- ellmer::chat(
@@ -294,20 +298,34 @@ try_models_with_fallback <- function(
       # Attempt structured chat
       result <- chat$chat_structured(context, type = model_schema)
 
+      # Log raw result structure for diagnostics
+      result_names <- if (is.list(result)) paste(names(result), collapse = ", ") else class(result)
+      message(sprintf("  Raw result structure: %s", result_names))
+
       # Check if model refused despite returning structured output
       turns <- chat$get_turns()
       if (length(turns) > 0) {
         last_turn <- turns[[length(turns)]]
         if (!is.null(last_turn@json$stop_reason) && last_turn@json$stop_reason == "refusal") {
-          # Model refused - treat as error and try next model
           stop("Model refused request (stop_reason: refusal)")
         }
       }
 
-      # Check if result has required reasoning field
-      if (is.list(result) && ("reasoning" %in% names(result))) {
-        if (is.null(result$reasoning) || (is.character(result$reasoning) && nchar(result$reasoning) == 0)) {
-          stop("Model returned NULL or empty reasoning field")
+      # Validate reasoning field if schema requires it.
+      # ellmer may drop NULL fields from structured output, so check
+      # both presence and content.
+      has_reasoning <- is.list(result) && "reasoning" %in% names(result)
+      reasoning_empty <- !has_reasoning ||
+        is.null(result$reasoning) ||
+        (is.character(result$reasoning) && nchar(result$reasoning) == 0)
+
+      if (reasoning_empty) {
+        # Check if schema actually requires reasoning
+        schema_json <- tryCatch(schema@json, error = function(e) NULL)
+        schema_requires_reasoning <- !is.null(schema_json) &&
+          "reasoning" %in% schema_json$required
+        if (schema_requires_reasoning) {
+          stop("Model returned empty/missing reasoning (schema requires it)")
         }
       }
 
@@ -340,16 +358,26 @@ try_models_with_fallback <- function(
         }
       }, error = function(e2) {})
 
-      message(sprintf("%s failed with %s: %s", step_name, model, conditionMessage(e)))
+      msg <- conditionMessage(e)
+      message(sprintf("%s failed with %s: %s", step_name, model, msg))
 
       # Store for audit log (use <<- to modify parent scope)
       errors[[model]] <<- list(
-        error = conditionMessage(e),
+        error = msg,
         content = raw_content,
         stop_reason = stop_reason,
+        attempt = attempt,
         timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       )
     })
+    # If last attempt succeeded, function already returned.
+    # If error was stored, check if retryable (empty reasoning = stochastic).
+    if (!is.null(errors[[model]]) && attempt < max_retries) {
+      is_retryable <- grepl("empty/missing reasoning", errors[[model]]$error)
+      if (is_retryable) next
+    }
+    break  # Hard failure or max retries reached — move to next model
+    }  # end retry loop
   }
 
   # All models failed - construct informative error message
