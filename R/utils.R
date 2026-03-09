@@ -191,6 +191,55 @@ clean_schema_for_api <- function(schema, gemini = FALSE) {
   ellmer::TypeJsonSchema(description = schema@description, json = json)
 }
 
+#' Parse a JSON string, fixing mismatched Unicode quotation marks
+#'
+#' When LLMs generate JSON containing text with paired Unicode quotes
+#' (e.g. Bulgarian \u201E...\u201C), they sometimes use ASCII " (U+0022)
+#' as the closing quote instead of the proper Unicode character, breaking
+#' JSON parsing. This function tries normal parsing first, then fixes
+#' the common pattern before retrying.
+#'
+#' @param json_str Character string containing JSON
+#' @return Parsed list
+#' @keywords internal
+parse_json_with_quote_fix <- function(json_str) {
+  result <- tryCatch(
+    jsonlite::fromJSON(json_str, simplifyVector = FALSE),
+    error = function(e) NULL
+  )
+  if (!is.null(result)) return(result)
+
+  # Fix: U+201E (double low-9 quote) paired with ASCII " instead of U+201C.
+  # The model copies e.g. \u201EKhristo G. Danev" from OCR text, where the
+  # closing " is ASCII U+0022, prematurely terminating the JSON string.
+  open_quote <- intToUtf8(0x201E)
+  close_quote <- intToUtf8(0x201C)
+  pattern <- paste0(open_quote, '([^"]{1,500})"')
+  replacement <- paste0(open_quote, "\\1", close_quote)
+  fixed <- gsub(pattern, replacement, json_str, perl = TRUE)
+  jsonlite::fromJSON(fixed, simplifyVector = FALSE)
+}
+
+#' Normalize raw structured output from chat_structured(convert = FALSE)
+#'
+#' When using \code{convert = FALSE}, the raw result may be a parsed list
+#' (TypeObject without envelope), a list with a \code{data} string element
+#' (data-string envelope), or a bare character string. This function
+#' normalizes all cases to a parsed list.
+#'
+#' @param raw Raw result from chat_structured(convert = FALSE)
+#' @return Parsed list
+#' @keywords internal
+normalize_structured_result <- function(raw) {
+  # Already a usable list (TypeObject without envelope)
+  if (is.list(raw) && !("data" %in% names(raw) && is.character(raw$data))) {
+    return(raw)
+  }
+  # Data-string envelope or bare string: unwrap and parse
+  json_str <- if (is.character(raw)) raw else raw$data
+  parse_json_with_quote_fix(json_str)
+}
+
 #' Check that API keys exist for specified models
 #'
 #' @param models Character vector of model names
@@ -295,8 +344,11 @@ try_models_with_fallback <- function(
       # Native TypeObject (metadata) passes through unchanged.
       model_schema <- clean_schema_for_api(schema, gemini = is_gemini)
 
-      # Attempt structured chat
-      result <- chat$chat_structured(context, type = model_schema)
+      # Attempt structured chat with convert = FALSE to bypass
+      # convert_from_type(), which crashes on malformed inner JSON
+      # (e.g. Unicode quote mismatches causing "subscript out of bounds").
+      raw <- chat$chat_structured(context, type = model_schema, convert = FALSE)
+      result <- normalize_structured_result(raw)
 
       # Log raw result structure for diagnostics
       result_names <- if (is.list(result)) paste(names(result), collapse = ", ") else class(result)
