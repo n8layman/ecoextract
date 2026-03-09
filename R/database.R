@@ -195,7 +195,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
 
         -- Extraction step
         extraction_reasoning TEXT,  -- Reasoning from extraction step
-        records_extracted INTEGER DEFAULT 0,  -- Total number of records extracted from this document
+        records_extracted INTEGER DEFAULT NULL,  -- Total number of records extracted from this document
         extraction_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Extraction failed: <msg>'
         extraction_llm_model TEXT,  -- Model used for extraction (e.g., 'anthropic/claude-sonnet-4-5', 'openai/gpt-4o')
         extraction_log TEXT,        -- JSON array of all model attempts with errors/refusals (audit trail)
