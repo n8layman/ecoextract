@@ -12,7 +12,7 @@ process_single_document(
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
   ocr_provider = "tensorlake",
-  ocr_timeout = 60,
+  ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -41,7 +41,7 @@ Can be a single model name or a vector of models for tiered fallback. Default: "
 \item{ocr_provider}{OCR provider to use (default: "tensorlake").
 Options: "tensorlake", "mistral", "claude". Can also be a vector for fallback.}
 
-\item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 60)}
+\item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 300)}
 
 \item{force_reprocess_ocr}{NULL, TRUE, or integer vector of document_ids to force OCR}
 

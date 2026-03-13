@@ -9,7 +9,7 @@ ocr_document(
   db_conn,
   force_reprocess = TRUE,
   provider = "tensorlake",
-  timeout = 60,
+  timeout = 300,
   max_wait_seconds = NULL
 )
 }
@@ -22,7 +22,7 @@ ocr_document(
 
 \item{provider}{OCR provider to use (default: "tensorlake")}
 
-\item{timeout}{Maximum seconds to wait for OCR completion (default: 60)}
+\item{timeout}{Maximum seconds to wait for OCR completion (default: 300)}
 
 \item{max_wait_seconds}{Deprecated. Use timeout instead.}
 }

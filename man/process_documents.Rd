@@ -12,7 +12,7 @@ process_documents(
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
   ocr_provider = "tensorlake",
-  ocr_timeout = 60,
+  ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -44,12 +44,13 @@ If a connection is provided, tables must already exist (use \code{init_ecoextrac
 Can be a single model name (character string) or a vector of models for tiered fallback.
 When a vector is provided, models are tried sequentially until one succeeds.
 Default: "anthropic/claude-sonnet-4-5".
-Examples: "openai/gpt-4o", c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest")}
+Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
+c("anthropic/claude-sonnet-4-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")}
 
 \item{ocr_provider}{OCR provider to use (default: "tensorlake").
 Options: "tensorlake", "mistral", "claude"}
 
-\item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 60)}
+\item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 300)}
 
 \item{force_reprocess_ocr}{Controls OCR reprocessing. NULL (default) uses normal skip logic,
 TRUE forces all documents, or an integer vector of document_ids to force specific documents.}

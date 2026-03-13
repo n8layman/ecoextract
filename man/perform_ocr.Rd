@@ -4,14 +4,14 @@
 \alias{perform_ocr}
 \title{OCR Functions}
 \usage{
-perform_ocr(pdf_file, provider = "tensorlake", timeout = 60)
+perform_ocr(pdf_file, provider = "tensorlake", timeout = 300)
 }
 \arguments{
 \item{pdf_file}{Path to PDF}
 
 \item{provider}{OCR provider to use (default: "tensorlake")}
 
-\item{timeout}{Maximum seconds to wait for OCR completion (default: 60)}
+\item{timeout}{Maximum seconds to wait for OCR completion (default: 300)}
 }
 \value{
 List with markdown content, images, and raw result
