@@ -1,7 +1,7 @@
 Type: Package
 Package: ecoextract
 Title: Ecological Data Extraction and Refinement
-Version: 0.1.3
+Version: 0.1.4
 Authors@R: person("Nathan C", "Layman", role = c("aut", "cre"),
     email = "n8layman@gmail.com")
 Author: Nathan C Layman [aut, cre]
