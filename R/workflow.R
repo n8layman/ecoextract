@@ -74,6 +74,8 @@ validate_force_param <- function(param, param_name) {
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
+#' @param reps Number of extraction passes (default: 1). Multiple passes increase
+#'   recall by deduplicating each pass against accumulated results.
 #' @param recursive If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.
 #' @param ocr_provider OCR provider to use (default: "tensorlake").
 #'   Options: "tensorlake", "mistral", "claude"
@@ -161,6 +163,7 @@ process_documents <- function(pdf_path,
                              min_similarity = 0.9,
                              embedding_provider = "openai",
                              similarity_method = "llm",
+                             reps = 1,
                              recursive = FALSE,
                              workers = NULL,
                              log = FALSE,
@@ -358,7 +361,8 @@ process_documents <- function(pdf_path,
                     run_refinement = run_refinement,
                     min_similarity = min_similarity,
                     embedding_provider = embedding_provider,
-                    similarity_method = similarity_method
+                    similarity_method = similarity_method,
+                    reps = reps
                   ), extra_args)
                 )
               }, type = "message")
@@ -387,7 +391,8 @@ process_documents <- function(pdf_path,
                 run_refinement = run_refinement,
                 min_similarity = min_similarity,
                 embedding_provider = embedding_provider,
-                similarity_method = similarity_method
+                similarity_method = similarity_method,
+                reps = reps
               ), extra_args)
             )
           }
@@ -409,6 +414,7 @@ process_documents <- function(pdf_path,
           min_similarity = min_similarity,
           embedding_provider = embedding_provider,
           similarity_method = similarity_method,
+          reps = reps,
           capture_output = !is.null(log_file),
           parent_env = parent_env,
           extra_args = extra_args
@@ -548,6 +554,7 @@ process_documents <- function(pdf_path,
         min_similarity = min_similarity,
         embedding_provider = embedding_provider,
         similarity_method = similarity_method,
+        reps = reps,
         ...
       )
       results_list[[length(results_list) + 1]] <- result
@@ -638,6 +645,8 @@ process_documents <- function(pdf_path,
 #' @param min_similarity Minimum cosine similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings (default: "openai")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
+#' @param reps Number of extraction passes (default: 1). Multiple passes increase
+#'   recall by deduplicating each pass against accumulated results.
 #' @param ... Additional arguments
 #' @return List with processing result
 #' @export
@@ -657,6 +666,7 @@ process_single_document <- function(pdf_file,
                                     min_similarity = 0.9,
                                     embedding_provider = "openai",
                                     similarity_method = "llm",
+                                    reps = 1,
                                     ...) {
 
   # Log header
@@ -840,7 +850,8 @@ process_single_document <- function(pdf_file,
         model = model,
         min_similarity = min_similarity,
         embedding_provider = embedding_provider,
-        similarity_method = similarity_method
+        similarity_method = similarity_method,
+        reps = reps
       )
       status_tracking$extraction_status <- extraction_result$status
       status_tracking$records_extracted <- rlang::`%||%`(extraction_result$records_extracted, 0)

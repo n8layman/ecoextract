@@ -21,6 +21,7 @@ process_documents(
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
+  reps = 1,
   recursive = FALSE,
   workers = NULL,
   log = FALSE,
@@ -72,6 +73,9 @@ to refine only specific documents.}
 \item{embedding_provider}{Provider for embeddings when using embedding method (default: "openai")}
 
 \item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")}
+
+\item{reps}{Number of extraction passes (default: 1). Multiple passes increase
+recall by deduplicating each pass against accumulated results.}
 
 \item{recursive}{If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.}
 

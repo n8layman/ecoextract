@@ -21,6 +21,7 @@ process_single_document(
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
+  reps = 1,
   ...
 )
 }
@@ -58,6 +59,9 @@ Options: "tensorlake", "mistral", "claude". Can also be a vector for fallback.}
 \item{embedding_provider}{Provider for embeddings (default: "openai")}
 
 \item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")}
+
+\item{reps}{Number of extraction passes (default: 1). Multiple passes increase
+recall by deduplicating each pass against accumulated results.}
 
 \item{...}{Additional arguments}
 }

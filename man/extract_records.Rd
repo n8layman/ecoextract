@@ -15,6 +15,7 @@ extract_records(
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
+  reps = 1,
   ...
 )
 }
@@ -38,6 +39,9 @@ extract_records(
 \item{embedding_provider}{Provider for embeddings when using embedding method (default: "mistral")}
 
 \item{similarity_method}{Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")}
+
+\item{reps}{Number of extraction passes (default: 1). Multiple passes
+increase recall by deduplicating each pass against accumulated results.}
 
 \item{...}{Additional arguments passed to extraction}
 }

@@ -17,6 +17,8 @@
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "mistral")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
+#' @param reps Number of extraction passes (default: 1). Multiple passes
+#'   increase recall by deduplicating each pass against accumulated results.
 #' @param ... Additional arguments passed to extraction
 #' @return List with extraction results
 #' @keywords internal
@@ -30,6 +32,7 @@ extract_records <- function(document_id = NA,
                                  min_similarity = 0.9,
                                  embedding_provider = "openai",
                                  similarity_method = "llm",
+                                 reps = 1,
                                  ...) {
 
   # Document content must be available either through the db or provided
@@ -65,120 +68,121 @@ extract_records <- function(document_id = NA,
       .null = "0"
     ), "\n")
 
-    # Execute extraction with model fallback
-    # Using native ellmer types, arrays of objects are automatically converted to dataframes
-    llm_result <- try_models_with_fallback(
-      models = model,
-      system_prompt = extraction_prompt,
-      context = extraction_context,
-      schema = schema,
-      max_tokens = 64000,
-      step_name = "Extraction"
-    )
-
-    extract_result <- llm_result$result
-    model_used <- llm_result$model_used
-    error_log <- llm_result$error_log
-
-    # Extract and save reasoning — always save, even if empty.
-    # Empty reasoning with 0 records is diagnostic info.
+    # Track across reps
+    has_db <- !is.na(document_id) && !inherits(db_conn, "logical")
+    model_used <- NULL
+    error_log <- NA_character_
     reasoning_text <- NULL
-    if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
-      reasoning_text <- extract_result$reasoning
-    }
-    if (!is.na(document_id) && !inherits(db_conn, "logical")) {
-      if (!is.null(reasoning_text) && nchar(reasoning_text) > 0) {
-        save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "extraction")
-      } else {
-        # Save NA to make missing reasoning explicit in the DB
-        save_reasoning_to_db(document_id, db_conn, NA_character_, step = "extraction")
-      }
-    }
+    status <- "completed"
+    records_count <- 0
+    reps <- as.integer(reps)
 
-    # Extract records from result
-    if (is.list(extract_result) && "records" %in% names(extract_result)) {
-      records_data <- extract_result$records
+    for (rep in seq_len(reps)) {
+      if (reps > 1) message(sprintf("  Extraction rep %d/%d...", rep, reps))
 
-      # Handle different formats returned by ellmer
-      if (is.data.frame(records_data) && nrow(records_data) > 0) {
-        # Already a dataframe
-        extraction_df <- tibble::as_tibble(records_data)
-      } else if (is.list(records_data) && length(records_data) > 0) {
-        # List of lists - convert to dataframe via JSON round-trip to preserve array structure
-        # Replace NULL with NA first: toJSON serializes NULL as {} (object), not null
-        records_data <- lapply(records_data, function(record) {
-          lapply(record, function(val) if (is.null(val)) NA else val)
-        })
-        json_str <- jsonlite::toJSON(records_data, auto_unbox = TRUE, na = "null")
-        extraction_df <- jsonlite::fromJSON(json_str, simplifyDataFrame = TRUE)
-      } else {
-        extraction_df <- tibble::tibble()
-      }
-    } else if (is.data.frame(extract_result)) {
-      # Direct dataframe result
-      extraction_df <- tibble::as_tibble(extract_result)
-    } else {
-      extraction_df <- tibble::tibble()
-    }
-
-    # Process dataframe if valid
-    if (is.data.frame(extraction_df) && nrow(extraction_df) > 0) {
-      # Set fields_changed_count to 0 for new extractions
-      extraction_df$fields_changed_count <- 0L
-
-      # Save to database (atomic step)
-      if (!is.na(document_id) && !inherits(db_conn, "logical")) {
-        # Get existing records for deduplication
-        existing_records <- get_records(document_id, db_conn)
-        if (is.null(existing_records)) {
-          existing_records <- tibble::tibble()
-        }
-
-        # Deduplicate using similarity method
-        dedup_result <- deduplicate_records(
-          new_records = extraction_df,
-          existing_records = existing_records,
-          schema_list = schema_list,
-          min_similarity = min_similarity,
-          embedding_provider = embedding_provider,
-          similarity_method = similarity_method,
-          model = model
+      # Per-rep tryCatch: a failed rep doesn't prevent others
+      rep_result <- tryCatch({
+        llm_result <- try_models_with_fallback(
+          models = model,
+          system_prompt = extraction_prompt,
+          context = extraction_context,
+          schema = schema,
+          max_tokens = 64000,
+          step_name = "Extraction"
         )
 
-        # Save only unique records
-        unique_records <- dedup_result$unique_records
+        extract_result <- llm_result$result
+        model_used <<- llm_result$model_used
+        error_log <<- llm_result$error_log
 
-        if (nrow(unique_records) > 0) {
-          save_records_to_db(
-            db_path = db_conn,  # Pass connection object, not path
-            document_id = document_id,
-            interactions_df = unique_records,
-            metadata = list(
-              model = model_used,
-              prompt_hash = extraction_prompt_hash
-            ),
-            schema_list = schema_list,  # Pass schema for array normalization
-            mode = "insert"  # Extraction always inserts (deduplication already done)
-          )
+        # Save reasoning on first rep only
+        if (rep == 1) {
+          if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
+            reasoning_text <<- extract_result$reasoning
+          }
+          if (has_db) {
+            if (!is.null(reasoning_text) && nchar(reasoning_text) > 0) {
+              save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "extraction")
+            } else {
+              save_reasoning_to_db(document_id, db_conn, NA_character_, step = "extraction")
+            }
+          }
         }
 
-        status <- "completed"
-        records_count <- dedup_result$new_records_count
-      } else {
-        # No DB connection
-        status <- "Extraction failed: No database connection"
-        records_count <- nrow(extraction_df)
-        extraction_df_no_db <- extraction_df  # Save for return
-      }
-    } else {
-      records_count <- 0
-      # 0 records with no reasoning means the model violated the schema —
-      # flag as error so the document gets retried or reviewed.
-      if (is.null(reasoning_text) || is.na(reasoning_text) || nchar(reasoning_text) == 0) {
-        status <- "Extraction failed: Model returned 0 records with no reasoning"
-      } else {
-        status <- "completed"
-      }
+        # Extract records from result
+        if (is.list(extract_result) && "records" %in% names(extract_result)) {
+          records_data <- extract_result$records
+
+          if (is.data.frame(records_data) && nrow(records_data) > 0) {
+            extraction_df <- tibble::as_tibble(records_data)
+          } else if (is.list(records_data) && length(records_data) > 0) {
+            records_data <- lapply(records_data, function(record) {
+              lapply(record, function(val) if (is.null(val)) NA else val)
+            })
+            json_str <- jsonlite::toJSON(records_data, auto_unbox = TRUE, na = "null")
+            extraction_df <- jsonlite::fromJSON(json_str, simplifyDataFrame = TRUE)
+          } else {
+            extraction_df <- tibble::tibble()
+          }
+        } else if (is.data.frame(extract_result)) {
+          extraction_df <- tibble::as_tibble(extract_result)
+        } else {
+          extraction_df <- tibble::tibble()
+        }
+
+        # Dedup and save
+        if (is.data.frame(extraction_df) && nrow(extraction_df) > 0) {
+          extraction_df$fields_changed_count <- 0L
+
+          if (has_db) {
+            existing_records <- get_records(document_id, db_conn)
+            if (is.null(existing_records)) existing_records <- tibble::tibble()
+
+            dedup_result <- deduplicate_records(
+              new_records = extraction_df,
+              existing_records = existing_records,
+              schema_list = schema_list,
+              min_similarity = min_similarity,
+              embedding_provider = embedding_provider,
+              similarity_method = similarity_method,
+              model = model
+            )
+
+            unique_records <- dedup_result$unique_records
+            if (nrow(unique_records) > 0) {
+              save_records_to_db(
+                db_path = db_conn,
+                document_id = document_id,
+                interactions_df = unique_records,
+                metadata = list(
+                  model = model_used,
+                  prompt_hash = extraction_prompt_hash
+                ),
+                schema_list = schema_list,
+                mode = "insert"
+              )
+            }
+            records_count <<- records_count + dedup_result$new_records_count
+          } else {
+            records_count <<- nrow(extraction_df)
+            extraction_df_no_db <- extraction_df
+          }
+        } else if (rep == 1) {
+          # 0 records on first rep with no reasoning — flag as error
+          if (is.null(reasoning_text) || is.na(reasoning_text) || nchar(reasoning_text) == 0) {
+            status <<- "Extraction failed: Model returned 0 records with no reasoning"
+          }
+        }
+
+        "ok"
+      }, error = function(e) {
+        message(sprintf("  Extraction rep %d failed: %s", rep, e$message))
+        if (rep == 1 && is.null(model_used)) {
+          # First rep failed — propagate so outer tryCatch handles it
+          stop(e)
+        }
+        "failed"
+      })
     }
 
     # Save status and record count to DB (only if DB connection exists)
