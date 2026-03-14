@@ -409,7 +409,7 @@ export_db <- function(document_id = NULL,
       ""
     }
 
-    # Build SELECT - include all columns then reorder
+    # Build SELECT - curated document columns + all record columns
     select_cols <- c(
       "d.document_id", "d.file_name", "d.file_path",
       "d.title", "d.authors", "d.first_author_lastname", "d.publication_year",
@@ -423,19 +423,13 @@ export_db <- function(document_id = NULL,
       select_cols <- c(select_cols, "d.document_content", "d.ocr_images")
     }
 
-    # Get column names to build explicit SELECT
-    doc_cols <- DBI::dbListFields(con, "documents")
+    # Append record columns (all except document_id which is already in select_cols)
     rec_cols <- setdiff(DBI::dbListFields(con, "records"), "document_id")
+    select_cols <- c(select_cols, paste0("r.", rec_cols))
 
-    # Build explicit column list with aliases
-    select_list <- c(
-      paste0("d.", doc_cols),
-      paste0("r.", rec_cols)
-    )
-
-    # Execute query with explicit columns to avoid duplicates
+    # Execute query with curated columns
     query <- paste0(
-      "SELECT ", paste(select_list, collapse = ", "), " ",
+      "SELECT ", paste(select_cols, collapse = ", "), " ",
       "FROM records r ",
       "JOIN documents d ON r.document_id = d.document_id ",
       where_clause
@@ -466,9 +460,7 @@ export_db <- function(document_id = NULL,
       # Get all document columns that exist in result (in our specified order)
       doc_cols_present <- intersect(doc_cols_ordered, names(result))
 
-      # Get all records columns (in database order - user controls this via schema)
-      # Note: document_content must be in all_doc_cols even when include_ocr = FALSE
-      # to prevent it from appearing in record_cols
+      # All possible document columns (superset) so setdiff correctly identifies record columns
       all_doc_cols <- c(doc_cols_ordered, "document_content", "file_hash", "file_size",
                         "upload_timestamp", "ocr_images", "extraction_reasoning",
                         "refinement_reasoning")
