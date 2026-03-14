@@ -240,6 +240,45 @@ normalize_structured_result <- function(raw) {
   parse_json_with_quote_fix(json_str)
 }
 
+#' Detect whether an LLM error is a content refusal
+#'
+#' When a model refuses content (e.g. papers about select agents), it may
+#' truncate structured output early rather than returning an explicit refusal
+#' signal. This produces parse errors indistinguishable from network issues.
+#' This function checks for refusal indicators in the error and response.
+#'
+#' @param error_msg The error message string
+#' @param raw_content Raw response content from the API (may be NULL)
+#' @param stop_reason The stop_reason from the API response (may be NULL)
+#' @return Logical
+#' @keywords internal
+is_content_refusal <- function(error_msg, raw_content = NULL, stop_reason = NULL) {
+  # Explicit refusal signal
+
+  if (!is.null(stop_reason) && stop_reason == "refusal") return(TRUE)
+
+  # Parse error with minimal content suggests truncated refusal
+  is_parse_error <- grepl("premature EOF|parse error|lexical error", error_msg)
+  if (is_parse_error && !is.null(raw_content)) {
+    content_str <- tryCatch(
+      paste(unlist(raw_content), collapse = " "),
+      error = function(e) ""
+    )
+    # Refusal language in truncated output
+    refusal_patterns <- paste(
+      "I cannot", "I'm unable", "I can't", "content policy",
+      "I'm not able", "unable to process", "cannot assist",
+      sep = "|"
+    )
+    if (grepl(refusal_patterns, content_str, ignore.case = TRUE)) return(TRUE)
+
+    # Very short structured output (model started JSON then stopped)
+    if (nchar(content_str) < 200 && nchar(content_str) > 0) return(TRUE)
+  }
+
+  FALSE
+}
+
 #' Check that API keys exist for specified models
 #'
 #' @param models Character vector of model names
@@ -411,13 +450,25 @@ try_models_with_fallback <- function(
       }, error = function(e2) {})
 
       msg <- conditionMessage(e)
-      message(sprintf("%s failed with %s: %s", step_name, model, msg))
+
+      # Detect content refusals disguised as parse errors.
+      # When a model refuses content (e.g. select agents), it truncates
+      # the structured output early, causing a parse error. Distinguish
+      # this from genuine network/API failures for clearer logging.
+      is_refusal <- is_content_refusal(msg, raw_content, stop_reason)
+      if (is_refusal) {
+        message(sprintf("%s refused by %s (content policy), falling back...",
+                        step_name, model))
+      } else {
+        message(sprintf("%s failed with %s: %s", step_name, model, msg))
+      }
 
       # Store for audit log (use <<- to modify parent scope)
       errors[[model]] <<- list(
-        error = msg,
+        error = if (is_refusal) paste("Content refusal:", msg) else msg,
         content = raw_content,
         stop_reason = stop_reason,
+        refusal = is_refusal,
         attempt = attempt,
         timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       )
