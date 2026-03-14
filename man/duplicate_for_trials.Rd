@@ -8,6 +8,7 @@ duplicate_for_trials(
   template_db,
   n,
   through = c("ocr", "metadata", "extraction"),
+  pattern = NULL,
   dir = NULL
 )
 }
@@ -23,6 +24,10 @@ duplicate_for_trials(
   \item{"extraction"}{Keep OCR + metadata + extraction. Trials only re-run refinement.}
 }}
 
+\item{pattern}{Naming pattern for trial databases. Use \code{{n}} for the
+trial number (glue syntax). Default: \code{"{basename}_trial_{n}.{ext}"}
+where basename and ext come from the template filename.}
+
 \item{dir}{Output directory for trial databases (default: same directory as template)}
 }
 \value{
@@ -37,6 +42,9 @@ a specified stage. This avoids re-running expensive deterministic steps
 \dontrun{
 # Create 10 trial copies preserving OCR
 trial_dbs <- duplicate_for_trials("template.db", n = 10, through = "ocr")
+
+# Custom naming pattern
+trial_dbs <- duplicate_for_trials("template.db", n = 5, pattern = "benchmark_trial_{n}.sqlite")
 
 # Run pipeline on each trial (OCR auto-skips)
 results <- purrr::map(trial_dbs, \(db) {

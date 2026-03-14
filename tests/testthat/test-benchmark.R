@@ -37,6 +37,21 @@ test_that("duplicate_for_trials creates n trial databases", {
   expect_true(all(grepl("_trial_[123]\\.", trial_paths)))
 })
 
+test_that("duplicate_for_trials accepts custom naming pattern", {
+  db_path <- local_test_db()
+  trial_dir <- withr::local_tempdir()
+
+  trial_paths <- duplicate_for_trials(
+    db_path, n = 2, through = "ocr", dir = trial_dir,
+    pattern = "my_benchmark_{n}.sqlite"
+  )
+
+  expect_length(trial_paths, 2)
+  expect_true(all(file.exists(trial_paths)))
+  expect_equal(basename(trial_paths[1]), "my_benchmark_1.sqlite")
+  expect_equal(basename(trial_paths[2]), "my_benchmark_2.sqlite")
+})
+
 test_that("duplicate_for_trials validates inputs", {
   expect_error(duplicate_for_trials("nonexistent.db", n = 1), "not found")
 

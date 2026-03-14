@@ -12,6 +12,9 @@
 #'     \item{"metadata"}{Keep OCR + metadata. Trials re-run extraction and refinement.}
 #'     \item{"extraction"}{Keep OCR + metadata + extraction. Trials only re-run refinement.}
 #'   }
+#' @param pattern Naming pattern for trial databases. Use \code{{n}} for the
+#'   trial number (glue syntax). Default: \code{"{basename}_trial_{n}.{ext}"}
+#'   where basename and ext come from the template filename.
 #' @param dir Output directory for trial databases (default: same directory as template)
 #' @return Character vector of paths to the created trial databases
 #' @export
@@ -21,6 +24,9 @@
 #' # Create 10 trial copies preserving OCR
 #' trial_dbs <- duplicate_for_trials("template.db", n = 10, through = "ocr")
 #'
+#' # Custom naming pattern
+#' trial_dbs <- duplicate_for_trials("template.db", n = 5, pattern = "benchmark_trial_{n}.sqlite")
+#'
 #' # Run pipeline on each trial (OCR auto-skips)
 #' results <- purrr::map(trial_dbs, \(db) {
 #'   process_documents("pdfs/", db_conn = db)
@@ -29,6 +35,7 @@
 duplicate_for_trials <- function(template_db,
                                  n,
                                  through = c("ocr", "metadata", "extraction"),
+                                 pattern = NULL,
                                  dir = NULL) {
   through <- match.arg(through)
 
@@ -48,11 +55,17 @@ duplicate_for_trials <- function(template_db,
   }
 
   # Generate trial paths
-  base <- tools::file_path_sans_ext(basename(template_db))
+  basename <- tools::file_path_sans_ext(basename(template_db))
   ext <- tools::file_ext(template_db)
   if (nchar(ext) == 0) ext <- "db"
 
-  trial_paths <- file.path(dir, paste0(base, "_trial_", seq_len(n), ".", ext))
+  if (is.null(pattern)) {
+    pattern <- "{basename}_trial_{n}.{ext}"
+  }
+
+  trial_paths <- purrr::map_chr(seq_len(n), function(n) {
+    file.path(dir, glue::glue(pattern))
+  })
 
   existing <- trial_paths[file.exists(trial_paths)]
   if (length(existing) > 0) {
