@@ -20,7 +20,10 @@ database file. Defaults to "ecoextract_records.db"}
 
 \item{include_ocr}{If TRUE, include OCR content in export (default: FALSE)}
 
-\item{simple}{If TRUE, exclude processing metadata columns (default: FALSE)}
+\item{simple}{If TRUE, return only minimal document columns (document_id,
+file_name, first_author_lastname, publication_year) plus schema-defined
+record fields, excluding record metadata like id, extraction_timestamp,
+and prompt_hash (default: FALSE)}
 
 \item{filename}{Optional path to save as CSV file (if NULL, returns tibble only)}
 }

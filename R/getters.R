@@ -361,7 +361,10 @@ get_records <- function(document_id = NULL, db_conn = "ecoextract_records.db") {
 #' @param db_conn Database connection (any DBI backend) or path to SQLite
 #'   database file. Defaults to "ecoextract_records.db"
 #' @param include_ocr If TRUE, include OCR content in export (default: FALSE)
-#' @param simple If TRUE, exclude processing metadata columns (default: FALSE)
+#' @param simple If TRUE, return only minimal document columns (document_id,
+#'   file_name, first_author_lastname, publication_year) plus schema-defined
+#'   record fields, excluding record metadata like id, extraction_timestamp,
+#'   and prompt_hash (default: FALSE)
 #' @param filename Optional path to save as CSV file (if NULL, returns tibble only)
 #' @return Tibble with records joined to document metadata, or invisibly if saved to file
 #' @export
@@ -474,15 +477,20 @@ export_db <- function(document_id = NULL,
         dplyr::select(dplyr::any_of(col_order))
     }
 
-    # Filter columns if simple mode
+    # Simple mode: minimal document columns + schema-defined record fields only
     if (simple && nrow(result) > 0) {
-      # Remove processing metadata columns
-      metadata_cols <- c(
-        "extraction_timestamp", "prompt_hash",
-        "fields_changed_count", "human_edited", "deleted_by_user"
-      )
+      simple_doc_cols <- c("document_id", "file_name", "first_author_lastname",
+                           "publication_year")
+      record_metadata <- c("id", "document_id", "extraction_timestamp",
+                           "prompt_hash", "fields_changed_count",
+                           "human_edited", "deleted_by_user")
+      all_doc_cols_full <- c(doc_cols_ordered, "document_content", "file_hash",
+                             "file_size", "upload_timestamp", "ocr_images",
+                             "extraction_reasoning", "refinement_reasoning")
+      schema_record_cols <- setdiff(names(result),
+                                    c(all_doc_cols_full, record_metadata))
       result <- result |>
-        dplyr::select(-dplyr::any_of(metadata_cols))
+        dplyr::select(dplyr::any_of(c(simple_doc_cols, schema_record_cols)))
     }
 
     # Save to CSV if filename provided
