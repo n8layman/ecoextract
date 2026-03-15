@@ -69,10 +69,11 @@ EcoExtract requires API keys for OCR and data extraction.
 - Tensorlake (OCR, default): <https://www.tensorlake.ai/>
 - Anthropic Claude (extraction): <https://console.anthropic.com/>
 
-**Optional OCR providers** (via ohseer):
+**Optional providers:**
 
-- Mistral: <https://console.mistral.ai/>
-- Claude: <https://console.anthropic.com/> (uses same key as extraction)
+- Google Gemini (extraction fallback): <https://aistudio.google.com/apikey>
+- OpenAI (embedding-based deduplication): <https://platform.openai.com/api-keys>
+- Mistral (OCR or extraction fallback): <https://console.mistral.ai/>
 
 **Before creating your `.env` file, verify it's in `.gitignore`:**
 
@@ -89,7 +90,9 @@ echo ".env" >> .gitignore
 ```bash
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 TENSORLAKE_API_KEY=your-tensorlake-key-here
-# Optional for alternative OCR providers
+# Optional providers
+GOOGLE_API_KEY=your-google-key-here
+OPENAI_API_KEY=your-openai-key-here
 MISTRAL_API_KEY=your-mistral-key-here
 ```
 

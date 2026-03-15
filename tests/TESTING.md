@@ -62,7 +62,7 @@ These run entirely offline and execute in under a second.
 ### Integration Tests (require API keys)
 
 - **test-integration.R** - Full pipeline (OCR, extraction, refinement), schema-agnostic pipeline, embedding/field-by-field/LLM deduplication
-- Requires `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, and optionally `OPENAI_API_KEY`
+- Requires `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, and optionally `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `TENSORLAKE_API_KEY`
 - Verify response structure only, not content accuracy
 - Automatically skipped when API keys are not set
 
@@ -165,8 +165,11 @@ Integration tests require API keys:
 
 ```r
 # Set API keys before running integration tests
-Sys.setenv(ANTHROPIC_API_KEY = "your-key")
-Sys.setenv(MISTRAL_API_KEY = "your-key")
+Sys.setenv(ANTHROPIC_API_KEY = "your-key")     # Required
+Sys.setenv(MISTRAL_API_KEY = "your-key")       # Required (pipeline OCR)
+Sys.setenv(OPENAI_API_KEY = "your-key")        # Optional (embedding dedup tests)
+Sys.setenv(GOOGLE_API_KEY = "your-key")        # Optional (Gemini provider test)
+Sys.setenv(TENSORLAKE_API_KEY = "your-key")    # Optional (Gemini test OCR)
 
 # Run integration tests
 testthat::test_file("tests/testthat/test-integration.R")
