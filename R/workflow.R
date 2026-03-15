@@ -292,6 +292,26 @@ process_documents <- function(pdf_path,
     }
   }
 
+  # Include DB documents with completed OCR whose files aren't on disk
+  query_conn <- if (inherits(db_conn, "DBIConnection")) db_conn else {
+    tmp <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+    configure_sqlite_connection(tmp)
+    tmp
+  }
+  db_docs <- DBI::dbGetQuery(query_conn,
+    "SELECT file_path FROM documents WHERE ocr_status = 'completed'")
+  if (!inherits(db_conn, "DBIConnection")) DBI::dbDisconnect(query_conn)
+
+  if (nrow(db_docs) > 0) {
+    on_disk <- normalizePath(pdf_files, mustWork = FALSE)
+    db_paths <- db_docs$file_path[!normalizePath(db_docs$file_path, mustWork = FALSE) %in% on_disk]
+    if (length(db_paths) > 0) {
+      message(sprintf("Found %d document(s) in database with completed OCR (not on disk)",
+                       length(db_paths)))
+      pdf_files <- c(pdf_files, db_paths)
+    }
+  }
+
   # Track timing
   start_time <- Sys.time()
 
@@ -696,24 +716,41 @@ process_single_document <- function(pdf_file,
 
   # Get or create document record to obtain document_id
   # We need the document_id before we can check statuses or nullify them
-  file_hash <- digest::digest(file = pdf_file, algo = "md5")
-  existing <- DBI::dbGetQuery(db_conn,
-    "SELECT document_id FROM documents WHERE file_hash = ?",
-    params = list(file_hash))
+  if (file.exists(pdf_file)) {
+    file_hash <- digest::digest(file = pdf_file, algo = "md5")
+    existing <- DBI::dbGetQuery(db_conn,
+      "SELECT document_id FROM documents WHERE file_hash = ?",
+      params = list(file_hash))
 
-  if (nrow(existing) > 0) {
-    doc_id <- existing$document_id[1]
+    if (nrow(existing) > 0) {
+      doc_id <- existing$document_id[1]
+    } else {
+      # Insert new document record with retry logic
+      doc_id <- retry_db_operation({
+        DBI::dbExecute(db_conn,
+          "INSERT INTO documents (file_name, file_path, file_hash, upload_timestamp)
+           VALUES (?, ?, ?, ?)",
+          params = list(basename(pdf_file), pdf_file, file_hash, format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+        DBI::dbGetQuery(db_conn,
+          "SELECT document_id FROM documents WHERE file_hash = ?",
+          params = list(file_hash))$document_id[1]
+      })
+    }
   } else {
-    # Insert new document record with retry logic
-    doc_id <- retry_db_operation({
-      DBI::dbExecute(db_conn,
-        "INSERT INTO documents (file_name, file_path, file_hash, upload_timestamp)
-         VALUES (?, ?, ?, ?)",
-        params = list(basename(pdf_file), pdf_file, file_hash, format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
-      DBI::dbGetQuery(db_conn,
-        "SELECT document_id FROM documents WHERE file_hash = ?",
-        params = list(file_hash))$document_id[1]
-    })
+    # File not on disk — look up existing document by stored path
+    existing <- DBI::dbGetQuery(db_conn,
+      "SELECT document_id, ocr_status FROM documents WHERE file_path = ?",
+      params = list(pdf_file))
+    if (nrow(existing) == 0) {
+      message(sprintf("  Skipping %s: not on disk and not in database", basename(pdf_file)))
+      return(status_tracking)
+    }
+    doc_id <- existing$document_id[1]
+    if (is.na(existing$ocr_status[1]) || existing$ocr_status[1] != "completed") {
+      message(sprintf("  Skipping %s: not on disk and OCR not completed", basename(pdf_file)))
+      return(status_tracking)
+    }
+    message(sprintf("  %s: not on disk, using stored OCR content", basename(pdf_file)))
   }
   status_tracking$document_id <- doc_id
 
