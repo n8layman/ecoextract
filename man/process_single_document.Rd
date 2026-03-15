@@ -11,7 +11,7 @@ process_single_document(
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
-  ocr_provider = "tensorlake",
+  ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
@@ -39,7 +39,7 @@ process_single_document(
 \item{model}{LLM model(s) to use for metadata extraction, record extraction, and refinement.
 Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"}
 
-\item{ocr_provider}{OCR provider to use (default: "tensorlake").
+\item{ocr_provider}{OCR provider to use (default: "mistral").
 Options: "tensorlake", "mistral", "claude". Can also be a vector for fallback.}
 
 \item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 300)}

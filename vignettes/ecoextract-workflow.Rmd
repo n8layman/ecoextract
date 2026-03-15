@@ -33,7 +33,7 @@ EcoExtract works as part of three packages:
 
 - R version 4.1.0 or higher
 - RStudio (recommended)
-- API keys for Tensorlake (OCR) and Anthropic Claude (extraction)
+- API keys for Mistral (OCR) and Anthropic Claude (extraction)
 
 ## Installation
 
@@ -66,14 +66,14 @@ EcoExtract requires API keys for OCR and data extraction.
 
 **Required API keys:**
 
-- Tensorlake (OCR, default): <https://www.tensorlake.ai/>
+- Mistral (OCR, default): <https://console.mistral.ai/>
 - Anthropic Claude (extraction): <https://console.anthropic.com/>
 
 **Optional providers:**
 
+- Tensorlake (alternative OCR): <https://www.tensorlake.ai/>
 - Google Gemini (extraction fallback): <https://aistudio.google.com/apikey>
 - OpenAI (embedding-based deduplication): <https://platform.openai.com/api-keys>
-- Mistral (OCR or extraction fallback): <https://console.mistral.ai/>
 
 **Before creating your `.env` file, verify it's in `.gitignore`:**
 
@@ -89,11 +89,11 @@ echo ".env" >> .gitignore
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-TENSORLAKE_API_KEY=your-tensorlake-key-here
+MISTRAL_API_KEY=your-mistral-key-here
 # Optional providers
+TENSORLAKE_API_KEY=your-tensorlake-key-here
 GOOGLE_API_KEY=your-google-key-here
 OPENAI_API_KEY=your-openai-key-here
-MISTRAL_API_KEY=your-mistral-key-here
 ```
 
 The `.env` file is automatically loaded when R starts in the project directory. You can also load it manually:

@@ -11,7 +11,7 @@ process_documents(
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
-  ocr_provider = "tensorlake",
+  ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
@@ -48,7 +48,7 @@ Default: "anthropic/claude-sonnet-4-5".
 Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
 c("anthropic/claude-sonnet-4-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")}
 
-\item{ocr_provider}{OCR provider to use (default: "tensorlake").
+\item{ocr_provider}{OCR provider to use (default: "mistral").
 Options: "tensorlake", "mistral", "claude"}
 
 \item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 300)}

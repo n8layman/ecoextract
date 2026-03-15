@@ -77,7 +77,7 @@ validate_force_param <- function(param, param_name) {
 #' @param reps Number of extraction passes (default: 1). Multiple passes increase
 #'   recall by deduplicating each pass against accumulated results.
 #' @param recursive If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.
-#' @param ocr_provider OCR provider to use (default: "tensorlake").
+#' @param ocr_provider OCR provider to use (default: "mistral").
 #'   Options: "tensorlake", "mistral", "claude"
 #' @param ocr_timeout Maximum seconds to wait for OCR completion (default: 300)
 #' @param workers Number of parallel workers. NULL (default) or 1 for sequential processing.
@@ -153,7 +153,7 @@ process_documents <- function(pdf_path,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
                              model = "anthropic/claude-sonnet-4-5",
-                             ocr_provider = "tensorlake",
+                             ocr_provider = "mistral",
                              ocr_timeout = 300,
                              force_reprocess_ocr = NULL,
                              force_reprocess_metadata = NULL,
@@ -634,7 +634,7 @@ process_documents <- function(pdf_path,
 #' @param refinement_prompt_file Optional custom refinement prompt
 #' @param model LLM model(s) to use for metadata extraction, record extraction, and refinement.
 #'   Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"
-#' @param ocr_provider OCR provider to use (default: "tensorlake").
+#' @param ocr_provider OCR provider to use (default: "mistral").
 #'   Options: "tensorlake", "mistral", "claude". Can also be a vector for fallback.
 #' @param ocr_timeout Maximum seconds to wait for OCR completion (default: 300)
 #' @param force_reprocess_ocr NULL, TRUE, or integer vector of document_ids to force OCR
@@ -656,7 +656,7 @@ process_single_document <- function(pdf_file,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
                                     model = "anthropic/claude-sonnet-4-5",
-                                    ocr_provider = "tensorlake",
+                                    ocr_provider = "mistral",
                                     ocr_timeout = 300,
                                     force_reprocess_ocr = NULL,
                                     force_reprocess_metadata = NULL,
