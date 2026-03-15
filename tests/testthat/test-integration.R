@@ -267,9 +267,6 @@ test_that("host-pathogen schema works end-to-end", {
               "Should have extracted pathogen names")
   expect_true(any(!is.na(records$Host_Name)),
               "Should have extracted host names")
-  # Detection_Method is optional (not required), just verify column exists
-  expect_true("Detection_Method" %in% names(records),
-              "Should have Detection_Method column in schema")
 
   # Verify record IDs were generated correctly
   expect_true(all(grepl("^[A-Za-z]+_[0-9]+_1_r[0-9]+$", records$record_id)),

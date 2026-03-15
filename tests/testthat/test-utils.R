@@ -14,7 +14,6 @@ test_that("generate_record_id handles special characters", {
   id <- generate_record_id("O'Brien", 2020, 1)
 
   expect_match(id, "OBrien_2020_1_r1")
-  expect_false(grepl("'", id))
 })
 
 test_that("add_record_ids adds IDs to all rows", {

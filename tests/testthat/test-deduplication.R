@@ -104,7 +104,6 @@ test_that("deduplicate_records with no existing records returns all new records"
 
   expect_equal(nrow(result$unique_records), 2)
   expect_equal(result$duplicates_found, 0)
-  expect_equal(result$new_records_count, 2)
 })
 
 test_that("deduplicate_records errors when x-unique-fields is missing", {

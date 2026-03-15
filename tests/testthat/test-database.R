@@ -165,8 +165,4 @@ test_that("array fields stored as single-level JSON arrays in database", {
 
   expect_equal(multi, '["Sentence one.","Sentence two."]')
   expect_equal(single, '["Single sentence."]')
-
-  # Verify no double-nesting
-  expect_false(grepl("\\[\\[", multi))
-  expect_false(grepl("\\[\\[", single))
 })
