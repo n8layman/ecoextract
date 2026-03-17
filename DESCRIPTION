@@ -25,6 +25,7 @@ Imports:
     jsonlite,
     markdown,
     ohseer,
+    purrr,
     readr,
     rlang,
     RSQLite,

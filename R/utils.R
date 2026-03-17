@@ -194,7 +194,7 @@ clean_schema_for_api <- function(schema, gemini = FALSE) {
 #' Parse a JSON string, fixing mismatched Unicode quotation marks
 #'
 #' When LLMs generate JSON containing text with paired Unicode quotes
-#' (e.g. Bulgarian \u201E...\u201C), they sometimes use ASCII " (U+0022)
+#' (e.g. Bulgarian double low-9 / left double quotes), they sometimes use ASCII " (U+0022)
 #' as the closing quote instead of the proper Unicode character, breaking
 #' JSON parsing. This function tries normal parsing first, then fixes
 #' the common pattern before retrying.
