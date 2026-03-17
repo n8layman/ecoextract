@@ -210,18 +210,12 @@ process_documents <- function(pdf_path,
       # Process directory
       pdf_files <- list.files(pdf_path, pattern = "\\.pdf$", full.names = TRUE,
                               ignore.case = TRUE, recursive = recursive)
-      if (length(pdf_files) == 0) {
+      if (length(pdf_files) > 0) {
         if (recursive) {
-          stop("No PDF files found in directory or subdirectories: ", pdf_path)
+          cat("Found", length(pdf_files), "PDF files to process (including subdirectories)\n\n")
         } else {
-          stop("No PDF files found in directory: ", pdf_path,
-               "\n  Use recursive = TRUE to search subdirectories")
+          cat("Found", length(pdf_files), "PDF files to process\n\n")
         }
-      }
-      if (recursive) {
-        cat("Found", length(pdf_files), "PDF files to process (including subdirectories)\n\n")
-      } else {
-        cat("Found", length(pdf_files), "PDF files to process\n\n")
       }
     } else if (grepl("\\.pdf$", pdf_path, ignore.case = TRUE)) {
       # Single file
@@ -303,13 +297,22 @@ process_documents <- function(pdf_path,
   if (!inherits(db_conn, "DBIConnection")) DBI::dbDisconnect(query_conn)
 
   if (nrow(db_docs) > 0) {
-    on_disk <- normalizePath(pdf_files, mustWork = FALSE)
-    db_paths <- db_docs$file_path[!normalizePath(db_docs$file_path, mustWork = FALSE) %in% on_disk]
+    on_disk_norm <- normalizePath(pdf_files, mustWork = FALSE)
+    on_disk_base <- basename(pdf_files)
+    db_norm <- normalizePath(db_docs$file_path, mustWork = FALSE)
+    db_base <- basename(db_docs$file_path)
+    already_listed <- db_norm %in% on_disk_norm | db_base %in% on_disk_base
+    db_paths <- db_docs$file_path[!already_listed]
     if (length(db_paths) > 0) {
       message(sprintf("Found %d document(s) in database with completed OCR (not on disk)",
                        length(db_paths)))
       pdf_files <- c(pdf_files, db_paths)
     }
+  }
+
+  # Error if no documents from disk or DB
+  if (length(pdf_files) == 0) {
+    stop("No documents to process: no PDF files on disk and no completed OCR documents in database")
   }
 
   # Track timing
