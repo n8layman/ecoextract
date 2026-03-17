@@ -68,13 +68,14 @@ extract_records <- function(document_id = NA,
       .null = "0"
     ), "\n")
 
-    # Track across reps
+    # Track across reps — use env to avoid <<- scoping issues in tryCatch
     has_db <- !is.na(document_id) && !inherits(db_conn, "logical")
-    model_used <- NULL
-    error_log <- NA_character_
-    reasoning_text <- NULL
-    status <- "completed"
-    records_count <- 0
+    track <- new.env(parent = emptyenv())
+    track$models_used <- character(0)
+    track$error_log <- NA_character_
+    track$reasoning_text <- NULL
+    track$status <- "completed"
+    track$records_count <- 0
     reps <- as.integer(reps)
 
     for (rep in seq_len(reps)) {
@@ -92,17 +93,17 @@ extract_records <- function(document_id = NA,
         )
 
         extract_result <- llm_result$result
-        model_used <<- llm_result$model_used
-        error_log <<- llm_result$error_log
+        track$models_used <- c(track$models_used, llm_result$model_used)
+        track$error_log <- llm_result$error_log
 
         # Save reasoning on first rep only
         if (rep == 1) {
           if (is.list(extract_result) && "reasoning" %in% names(extract_result)) {
-            reasoning_text <<- extract_result$reasoning
+            track$reasoning_text <- extract_result$reasoning
           }
           if (has_db) {
-            if (!is.null(reasoning_text) && nchar(reasoning_text) > 0) {
-              save_reasoning_to_db(document_id, db_conn, reasoning_text, step = "extraction")
+            if (!is.null(track$reasoning_text) && nchar(track$reasoning_text) > 0) {
+              save_reasoning_to_db(document_id, db_conn, track$reasoning_text, step = "extraction")
             } else {
               save_reasoning_to_db(document_id, db_conn, NA_character_, step = "extraction")
             }
@@ -155,35 +156,46 @@ extract_records <- function(document_id = NA,
                 document_id = document_id,
                 interactions_df = unique_records,
                 metadata = list(
-                  model = model_used,
+                  model = track$models_used[length(track$models_used)],
                   prompt_hash = extraction_prompt_hash
                 ),
                 schema_list = schema_list,
                 mode = "insert"
               )
             }
-            records_count <<- records_count + dedup_result$new_records_count
+            track$records_count <- track$records_count + dedup_result$new_records_count
           } else {
-            records_count <<- nrow(extraction_df)
+            track$records_count <- nrow(extraction_df)
             extraction_df_no_db <- extraction_df
           }
         } else if (rep == 1) {
           # 0 records on first rep with no reasoning — flag as error
-          if (is.null(reasoning_text) || is.na(reasoning_text) || nchar(reasoning_text) == 0) {
-            status <<- "Extraction failed: Model returned 0 records with no reasoning"
+          if (is.null(track$reasoning_text) || is.na(track$reasoning_text) || nchar(track$reasoning_text) == 0) {
+            track$status <- "Extraction failed: Model returned 0 records with no reasoning"
           }
         }
 
         "ok"
       }, error = function(e) {
         message(sprintf("  Extraction rep %d failed: %s", rep, e$message))
-        if (rep == 1 && is.null(model_used)) {
+        if (rep == 1 && length(track$models_used) == 0) {
           # First rep failed — propagate so outer tryCatch handles it
           stop(e)
         }
         "failed"
       })
     }
+
+    # Resolve tracked values
+    model_used <- if (length(track$models_used) > 0) {
+      jsonlite::toJSON(track$models_used, auto_unbox = TRUE)
+    } else {
+      NULL
+    }
+    error_log <- track$error_log
+    status <- track$status
+    records_count <- track$records_count
+    reasoning_text <- track$reasoning_text
 
     # Save status and record count to DB (only if DB connection exists)
     if (!inherits(db_conn, "logical") && !is.na(document_id)) {
@@ -286,7 +298,8 @@ extract_records <- function(document_id = NA,
       records_extracted = 0,
       document_id = if (!is.na(document_id)) document_id else NA,
       raw_llm_response = NULL,  # No response on error
-      error_log = e$error_log %||% NA_character_
+      error_log = e$error_log %||% NA_character_,
+      model_used = model_used  # Preserve model even on error
     ))
   })
 }
