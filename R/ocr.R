@@ -88,33 +88,17 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
-  # Run OCR with fallback across providers
-  providers <- as.character(provider)
-  providers_msg <- if (length(providers) > 1) {
-    paste0("providers: ", paste(providers, collapse = ", "))
+  # Run OCR — ohseer handles provider fallback internally when provider is a vector
+  providers_msg <- if (length(provider) > 1) {
+    paste0("providers: ", paste(provider, collapse = ", "))
   } else {
-    paste0("provider: ", providers)
+    paste0("provider: ", provider)
   }
   message(glue::glue("Performing OCR with {providers_msg} on {basename(pdf_file)}..."))
 
-  ocr_result <- NULL
-  last_error <- NULL
-  for (p in providers) {
-    attempt <- tryCatch({
-      perform_ocr(pdf_file, provider = p, timeout = timeout)
-    }, error = function(e) {
-      message(glue::glue("OCR failed with {p}: {e$message}"))
-      NULL
-    })
-    if (!is.null(attempt)) {
-      ocr_result <- attempt
-      message(glue::glue("OCR completed successfully using {p}"))
-      break
-    }
-    last_error <- p
-  }
+  ocr_response <- tryCatch({
+    ocr_result <- perform_ocr(pdf_file, provider = provider, timeout = timeout)
 
-  ocr_response <- if (!is.null(ocr_result)) {
     saved_id <- save_document_to_db(
       db_conn = db_conn,
       file_path = pdf_file,
@@ -128,12 +112,9 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "
     )
     message(glue::glue("OCR completed: {length(ocr_result$pages)} pages extracted"))
     list(status = "completed", document_id = saved_id)
-  } else {
-    list(
-      status = paste("OCR failed: all providers failed:", paste(providers, collapse = ", ")),
-      document_id = NA
-    )
-  }
+  }, error = function(e) {
+    list(status = paste("OCR failed:", e$message), document_id = NA)
+  })
 
   return(list(status = ocr_response$status, document_id = ocr_response$document_id))
 }
