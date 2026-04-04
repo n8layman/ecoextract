@@ -43,6 +43,7 @@ extract_records <- function(document_id = NA,
     stop("ERROR message please provide either the id of a document in the database or markdown OCR document content.")
   }
 
+  model_used <- NULL  # Initialize so error handler can always reference it
   tryCatch({
     # Load schema JSON and convert to ellmer TypeJsonSchema
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)

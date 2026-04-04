@@ -88,17 +88,33 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
-  # Run OCR
-  ocr_response <- tryCatch({
-    providers_msg <- if (length(provider) > 1) {
-      paste0("providers: ", paste(provider, collapse = ", "))
-    } else {
-      paste0("provider: ", provider)
-    }
-    message(glue::glue("Performing OCR with {providers_msg} on {basename(pdf_file)}..."))
-    ocr_result <- perform_ocr(pdf_file, provider = provider, timeout = timeout)
+  # Run OCR with fallback across providers
+  providers <- as.character(provider)
+  providers_msg <- if (length(providers) > 1) {
+    paste0("providers: ", paste(providers, collapse = ", "))
+  } else {
+    paste0("provider: ", providers)
+  }
+  message(glue::glue("Performing OCR with {providers_msg} on {basename(pdf_file)}..."))
 
-    # Save document to database with JSON content and provider tracking
+  ocr_result <- NULL
+  last_error <- NULL
+  for (p in providers) {
+    attempt <- tryCatch({
+      perform_ocr(pdf_file, provider = p, timeout = timeout)
+    }, error = function(e) {
+      message(glue::glue("OCR failed with {p}: {e$message}"))
+      NULL
+    })
+    if (!is.null(attempt)) {
+      ocr_result <- attempt
+      message(glue::glue("OCR completed successfully using {p}"))
+      break
+    }
+    last_error <- p
+  }
+
+  ocr_response <- if (!is.null(ocr_result)) {
     saved_id <- save_document_to_db(
       db_conn = db_conn,
       file_path = pdf_file,
@@ -110,14 +126,14 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "
         ocr_log = if (!is.na(ocr_result$error_log)) ocr_result$error_log else NA
       )
     )
-
-    message(glue::glue(
-      "OCR completed: {length(ocr_result$pages)} pages extracted"
-    ))
+    message(glue::glue("OCR completed: {length(ocr_result$pages)} pages extracted"))
     list(status = "completed", document_id = saved_id)
-  }, error = function(e) {
-    list(status = paste("OCR failed:", e$message), document_id = NA)
-  })
+  } else {
+    list(
+      status = paste("OCR failed: all providers failed:", paste(providers, collapse = ", ")),
+      document_id = NA
+    )
+  }
 
   return(list(status = ocr_response$status, document_id = ocr_response$document_id))
 }
