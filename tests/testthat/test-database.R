@@ -1,6 +1,40 @@
 # Database Tests
 # Tests for database initialization, schema, save/retrieve, and array field handling
 
+# process_documents input validation -------------------------------------------
+
+test_that("process_documents errors when both pdf_path and document_id given", {
+  expect_error(
+    process_documents(pdf_path = "some.pdf", document_id = 1L),
+    "mutually exclusive"
+  )
+})
+
+test_that("process_documents errors when neither pdf_path nor document_id given", {
+  expect_error(
+    process_documents(),
+    "One of pdf_path or document_id must be provided"
+  )
+})
+
+test_that("process_documents errors when pdf_path vector contains a directory", {
+  tmp_dir <- withr::local_tempdir()
+  tmp_pdf <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("fake pdf", tmp_pdf)
+  expect_error(
+    process_documents(pdf_path = c(tmp_pdf, tmp_dir)),
+    "must contain only PDF files, not directories"
+  )
+})
+
+test_that("process_documents with document_id errors if none found in db", {
+  db_path <- local_test_db()
+  expect_error(
+    process_documents(document_id = 99L, db_conn = db_path),
+    "No documents found in database"
+  )
+})
+
 # Database Core ----------------------------------------------------------------
 
 test_that("database initialization creates required tables", {
