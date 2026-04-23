@@ -189,7 +189,7 @@ deduplicate_records <- function(new_records,
   }
 
   # Get x-unique-fields from the record schema (should be an array like 'required')
-  key_fields <- record_schema[["x-unique-fields"]]
+  key_fields <- unlist(record_schema[["x-unique-fields"]])
 
   if (is.null(key_fields) || length(key_fields) == 0) {
     stop(
