@@ -48,7 +48,11 @@ validate_force_param <- function(param, param_name) {
 #'
 #' Process PDFs through the complete pipeline: OCR → Metadata → Extract → Refine
 #'
-#' @param pdf_path Path to a single PDF file or directory of PDFs
+#' @param pdf_path Path to a single PDF file, a character vector of PDF paths, or a directory
+#'   of PDFs. Mutually exclusive with \code{document_id}.
+#' @param document_id Integer vector of document IDs from the database to reprocess.
+#'   For each ID, the stored file path is looked up; if the file exists on disk it is used,
+#'   otherwise the stored OCR content is used directly. Mutually exclusive with \code{pdf_path}.
 #' @param db_conn Database connection (any DBI backend) or path to SQLite database file.
 #'   If a path is provided, creates SQLite database if it doesn't exist.
 #'   If a connection is provided, tables must already exist (use \code{init_ecoextract_database()} first).
@@ -95,6 +99,13 @@ validate_force_param <- function(param, param_name) {
 #' # Basic usage - process new PDFs
 #' process_documents("pdfs/")
 #' process_documents("paper.pdf", "my_interactions.db")
+#'
+#' # Reprocess specific documents by ID (works even if files have moved/been deleted)
+#' process_documents(document_id = c(1L, 5L, 12L), db_conn = "my_interactions.db")
+#'
+#' # Reprocess all documents currently in the database
+#' ids <- DBI::dbGetQuery(con, "SELECT document_id FROM documents")$document_id
+#' process_documents(document_id = ids, db_conn = con)
 #'
 #' # Remote database (Supabase, PostgreSQL, etc.)
 #' library(RPostgres)
@@ -148,7 +159,8 @@ validate_force_param <- function(param, param_name) {
 #' # Increase OCR timeout to 5 minutes for large documents
 #' process_documents("pdfs/", ocr_timeout = 300)
 #' }
-process_documents <- function(pdf_path,
+process_documents <- function(pdf_path = NULL,
+                             document_id = NULL,
                              db_conn = "ecoextract_records.db",
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
@@ -169,6 +181,14 @@ process_documents <- function(pdf_path,
                              workers = NULL,
                              log = FALSE,
                              ...) {
+
+  # Validate input mode
+  if (!is.null(pdf_path) && !is.null(document_id)) {
+    stop("pdf_path and document_id are mutually exclusive: provide one or the other")
+  }
+  if (is.null(pdf_path) && is.null(document_id)) {
+    stop("One of pdf_path or document_id must be provided")
+  }
 
   # Validate force parameters
   validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
@@ -197,35 +217,47 @@ process_documents <- function(pdf_path,
     }
   }
 
-  # Determine if processing single file, multiple files, or directory
-  if (length(pdf_path) > 1) {
-    # Multiple files provided as vector
-    pdf_files <- pdf_path
-    # Check all files exist
-    missing <- pdf_files[!file.exists(pdf_files)]
-    if (length(missing) > 0) {
-      stop("Files do not exist: ", paste(missing, collapse = ", "))
-    }
-  } else if (file.exists(pdf_path)) {
-    if (dir.exists(pdf_path)) {
-      # Process directory
-      pdf_files <- list.files(pdf_path, pattern = "\\.pdf$", full.names = TRUE,
-                              ignore.case = TRUE, recursive = recursive)
-      if (length(pdf_files) > 0) {
-        if (recursive) {
-          cat("Found", length(pdf_files), "PDF files to process (including subdirectories)\n\n")
-        } else {
-          cat("Found", length(pdf_files), "PDF files to process\n\n")
-        }
+  # Resolve pdf_files from pdf_path (document_id path is resolved after DB init)
+  pdf_files <- character(0)
+  if (!is.null(pdf_path)) {
+    if (length(pdf_path) > 1) {
+      # Vector of PDF files — no directories allowed
+      dirs_in_vector <- pdf_path[dir.exists(pdf_path)]
+      if (length(dirs_in_vector) > 0) {
+        stop(
+          "pdf_path vector must contain only PDF files, not directories: ",
+          paste(dirs_in_vector, collapse = ", ")
+        )
       }
-    } else if (grepl("\\.pdf$", pdf_path, ignore.case = TRUE)) {
-      # Single file
       pdf_files <- pdf_path
+      missing <- pdf_files[!file.exists(pdf_files)]
+      if (length(missing) > 0) {
+        stop("Files do not exist: ", paste(missing, collapse = ", "))
+      }
+    } else if (file.exists(pdf_path)) {
+      if (dir.exists(pdf_path)) {
+        # Single directory
+        pdf_files <- list.files(
+          pdf_path, pattern = "\\.pdf$", full.names = TRUE,
+          ignore.case = TRUE, recursive = recursive
+        )
+        if (length(pdf_files) > 0) {
+          if (recursive) {
+            cat("Found", length(pdf_files),
+                "PDF files to process (including subdirectories)\n\n")
+          } else {
+            cat("Found", length(pdf_files), "PDF files to process\n\n")
+          }
+        }
+      } else if (grepl("\\.pdf$", pdf_path, ignore.case = TRUE)) {
+        # Single file
+        pdf_files <- pdf_path
+      } else {
+        stop("Path must be a PDF file or directory: ", pdf_path)
+      }
     } else {
-      stop("Path must be a PDF file or directory: ", pdf_path)
+      stop("Path does not exist: ", pdf_path)
     }
-  } else {
-    stop("Path does not exist: ", pdf_path)
   }
 
   # Report configuration sources
@@ -287,33 +319,34 @@ process_documents <- function(pdf_path,
     }
   }
 
-  # Include DB documents with completed OCR whose files aren't on disk
-  query_conn <- if (inherits(db_conn, "DBIConnection")) db_conn else {
-    tmp <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-    configure_sqlite_connection(tmp)
-    tmp
-  }
-  db_docs <- DBI::dbGetQuery(query_conn,
-    "SELECT file_path FROM documents WHERE ocr_status = 'completed'")
-  if (!inherits(db_conn, "DBIConnection")) DBI::dbDisconnect(query_conn)
-
-  if (nrow(db_docs) > 0) {
-    on_disk_norm <- normalizePath(pdf_files, mustWork = FALSE)
-    on_disk_base <- basename(pdf_files)
-    db_norm <- normalizePath(db_docs$file_path, mustWork = FALSE)
-    db_base <- basename(db_docs$file_path)
-    already_listed <- db_norm %in% on_disk_norm | db_base %in% on_disk_base
-    db_paths <- db_docs$file_path[!already_listed]
-    if (length(db_paths) > 0) {
-      message(sprintf("Found %d document(s) in database with completed OCR (not on disk)",
-                       length(db_paths)))
-      pdf_files <- c(pdf_files, db_paths)
+  # Resolve pdf_files from document_id
+  if (!is.null(document_id)) {
+    if (inherits(db_conn, "DBIConnection")) {
+      query_conn <- db_conn
+    } else {
+      query_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+      configure_sqlite_connection(query_conn)
     }
+    id_placeholder <- paste(rep("?", length(document_id)), collapse = ", ")
+    id_docs <- DBI::dbGetQuery(
+      query_conn,
+      sprintf(
+        "SELECT file_path FROM documents WHERE document_id IN (%s)",
+        id_placeholder
+      ),
+      params = as.list(as.integer(document_id))
+    )
+    if (!inherits(db_conn, "DBIConnection")) DBI::dbDisconnect(query_conn)
+
+    if (nrow(id_docs) == 0) {
+      stop("No documents found in database for the provided document_id")
+    }
+    pdf_files <- id_docs$file_path
   }
 
-  # Error if no documents from disk or DB
+  # Error if no documents to process
   if (length(pdf_files) == 0) {
-    stop("No documents to process: no PDF files on disk and no completed OCR documents in database")
+    stop("No documents to process: no PDF files found")
   }
 
   # Track timing

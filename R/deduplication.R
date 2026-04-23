@@ -146,8 +146,14 @@ New records:
   )
 
   # Call LLM
-  chat <- ellmer::chat(name = model, system_prompt = prompt, echo = "none")
-  result <- chat$chat_structured(context, type = schema)
+  llm_result <- try_models_with_fallback(
+    models = model,
+    system_prompt = prompt,
+    context = context,
+    schema = schema,
+    step_name = "LLM deduplication"
+  )
+  result <- llm_result$result
 
   # Return indices (default to all if empty)
   indices <- result$unique_indices
@@ -189,7 +195,7 @@ deduplicate_records <- function(new_records,
   }
 
   # Get x-unique-fields from the record schema (should be an array like 'required')
-  key_fields <- record_schema[["x-unique-fields"]]
+  key_fields <- unlist(record_schema[["x-unique-fields"]])
 
   if (is.null(key_fields) || length(key_fields) == 0) {
     stop(

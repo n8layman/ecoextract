@@ -716,3 +716,33 @@ test_that("llm_deduplicate standalone function works", {
   expect_equal(length(unique_indices), 1)
   expect_equal(unique_indices[1], 2L)
 })
+
+test_that("llm_deduplicate accepts a model cascade vector (#118)", {
+  skip_if_not(nzchar(Sys.getenv("ANTHROPIC_API_KEY")), "ANTHROPIC_API_KEY not set")
+
+  existing_records <- tibble::tibble(
+    name = c("John Smith"),
+    city = c("New York")
+  )
+
+  new_records <- tibble::tibble(
+    name = c("J. Smith", "Bob Wilson"),
+    city = c("NYC", "Chicago")
+  )
+
+  # Pass a vector of models — the first should succeed; this tests that
+  # try_models_with_fallback() is called rather than ellmer::chat() directly
+  unique_indices <- llm_deduplicate(
+    new_records = new_records,
+    existing_records = existing_records,
+    key_fields = c("name", "city"),
+    model = c(
+      "anthropic/claude-haiku-4-5-20251001",
+      "anthropic/claude-sonnet-4-5"
+    )
+  )
+
+  expect_true(is.integer(unique_indices))
+  # J. Smith/NYC is a duplicate; Bob Wilson/Chicago is unique
+  expect_equal(unique_indices, 2L)
+})
