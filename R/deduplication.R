@@ -146,8 +146,14 @@ New records:
   )
 
   # Call LLM
-  chat <- ellmer::chat(name = model, system_prompt = prompt, echo = "none")
-  result <- chat$chat_structured(context, type = schema)
+  llm_result <- try_models_with_fallback(
+    models = model,
+    system_prompt = prompt,
+    context = context,
+    schema = schema,
+    step_name = "LLM deduplication"
+  )
+  result <- llm_result$result
 
   # Return indices (default to all if empty)
   indices <- result$unique_indices
