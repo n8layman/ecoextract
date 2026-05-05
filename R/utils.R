@@ -6,14 +6,14 @@
 #' @param publication_year Publication year for ID generation
 #' @return Dataframe with record_id column added
 #' @keywords internal
-add_record_ids <- function(interactions, author_lastname, publication_year) {
+add_record_ids <- function(interactions, author_lastname, publication_year, offset = 0L) {
   if (nrow(interactions) == 0) {
     return(interactions)
   }
 
-  # Generate sequential record IDs
+  # Generate sequential record IDs, starting after offset to avoid collisions
   interactions$record_id <- sapply(1:nrow(interactions), function(i) {
-    generate_record_id(author_lastname, publication_year, i)
+    generate_record_id(author_lastname, publication_year, offset + i)
   })
 
   return(interactions)

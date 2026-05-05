@@ -635,7 +635,18 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
       as.integer(format(Sys.Date(), "%Y"))
     }
 
-    interactions_df <- add_record_ids(interactions_df, author_lastname, publication_year)
+    # Get existing max sequence number to avoid conflicts on reprocess
+    existing_ids <- DBI::dbGetQuery(con,
+      "SELECT record_id FROM records WHERE document_id = ?",
+      params = list(document_id))$record_id
+
+    max_seq <- 0L
+    if (length(existing_ids) > 0) {
+      seqs <- as.integer(sub(".*_r([0-9]+)$", "\\1", existing_ids))
+      max_seq <- max(seqs, na.rm = TRUE)
+    }
+
+    interactions_df <- add_record_ids(interactions_df, author_lastname, publication_year, offset = max_seq)
     message(glue::glue("Generated record IDs for {nrow(interactions_df)} records"))
   }
 
