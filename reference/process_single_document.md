@@ -12,8 +12,8 @@ process_single_document(
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
-  ocr_provider = "tensorlake",
-  ocr_timeout = 60,
+  ocr_provider = "mistral",
+  ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -22,6 +22,7 @@ process_single_document(
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
+  reps = 1,
   ...
 )
 ```
@@ -56,12 +57,14 @@ process_single_document(
 
 - ocr_provider:
 
-  OCR provider to use (default: "tensorlake"). Options: "tensorlake",
-  "mistral", "claude". Can also be a vector for fallback.
+  OCR provider(s) to use (default: "mistral"). Accepts a character
+  vector for fallback, e.g. `c("tensorlake", "mistral")` tries
+  tensorlake first and falls back to mistral on failure. Options:
+  "tensorlake", "mistral", "claude"
 
 - ocr_timeout:
 
-  Maximum seconds to wait for OCR completion (default: 60)
+  Maximum seconds to wait for OCR completion (default: 300)
 
 - force_reprocess_ocr:
 
@@ -95,6 +98,11 @@ process_single_document(
 
   Method for deduplication similarity: "embedding", "jaccard", or "llm"
   (default: "llm")
+
+- reps:
+
+  Number of extraction passes (default: 1). Multiple passes increase
+  recall by deduplicating each pass against accumulated results.
 
 - ...:
 

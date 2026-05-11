@@ -12,7 +12,8 @@ try_models_with_fallback(
   system_prompt,
   context,
   schema,
-  max_tokens = 16384,
+  max_tokens = 64000,
+  max_retries = 2,
   step_name = "LLM call"
 )
 ```
@@ -38,7 +39,11 @@ try_models_with_fallback(
 
 - max_tokens:
 
-  Maximum tokens for response (default 16384)
+  Maximum tokens for response (default 64000)
+
+- max_retries:
+
+  Maximum retry attempts per model for stochastic failures (default 2)
 
 - step_name:
 

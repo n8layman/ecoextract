@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,25 +79,25 @@
 <col width="36%">
 <col width="28%">
 </colgroup>
-<thead><tr class="header">
+<thead><tr>
 <th>Package</th>
 <th>Purpose</th>
 <th>Links</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td><a href="https://github.com/n8layman/ohseer" class="external-link">ohseer</a></td>
 <td>OCR processing via Tensorlake</td>
 <td><a href="https://github.com/n8layman/ohseer" class="external-link">GitHub</a></td>
 </tr>
-<tr class="even">
+<tr>
 <td><a href="https://github.com/n8layman/ecoextract" class="external-link">ecoextract</a></td>
 <td>AI-powered extraction pipeline</td>
 <td>
 <a href="https://n8layman.github.io/ecoextract/">Docs</a> | <a href="https://github.com/n8layman/ecoextract" class="external-link">GitHub</a>
 </td>
 </tr>
-<tr class="odd">
+<tr>
 <td><a href="https://github.com/n8layman/ecoreview" class="external-link">ecoreview</a></td>
 <td>Interactive Shiny review app</td>
 <td><a href="https://github.com/n8layman/ecoreview" class="external-link">GitHub</a></td>
@@ -119,9 +119,9 @@
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Install the ecosystem (pak recommended)</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu">pak</span><span class="op">(</span><span class="st">"n8layman/ohseer"</span><span class="op">)</span>      <span class="co"># OCR processing</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu">pak</span><span class="op">(</span><span class="st">"n8layman/ecoextract"</span><span class="op">)</span>  <span class="co"># Data extraction</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu">pak</span><span class="op">(</span><span class="st">"n8layman/ecoreview"</span><span class="op">)</span>   <span class="co"># Review app (optional)</span></span></code></pre></div>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ohseer"</span><span class="op">)</span>      <span class="co"># OCR processing</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ecoextract"</span><span class="op">)</span>  <span class="co"># Data extraction</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ecoreview"</span><span class="op">)</span>   <span class="co"># Review app (optional)</span></span></code></pre></div>
 <p>See the <a href="https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html">Complete Guide</a> for alternative installation methods and troubleshooting.</p>
 </div>
 <div class="section level2">
@@ -130,24 +130,30 @@
 <p>EcoExtract uses <a href="https://ellmer.tidyverse.org/" class="external-link">ellmer</a> for LLM interactions and <a href="https://github.com/n8layman/ohseer" class="external-link">ohseer</a> for OCR.</p>
 <p><strong>Required API keys:</strong></p>
 <ul>
-<li>Tensorlake (OCR, default): <a href="https://www.tensorlake.ai/" class="external-link uri">https://www.tensorlake.ai/</a>
+<li>Mistral (OCR, default): <a href="https://console.mistral.ai/" class="external-link uri">https://console.mistral.ai/</a>
 </li>
 <li>Anthropic Claude (extraction): <a href="https://console.anthropic.com/" class="external-link uri">https://console.anthropic.com/</a>
 </li>
 </ul>
-<p><strong>Optional OCR providers</strong> (via ohseer):</p>
+<p><strong>Optional providers:</strong></p>
 <ul>
-<li>Mistral: <a href="https://console.mistral.ai/" class="external-link uri">https://console.mistral.ai/</a>
+<li>Tensorlake (alternative OCR): <a href="https://www.tensorlake.ai/" class="external-link uri">https://www.tensorlake.ai/</a>
 </li>
-<li>Claude: <a href="https://console.anthropic.com/" class="external-link uri">https://console.anthropic.com/</a> (uses same key as extraction)</li>
+<li>Google Gemini (extraction fallback): <a href="https://aistudio.google.com/apikey" class="external-link uri">https://aistudio.google.com/apikey</a>
+</li>
+<li>OpenAI (embedding-based deduplication): <a href="https://platform.openai.com/api-keys" class="external-link uri">https://platform.openai.com/api-keys</a>
+</li>
 </ul>
 <p>Create a <code>.env</code> file in your project root (make sure it’s in <code>.gitignore</code> first!):</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="va">ANTHROPIC_API_KEY</span><span class="op">=</span>your_anthropic_api_key_here</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="va">TENSORLAKE_API_KEY</span><span class="op">=</span>your_tensorlake_api_key_here</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># Optional for alternative OCR providers</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your_mistral_api_key_here</span></code></pre></div>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your_mistral_api_key_here</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># Optional providers</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="va">TENSORLAKE_API_KEY</span><span class="op">=</span>your_tensorlake_api_key_here</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="va">GOOGLE_API_KEY</span><span class="op">=</span>your_google_api_key_here</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="va">OPENAI_API_KEY</span><span class="op">=</span>your_openai_api_key_here</span></code></pre></div>
 <p>The <code>.env</code> file is automatically loaded when R starts in the project directory. See the <a href="https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html#api-key-setup">Complete Guide</a> for detailed setup instructions.</p>
-<p>By default, ecoextract uses <code>anthropic/claude-sonnet-4-5</code> for extraction and <code>tensorlake</code> for OCR. To use different providers, pass the <code>model</code> or <code>ocr_provider</code> parameters to <code><a href="reference/process_documents.html">process_documents()</a></code>. Supported LLM providers: Anthropic (<code>anthropic/</code>), Google Gemini (<code>google_gemini/</code>), OpenAI (<code>openai/</code>), Mistral (<code>mistral/</code>), Groq (<code>groq/</code>).</p>
+<p>By default, ecoextract uses <code>anthropic/claude-sonnet-4-5</code> for extraction and <code>mistral</code> for OCR. To use different providers, pass the <code>model</code> or <code>ocr_provider</code> parameters to <code><a href="reference/process_documents.html">process_documents()</a></code>. Supported LLM providers: Anthropic (<code>anthropic/</code>), Google Gemini (<code>google_gemini/</code>), OpenAI (<code>openai/</code>), Mistral (<code>mistral/</code>), Groq (<code>groq/</code>).</p>
+<p><strong>Note:</strong> OpenAI models require schemas to follow <a href="https://platform.openai.com/docs/guides/structured-outputs/supported-schemas" class="external-link">OpenAI’s structured output rules</a> – specifically <code>"additionalProperties": false</code> on every object and all properties listed in <code>required</code>. Schemas generated by <code><a href="reference/init_ecoextract.html">init_ecoextract()</a></code> follow these rules by default. See the <a href="https://n8layman.github.io/ecoextract/articles/configuration.html">Configuration Guide</a> for details.</p>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -420,7 +426,8 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Nathan C Layman <br><small class="roles"> Author, maintainer </small>   </li>
+<li>Nathan Layman <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0003-2238-6584" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
+<li><a href="authors.html">More about authors...</a></li>
 </ul>
 </div>
 
@@ -431,7 +438,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Nathan C Layman.</p>
+  <p>Developed by Nathan Layman.</p>
 </div>
 
 <div class="pkgdown-footer-right">

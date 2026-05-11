@@ -7,14 +7,15 @@ Refine
 
 ``` r
 process_documents(
-  pdf_path,
+  pdf_path = NULL,
+  document_id = NULL,
   db_conn = "ecoextract_records.db",
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
   model = "anthropic/claude-sonnet-4-5",
-  ocr_provider = "tensorlake",
-  ocr_timeout = 60,
+  ocr_provider = "mistral",
+  ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
@@ -23,6 +24,7 @@ process_documents(
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
+  reps = 1,
   recursive = FALSE,
   workers = NULL,
   log = FALSE,
@@ -34,7 +36,15 @@ process_documents(
 
 - pdf_path:
 
-  Path to a single PDF file or directory of PDFs
+  Path to a single PDF file, a character vector of PDF paths, or a
+  directory of PDFs. Mutually exclusive with `document_id`.
+
+- document_id:
+
+  Integer vector of document IDs from the database to reprocess. For
+  each ID, the stored file path is looked up; if the file exists on disk
+  it is used, otherwise the stored OCR content is used directly.
+  Mutually exclusive with `pdf_path`.
 
 - db_conn:
 
@@ -62,17 +72,20 @@ process_documents(
   refinement. Can be a single model name (character string) or a vector
   of models for tiered fallback. When a vector is provided, models are
   tried sequentially until one succeeds. Default:
-  "anthropic/claude-sonnet-4-5". Examples: "openai/gpt-4o",
-  c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest")
+  "anthropic/claude-sonnet-4-5". Examples: "openai/gpt-4.1",
+  "google_gemini/gemini-2.5-flash", c("anthropic/claude-sonnet-4-5",
+  "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")
 
 - ocr_provider:
 
-  OCR provider to use (default: "tensorlake"). Options: "tensorlake",
-  "mistral", "claude"
+  OCR provider(s) to use (default: "mistral"). Accepts a character
+  vector for fallback, e.g. `c("tensorlake", "mistral")` tries
+  tensorlake first and falls back to mistral on failure. Options:
+  "tensorlake", "mistral", "claude"
 
 - ocr_timeout:
 
-  Maximum seconds to wait for OCR completion (default: 60)
+  Maximum seconds to wait for OCR completion (default: 300)
 
 - force_reprocess_ocr:
 
@@ -116,6 +129,11 @@ process_documents(
   Method for deduplication similarity: "embedding", "jaccard", or "llm"
   (default: "llm")
 
+- reps:
+
+  Number of extraction passes (default: 1). Multiple passes increase
+  recall by deduplicating each pass against accumulated results.
+
 - recursive:
 
   If TRUE and pdf_path is a directory, search for PDFs in all
@@ -149,6 +167,13 @@ if (FALSE) { # \dontrun{
 # Basic usage - process new PDFs
 process_documents("pdfs/")
 process_documents("paper.pdf", "my_interactions.db")
+
+# Reprocess specific documents by ID (works even if files have moved/been deleted)
+process_documents(document_id = c(1L, 5L, 12L), db_conn = "my_interactions.db")
+
+# Reprocess all documents currently in the database
+ids <- DBI::dbGetQuery(con, "SELECT document_id FROM documents")$document_id
+process_documents(document_id = ids, db_conn = con)
 
 # Remote database (Supabase, PostgreSQL, etc.)
 library(RPostgres)

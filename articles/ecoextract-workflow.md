@@ -10,23 +10,24 @@ process PDFs, review extraction results, and calculate accuracy metrics.
 
 EcoExtract works as part of three packages:
 
-| Package                                              | Purpose                                                                           |
-|------------------------------------------------------|-----------------------------------------------------------------------------------|
-| [ohseer](https://github.com/n8layman/ohseer)         | OCR processing – converts PDFs to markdown (supports Tensorlake, Mistral, Claude) |
-| [ecoextract](https://github.com/n8layman/ecoextract) | Data extraction pipeline – metadata, records, refinement, SQLite storage          |
-| [ecoreview](https://github.com/n8layman/ecoreview)   | Human review – Shiny app for editing, adding, deleting records                    |
+| Package | Purpose |
+|----|----|
+| [ohseer](https://github.com/n8layman/ohseer) | OCR processing – converts PDFs to markdown (supports Tensorlake, Mistral, Claude) |
+| [ecoextract](https://github.com/n8layman/ecoextract) | Data extraction pipeline – metadata, records, refinement, SQLite storage |
+| [ecoreview](https://github.com/n8layman/ecoreview) | Human review – Shiny app for editing, adding, deleting records |
 
 ### Prerequisites
 
 - R version 4.1.0 or higher
 - RStudio (recommended)
-- API keys for Tensorlake (OCR) and Anthropic Claude (extraction)
+- API keys for Mistral (OCR) and Anthropic Claude (extraction)
 
 ### Installation
 
 Install all three packages from GitHub:
 
 ``` r
+
 # Using pak (recommended)
 pak::pak("n8layman/ohseer")      # OCR processing
 pak::pak("n8layman/ecoextract")  # Data extraction
@@ -39,6 +40,7 @@ devtools::install_github("n8layman/ecoreview")
 ```
 
 ``` r
+
 library(ecoextract)
 ```
 
@@ -53,13 +55,16 @@ EcoExtract requires API keys for OCR and data extraction.
 
 **Required API keys:**
 
-- Tensorlake (OCR, default): <https://www.tensorlake.ai/>
+- Mistral (OCR, default): <https://console.mistral.ai/>
 - Anthropic Claude (extraction): <https://console.anthropic.com/>
 
-**Optional OCR providers** (via ohseer):
+**Optional providers:**
 
-- Mistral: <https://console.mistral.ai/>
-- Claude: <https://console.anthropic.com/> (uses same key as extraction)
+- Tensorlake (alternative OCR): <https://www.tensorlake.ai/>
+- Google Gemini (extraction fallback):
+  <https://aistudio.google.com/apikey>
+- OpenAI (embedding-based deduplication):
+  <https://platform.openai.com/api-keys>
 
 **Before creating your `.env` file, verify it’s in `.gitignore`:**
 
@@ -75,15 +80,18 @@ echo ".env" >> .gitignore
 
 ``` bash
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-TENSORLAKE_API_KEY=your-tensorlake-key-here
-# Optional for alternative OCR providers
 MISTRAL_API_KEY=your-mistral-key-here
+# Optional providers
+TENSORLAKE_API_KEY=your-tensorlake-key-here
+GOOGLE_API_KEY=your-google-key-here
+OPENAI_API_KEY=your-openai-key-here
 ```
 
 The `.env` file is automatically loaded when R starts in the project
 directory. You can also load it manually:
 
 ``` r
+
 readRenviron(".env")
 
 # Or set keys directly in R
@@ -105,6 +113,7 @@ git status | grep ".env"
 ### Verify Installation
 
 ``` r
+
 library(ecoextract)
 
 # Check that functions are available
@@ -130,6 +139,7 @@ orchestrates a four-step extraction pipeline:
 ### Quick Start
 
 ``` r
+
 # Process a single PDF
 results <- process_documents(
   pdf_path = "my_paper.pdf",
@@ -160,6 +170,7 @@ For faster processing of multiple documents, use parallel processing
 with the `crew` package:
 
 ``` r
+
 install.packages("crew")
 
 # Process with 4 parallel workers
@@ -185,6 +196,7 @@ EcoExtract supports tiered model fallback to handle content refusals
 models to try sequentially:
 
 ``` r
+
 # Single model (default)
 process_documents(
   pdf_path = "papers/",
@@ -225,6 +237,7 @@ Tensorlake, but you can switch to Mistral or Claude, or use provider
 fallback:
 
 ``` r
+
 # Use default provider (Tensorlake)
 process_documents("papers/")
 
@@ -302,6 +315,7 @@ invalidated:
 Override skip logic to force reprocessing:
 
 ``` r
+
 # Force reprocess all documents from OCR onward
 results <- process_documents(
   pdf_path = "pdfs/",
@@ -331,6 +345,7 @@ existing records in the database. Three similarity methods are
 available:
 
 ``` r
+
 # Default: LLM-based deduplication (most accurate)
 results <- process_documents("pdfs/", db_conn = "records.db",
                             similarity_method = "llm")
@@ -360,6 +375,7 @@ extraction prompt.
 ### Initialize Custom Configuration
 
 ``` r
+
 # Creates ecoextract/ directory with template files
 init_ecoextract()
 
@@ -374,6 +390,7 @@ as usual – the package automatically detects configuration files in this
 directory:
 
 ``` r
+
 # Automatically uses ecoextract/schema.json and ecoextract/extraction_prompt.md
 process_documents("pdfs/", "ecoextract_records.db")
 
@@ -395,6 +412,7 @@ Guide](https://n8layman.github.io/ecoextract/articles/configuration.md).
 ### Query Records
 
 ``` r
+
 # Get all records from all documents
 all_records <- get_records()
 
@@ -408,6 +426,7 @@ records <- get_records(db_conn = "my_project.db")
 ### Query Documents
 
 ``` r
+
 # Get all documents and their metadata
 all_docs <- get_documents()
 
@@ -424,6 +443,7 @@ The
 function joins records with document metadata:
 
 ``` r
+
 # Get all records with metadata as a tibble
 data <- export_db()
 
@@ -447,6 +467,7 @@ processing status with timestamps.
 ### View OCR Results
 
 ``` r
+
 # Get OCR markdown text
 markdown <- get_ocr_markdown(document_id = 1)
 cat(markdown)
@@ -466,6 +487,7 @@ Shiny app.
 ### Launch the Review App
 
 ``` r
+
 library(ecoreview)
 run_review_app(db_path = "ecoextract_records.db")
 ```
@@ -511,6 +533,7 @@ repository](https://github.com/n8layman/ecoreview).
 After reviewing documents, calculate comprehensive accuracy metrics:
 
 ``` r
+
 accuracy <- calculate_accuracy("ecoextract_records.db")
 
 # View key metrics
@@ -539,6 +562,7 @@ Accuracy visualizations are available in the
 End-to-end workflow from processing through review and export:
 
 ``` r
+
 library(ecoextract)
 
 # 1. Initialize custom configuration (first time only)
@@ -634,6 +658,7 @@ Typical per-paper usage: OCR ~2-5K tokens, metadata ~1-2K, extraction
 ### API Key Not Found
 
 ``` r
+
 # Reload from .env file
 readRenviron(".env")
 
@@ -650,6 +675,7 @@ If you get “database is locked” during parallel processing, this usually
 resolves automatically. Verify WAL mode is enabled:
 
 ``` r
+
 library(DBI)
 db <- dbConnect(RSQLite::SQLite(), "records.db")
 dbGetQuery(db, "PRAGMA journal_mode")  # Should return "wal"
@@ -660,6 +686,7 @@ dbDisconnect(db)
 ### Schema Validation Errors
 
 ``` r
+
 # Validate JSON syntax
 jsonlite::validate("ecoextract/schema.json")
 
@@ -674,6 +701,7 @@ process_documents("test.pdf", "test.db", schema_file = NULL)
 ### OCR Failures
 
 ``` r
+
 # Check which documents failed
 docs <- get_documents()
 failed <- docs |> dplyr::filter(ocr_status == "failed")

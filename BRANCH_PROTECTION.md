@@ -118,6 +118,7 @@ Only when all requirements are met can the PR be merged.
 To avoid failing tests in CI:
 
 ``` r
+
 # Load your .env file with API keys
 ecoextract::load_env_file()
 

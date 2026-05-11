@@ -203,6 +203,7 @@ Only 33% of errors are in critical identifying fields
 ## Usage
 
 ``` r
+
 library(ecoextract)
 
 # Calculate accuracy for all verified documents

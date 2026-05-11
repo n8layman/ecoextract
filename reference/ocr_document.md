@@ -11,7 +11,7 @@ ocr_document(
   db_conn,
   force_reprocess = TRUE,
   provider = "tensorlake",
-  timeout = 60,
+  timeout = 300,
   max_wait_seconds = NULL
 )
 ```
@@ -37,7 +37,7 @@ ocr_document(
 
 - timeout:
 
-  Maximum seconds to wait for OCR completion (default: 60)
+  Maximum seconds to wait for OCR completion (default: 300)
 
 - max_wait_seconds:
 

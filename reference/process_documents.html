@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,14 +43,15 @@
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">process_documents</span><span class="op">(</span></span>
-<span>  <span class="va">pdf_path</span>,</span>
+<span>  pdf_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  document_id <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  db_conn <span class="op">=</span> <span class="st">"ecoextract_records.db"</span>,</span>
 <span>  schema_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extraction_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  refinement_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-4-5"</span>,</span>
-<span>  ocr_provider <span class="op">=</span> <span class="st">"tensorlake"</span>,</span>
-<span>  ocr_timeout <span class="op">=</span> <span class="fl">60</span>,</span>
+<span>  ocr_provider <span class="op">=</span> <span class="st">"mistral"</span>,</span>
+<span>  ocr_timeout <span class="op">=</span> <span class="fl">300</span>,</span>
 <span>  force_reprocess_ocr <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force_reprocess_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force_reprocess_extraction <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -59,6 +60,7 @@
 <span>  min_similarity <span class="op">=</span> <span class="fl">0.9</span>,</span>
 <span>  embedding_provider <span class="op">=</span> <span class="st">"openai"</span>,</span>
 <span>  similarity_method <span class="op">=</span> <span class="st">"llm"</span>,</span>
+<span>  reps <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  recursive <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  workers <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  log <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -71,7 +73,14 @@
 
 
 <dl><dt id="arg-pdf-path">pdf_path<a class="anchor" aria-label="anchor" href="#arg-pdf-path"></a></dt>
-<dd><p>Path to a single PDF file or directory of PDFs</p></dd>
+<dd><p>Path to a single PDF file, a character vector of PDF paths, or a directory
+of PDFs. Mutually exclusive with <code>document_id</code>.</p></dd>
+
+
+<dt id="arg-document-id">document_id<a class="anchor" aria-label="anchor" href="#arg-document-id"></a></dt>
+<dd><p>Integer vector of document IDs from the database to reprocess.
+For each ID, the stored file path is looked up; if the file exists on disk it is used,
+otherwise the stored OCR content is used directly. Mutually exclusive with <code>pdf_path</code>.</p></dd>
 
 
 <dt id="arg-db-conn">db_conn<a class="anchor" aria-label="anchor" href="#arg-db-conn"></a></dt>
@@ -97,16 +106,18 @@ If a connection is provided, tables must already exist (use <code><a href="init_
 Can be a single model name (character string) or a vector of models for tiered fallback.
 When a vector is provided, models are tried sequentially until one succeeds.
 Default: "anthropic/claude-sonnet-4-5".
-Examples: "openai/gpt-4o", c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest")</p></dd>
+Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
+c("anthropic/claude-sonnet-4-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")</p></dd>
 
 
 <dt id="arg-ocr-provider">ocr_provider<a class="anchor" aria-label="anchor" href="#arg-ocr-provider"></a></dt>
-<dd><p>OCR provider to use (default: "tensorlake").
-Options: "tensorlake", "mistral", "claude"</p></dd>
+<dd><p>OCR provider(s) to use (default: "mistral"). Accepts a character
+vector for fallback, e.g. <code>c("tensorlake", "mistral")</code> tries tensorlake first
+and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"</p></dd>
 
 
 <dt id="arg-ocr-timeout">ocr_timeout<a class="anchor" aria-label="anchor" href="#arg-ocr-timeout"></a></dt>
-<dd><p>Maximum seconds to wait for OCR completion (default: 60)</p></dd>
+<dd><p>Maximum seconds to wait for OCR completion (default: 300)</p></dd>
 
 
 <dt id="arg-force-reprocess-ocr">force_reprocess_ocr<a class="anchor" aria-label="anchor" href="#arg-force-reprocess-ocr"></a></dt>
@@ -146,6 +157,11 @@ to refine only specific documents.</p></dd>
 <dd><p>Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")</p></dd>
 
 
+<dt id="arg-reps">reps<a class="anchor" aria-label="anchor" href="#arg-reps"></a></dt>
+<dd><p>Number of extraction passes (default: 1). Multiple passes increase
+recall by deduplicating each pass against accumulated results.</p></dd>
+
+
 <dt id="arg-recursive">recursive<a class="anchor" aria-label="anchor" href="#arg-recursive"></a></dt>
 <dd><p>If TRUE and pdf_path is a directory, search for PDFs in all subdirectories. Default FALSE.</p></dd>
 
@@ -176,6 +192,13 @@ Ignored for sequential processing. Useful for troubleshooting errors.</p></dd>
 <span class="r-in"><span><span class="co"># Basic usage - process new PDFs</span></span></span>
 <span class="r-in"><span><span class="fu">process_documents</span><span class="op">(</span><span class="st">"pdfs/"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">process_documents</span><span class="op">(</span><span class="st">"paper.pdf"</span>, <span class="st">"my_interactions.db"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Reprocess specific documents by ID (works even if files have moved/been deleted)</span></span></span>
+<span class="r-in"><span><span class="fu">process_documents</span><span class="op">(</span>document_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">5L</span>, <span class="fl">12L</span><span class="op">)</span>, db_conn <span class="op">=</span> <span class="st">"my_interactions.db"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Reprocess all documents currently in the database</span></span></span>
+<span class="r-in"><span><span class="va">ids</span> <span class="op">&lt;-</span> <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">con</span>, <span class="st">"SELECT document_id FROM documents"</span><span class="op">)</span><span class="op">$</span><span class="va">document_id</span></span></span>
+<span class="r-in"><span><span class="fu">process_documents</span><span class="op">(</span>document_id <span class="op">=</span> <span class="va">ids</span>, db_conn <span class="op">=</span> <span class="va">con</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Remote database (Supabase, PostgreSQL, etc.)</span></span></span>
 <span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rpostgres.r-dbi.org" class="external-link">RPostgres</a></span><span class="op">)</span></span></span>
@@ -236,7 +259,7 @@ Ignored for sequential processing. Useful for troubleshooting errors.</p></dd>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Nathan C Layman.</p>
+  <p>Developed by Nathan Layman.</p>
 </div>
 
 <div class="pkgdown-footer-right">

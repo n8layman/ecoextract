@@ -75,11 +75,11 @@ set, so contributors without keys can still run the local test suite.
 
 **Required API keys:**
 
-| Key                 | Service                                            | Used For                                                 |
-|---------------------|----------------------------------------------------|----------------------------------------------------------|
+| Key | Service | Used For |
+|----|----|----|
 | `ANTHROPIC_API_KEY` | [Anthropic Claude](https://console.anthropic.com/) | Data extraction, metadata, refinement, LLM deduplication |
-| `MISTRAL_API_KEY`   | [Tensorlake](https://www.tensorlake.ai/)           | OCR processing (via ohseer)                              |
-| `OPENAI_API_KEY`    | [OpenAI](https://platform.openai.com/)             | Embedding-based deduplication                            |
+| `MISTRAL_API_KEY` | [Tensorlake](https://www.tensorlake.ai/) | OCR processing (via ohseer) |
+| `OPENAI_API_KEY` | [OpenAI](https://platform.openai.com/) | Embedding-based deduplication |
 
 **`test-integration.R`** – All API-requiring tests in one file:
 
@@ -96,6 +96,7 @@ set, so contributors without keys can still run the local test suite.
 ## Running Tests
 
 ``` r
+
 # Run all tests (integration tests auto-skip without keys)
 devtools::test()
 

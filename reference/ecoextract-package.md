@@ -16,4 +16,14 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Nathan C Layman <n8layman@gmail.com>
+**Maintainer**: Nathan Layman <nathan.layman@gmail.com>
+([ORCID](https://orcid.org/0000-0003-2238-6584))
+
+Authors:
+
+- Nathan Layman <nathan.layman@gmail.com>
+  ([ORCID](https://orcid.org/0000-0003-2238-6584))
+
+Other contributors:
+
+- Valentine Herrmann \[contributor\]

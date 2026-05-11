@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,10 @@ database file. Defaults to "ecoextract_records.db"</p></dd>
 
 
 <dt id="arg-simple">simple<a class="anchor" aria-label="anchor" href="#arg-simple"></a></dt>
-<dd><p>If TRUE, exclude processing metadata columns (default: FALSE)</p></dd>
+<dd><p>If TRUE, return only minimal document columns (document_id,
+file_name, first_author_lastname, publication_year) plus schema-defined
+record fields, excluding record metadata like id, extraction_timestamp,
+and prompt_hash (default: FALSE)</p></dd>
 
 
 <dt id="arg-filename">filename<a class="anchor" aria-label="anchor" href="#arg-filename"></a></dt>
@@ -106,7 +109,7 @@ database file. Defaults to "ecoextract_records.db"</p></dd>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Nathan C Layman.</p>
+  <p>Developed by Nathan Layman.</p>
 </div>
 
 <div class="pkgdown-footer-right">

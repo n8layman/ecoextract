@@ -17,6 +17,7 @@ extract_records(
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
+  reps = 1,
   ...
 )
 ```
@@ -65,6 +66,11 @@ extract_records(
 
   Method for deduplication similarity: "embedding", "jaccard", or "llm"
   (default: "llm")
+
+- reps:
+
+  Number of extraction passes (default: 1). Multiple passes increase
+  recall by deduplicating each pass against accumulated results.
 
 - ...:
 

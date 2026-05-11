@@ -5,7 +5,7 @@ Functions for performing OCR on PDF documents Perform OCR on PDF
 ## Usage
 
 ``` r
-perform_ocr(pdf_file, provider = "tensorlake", timeout = 60)
+perform_ocr(pdf_file, provider = "tensorlake", timeout = 300)
 ```
 
 ## Arguments
@@ -20,7 +20,7 @@ perform_ocr(pdf_file, provider = "tensorlake", timeout = 60)
 
 - timeout:
 
-  Maximum seconds to wait for OCR completion (default: 60)
+  Maximum seconds to wait for OCR completion (default: 300)
 
 ## Value
 

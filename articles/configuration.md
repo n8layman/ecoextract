@@ -123,6 +123,7 @@ The schema supports standard JSON Schema types:
 Create template configuration files in your project:
 
 ``` r
+
 library(ecoextract)
 
 # Creates ecoextract/ directory with template files
@@ -347,6 +348,7 @@ all supporting sentences.
 ### Step 4: Test Your Configuration
 
 ``` r
+
 # Process a test document with your custom configuration
 results <- process_documents(
   pdf_path = "test_paper.pdf",
@@ -365,6 +367,7 @@ str(records)    # Check data types
 ### Step 5: Iterate and Refine
 
 ``` r
+
 # Common iterations:
 # 1. Adjust field descriptions in schema
 # 2. Add edge case handling in prompt
@@ -422,6 +425,7 @@ microscopy, sequencing, antigen detection
 ### Retrieving Array Data in R
 
 ``` r
+
 library(dplyr)
 library(tidyr)
 
@@ -468,11 +472,11 @@ must contain meaningful data.
 
 The **type** of each field controls whether it must contain data:
 
-| Pattern                      | Meaning        | LLM returns when empty | Database     |
-|------------------------------|----------------|------------------------|--------------|
-| `"type": "string"`           | Must have data | Always a string value  | NOT NULL     |
-| `"type": ["string", "null"]` | Data optional  | `null`                 | NULL allowed |
-| `"type": "array"`            | May be empty   | `[]` (empty array)     | `"[]"`       |
+| Pattern | Meaning | LLM returns when empty | Database |
+|----|----|----|----|
+| `"type": "string"` | Must have data | Always a string value | NOT NULL |
+| `"type": ["string", "null"]` | Data optional | `null` | NULL allowed |
+| `"type": "array"` | May be empty | `[]` (empty array) | `"[]"` |
 
 ### Example
 
@@ -609,6 +613,7 @@ EcoExtract looks for configuration files in this order:
 4.  **Package defaults** - Built-in example schema
 
 ``` r
+
 # Uses ecoextract/schema.json automatically
 process_documents("pdfs/", "records.db")
 
@@ -627,6 +632,7 @@ The refinement step validates and enhances extracted data. Customize the
 refinement prompt for domain-specific validation:
 
 ``` r
+
 # Run with custom refinement prompt
 process_documents(
   pdf_path = "pdfs/",
@@ -643,6 +649,7 @@ using context - Resolve ambiguities from extraction step
 ### Multiple Schemas for Different Projects
 
 ``` r
+
 # Project 1: Disease outbreaks
 process_documents(
   "disease_pdfs/",
@@ -784,6 +791,7 @@ near Oxford during June and July."
 ### 4. Process and Test
 
 ``` r
+
 # Process test documents
 process_documents(
   pdf_path = "pollinator_papers/",
@@ -806,6 +814,7 @@ accuracy <- calculate_accuracy("pollinators.db")
 ### Schema Validation Errors
 
 ``` r
+
 # Validate JSON syntax
 jsonlite::validate("ecoextract/schema.json")
 
@@ -831,6 +840,7 @@ If the LLM isn’t extracting correctly:
 ### Array Fields Not Working
 
 ``` r
+
 # Check if arrays are being recognized
 records <- get_records()
 class(records$your_array_field)  # Should be "list"

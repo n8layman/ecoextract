@@ -6,7 +6,7 @@ Internal utility functions Create record IDs for a batch of records
 ## Usage
 
 ``` r
-add_record_ids(interactions, author_lastname, publication_year)
+add_record_ids(interactions, author_lastname, publication_year, offset = 0L)
 ```
 
 ## Arguments

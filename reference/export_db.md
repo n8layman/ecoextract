@@ -31,7 +31,10 @@ export_db(
 
 - simple:
 
-  If TRUE, exclude processing metadata columns (default: FALSE)
+  If TRUE, return only minimal document columns (document_id, file_name,
+  first_author_lastname, publication_year) plus schema-defined record
+  fields, excluding record metadata like id, extraction_timestamp, and
+  prompt_hash (default: FALSE)
 
 - filename:
 
