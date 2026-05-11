@@ -52,3 +52,4 @@ results <- purrr::map(trial_dbs, \(db) {
 })
 }
 }
+\keyword{internal}

@@ -5,7 +5,8 @@
 \title{Complete Document Processing Workflow}
 \usage{
 process_documents(
-  pdf_path,
+  pdf_path = NULL,
+  document_id = NULL,
   db_conn = "ecoextract_records.db",
   schema_file = NULL,
   extraction_prompt_file = NULL,
@@ -29,7 +30,12 @@ process_documents(
 )
 }
 \arguments{
-\item{pdf_path}{Path to a single PDF file or directory of PDFs}
+\item{pdf_path}{Path to a single PDF file, a character vector of PDF paths, or a directory
+of PDFs. Mutually exclusive with \code{document_id}.}
+
+\item{document_id}{Integer vector of document IDs from the database to reprocess.
+For each ID, the stored file path is looked up; if the file exists on disk it is used,
+otherwise the stored OCR content is used directly. Mutually exclusive with \code{pdf_path}.}
 
 \item{db_conn}{Database connection (any DBI backend) or path to SQLite database file.
 If a path is provided, creates SQLite database if it doesn't exist.
@@ -48,8 +54,9 @@ Default: "anthropic/claude-sonnet-4-5".
 Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
 c("anthropic/claude-sonnet-4-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")}
 
-\item{ocr_provider}{OCR provider to use (default: "mistral").
-Options: "tensorlake", "mistral", "claude"}
+\item{ocr_provider}{OCR provider(s) to use (default: "mistral"). Accepts a character
+vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first
+and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"}
 
 \item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 300)}
 
@@ -99,6 +106,13 @@ Process PDFs through the complete pipeline: OCR → Metadata → Extract → Ref
 # Basic usage - process new PDFs
 process_documents("pdfs/")
 process_documents("paper.pdf", "my_interactions.db")
+
+# Reprocess specific documents by ID (works even if files have moved/been deleted)
+process_documents(document_id = c(1L, 5L, 12L), db_conn = "my_interactions.db")
+
+# Reprocess all documents currently in the database
+ids <- DBI::dbGetQuery(con, "SELECT document_id FROM documents")$document_id
+process_documents(document_id = ids, db_conn = con)
 
 # Remote database (Supabase, PostgreSQL, etc.)
 library(RPostgres)

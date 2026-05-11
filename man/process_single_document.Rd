@@ -39,8 +39,9 @@ process_single_document(
 \item{model}{LLM model(s) to use for metadata extraction, record extraction, and refinement.
 Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"}
 
-\item{ocr_provider}{OCR provider to use (default: "mistral").
-Options: "tensorlake", "mistral", "claude". Can also be a vector for fallback.}
+\item{ocr_provider}{OCR provider(s) to use (default: "mistral"). Accepts a character
+vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first
+and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"}
 
 \item{ocr_timeout}{Maximum seconds to wait for OCR completion (default: 300)}
 

@@ -18,7 +18,17 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Nathan C Layman \email{n8layman@gmail.com}
+\strong{Maintainer}: Nathan Layman \email{nathan.layman@gmail.com} (\href{https://orcid.org/0000-0003-2238-6584}{ORCID})
+
+Authors:
+\itemize{
+  \item Nathan Layman \email{nathan.layman@gmail.com} (\href{https://orcid.org/0000-0003-2238-6584}{ORCID})
+}
+
+Other contributors:
+\itemize{
+  \item Valentine Herrmann [contributor]
+}
 
 }
 \keyword{internal}

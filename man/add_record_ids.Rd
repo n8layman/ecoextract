@@ -5,7 +5,7 @@
 \title{Internal utility functions
 Create record IDs for a batch of records (internal)}
 \usage{
-add_record_ids(interactions, author_lastname, publication_year)
+add_record_ids(interactions, author_lastname, publication_year, offset = 0L)
 }
 \arguments{
 \item{interactions}{Dataframe of records}
