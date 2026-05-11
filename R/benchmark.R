@@ -17,6 +17,7 @@
 #'   where basename and ext come from the template filename.
 #' @param dir Output directory for trial databases (default: same directory as template)
 #' @return Character vector of paths to the created trial databases
+#' @keywords internal
 #' @export
 #'
 #' @examples
