@@ -331,13 +331,23 @@ check_api_keys_for_models <- function(models) {
 #' Attempts to get structured output from LLMs in sequential order.
 #' If a model refuses (stop_reason == "refusal") or errors, tries the next model.
 #'
+#' When \code{reasoning_prompt} is provided, a two-turn conversation is used:
+#' turn 1 returns structured reasoning (always captured), turn 2 uses that
+#' reasoning as context and returns the structured records. Both turns share
+#' the same chat object so turn 1 reasoning is in context for turn 2.
+#' On any failure, both turns are retried together with the next model.
+#'
 #' @param models Character vector of model names (e.g., c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest"))
 #' @param system_prompt System prompt for the LLM
-#' @param context User context/input for the LLM
-#' @param schema ellmer type schema for structured output
+#' @param context User context/input for the LLM (turn 1 message)
+#' @param schema ellmer type schema for structured output (turn 2 in two-turn mode)
 #' @param max_tokens Maximum tokens for response (default 64000)
 #' @param max_retries Maximum retry attempts per model for stochastic failures (default 2)
 #' @param step_name Name of the step for logging (default "LLM call")
+#' @param reasoning_prompt When non-NULL, enables two-turn mode. This string is
+#'   the turn 2 user message instructing the model to extract after reasoning.
+#'   The turn 1 result (reasoning) and turn 2 result (records) are combined into
+#'   a single list returned as \code{result}.
 #' @return List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)
 #' @keywords internal
 try_models_with_fallback <- function(
@@ -347,7 +357,8 @@ try_models_with_fallback <- function(
   schema,
   max_tokens = 64000,
   max_retries = 2,
-  step_name = "LLM call"
+  step_name = "LLM call",
+  reasoning_prompt = NULL
 ) {
   # Ensure models is a character vector
   if (!is.character(models) || length(models) == 0) {
@@ -383,40 +394,102 @@ try_models_with_fallback <- function(
       # Native TypeObject (metadata) passes through unchanged.
       model_schema <- clean_schema_for_api(schema, gemini = is_gemini)
 
-      # Attempt structured chat with convert = FALSE to bypass
-      # convert_from_type(), which crashes on malformed inner JSON
-      # (e.g. Unicode quote mismatches causing "subscript out of bounds").
-      raw <- chat$chat_structured(context, type = model_schema, convert = FALSE)
-      result <- normalize_structured_result(raw)
+      if (!is.null(reasoning_prompt)) {
+        # Two-turn mode: turn 1 captures reasoning, turn 2 extracts records.
+        # Both turns share the same chat object so reasoning is in context for turn 2.
+        reasoning_schema_obj <- ellmer::TypeJsonSchema(
+          description = "Document analysis schema",
+          json = list(
+            type = "object",
+            properties = list(
+              reasoning = list(
+                type = "string",
+                description = "Step-by-step analysis of the document: structure, potential interactions, organism identifiability, and extraction decisions"
+              )
+            ),
+            required = list("reasoning")
+          )
+        )
+        reasoning_schema_clean <- clean_schema_for_api(reasoning_schema_obj, gemini = is_gemini)
 
-      # Log raw result structure for diagnostics
-      result_names <- if (is.list(result)) paste(names(result), collapse = ", ") else class(result)
-      message(sprintf("  Raw result structure: %s", result_names))
+        # Turn 1: reasoning
+        raw1 <- chat$chat_structured(context, type = reasoning_schema_clean, convert = FALSE)
+        turn1 <- normalize_structured_result(raw1)
 
-      # Check if model refused despite returning structured output
-      turns <- chat$get_turns()
-      if (length(turns) > 0) {
-        last_turn <- turns[[length(turns)]]
-        if (!is.null(last_turn@json$stop_reason) && last_turn@json$stop_reason == "refusal") {
-          stop("Model refused request (stop_reason: refusal)")
-        }
-      }
-
-      # Validate reasoning field if schema requires it.
-      # ellmer may drop NULL fields from structured output, so check
-      # both presence and content.
-      has_reasoning <- is.list(result) && "reasoning" %in% names(result)
-      reasoning_empty <- !has_reasoning ||
-        is.null(result$reasoning) ||
-        (is.character(result$reasoning) && nchar(result$reasoning) == 0)
-
-      if (reasoning_empty) {
-        # Check if schema actually requires reasoning
-        schema_json <- tryCatch(schema@json, error = function(e) NULL)
-        schema_requires_reasoning <- !is.null(schema_json) &&
-          "reasoning" %in% schema_json$required
-        if (schema_requires_reasoning) {
+        # Check for refusal on turn 1 before evaluating reasoning content.
+        # A refusal produces empty/truncated output — detecting it here ensures
+        # it's logged as a content refusal rather than a retryable stochastic failure.
+        turns_after_1 <- chat$get_turns()
+        if (length(turns_after_1) > 0) {
+          last_turn_1 <- turns_after_1[[length(turns_after_1)]]
+          t1_stop_reason <- last_turn_1@json$stop_reason
+          t1_raw_content <- last_turn_1@json$content
+          if (!is.null(t1_stop_reason) && t1_stop_reason == "refusal") {
+            stop("Model refused request (stop_reason: refusal)")
+          }
+          if (is.null(turn1$reasoning) || nchar(turn1$reasoning) == 0) {
+            if (is_content_refusal("", t1_raw_content, t1_stop_reason)) {
+              stop("Model refused request (stop_reason: refusal)")
+            }
+            stop("Model returned empty/missing reasoning (schema requires it)")
+          }
+        } else if (is.null(turn1$reasoning) || nchar(turn1$reasoning) == 0) {
           stop("Model returned empty/missing reasoning (schema requires it)")
+        }
+
+        # Turn 2: structured records, with turn 1 reasoning in context
+        raw2 <- chat$chat_structured(reasoning_prompt, type = model_schema, convert = FALSE)
+        turn2 <- normalize_structured_result(raw2)
+
+        # Log result structure for diagnostics
+        result_names <- paste(c(names(turn1), names(turn2)), collapse = ", ")
+        message(sprintf("  Raw result structure: %s", result_names))
+
+        # Check refusal on final turn
+        turns <- chat$get_turns()
+        if (length(turns) > 0) {
+          last_turn <- turns[[length(turns)]]
+          if (!is.null(last_turn@json$stop_reason) && last_turn@json$stop_reason == "refusal") {
+            stop("Model refused request (stop_reason: refusal)")
+          }
+        }
+
+        # Combine turn 1 reasoning and turn 2 records into a single result
+        result <- c(turn1, turn2)
+
+      } else {
+        # Single-turn mode (metadata, refinement, and any non-extraction callers)
+        raw <- chat$chat_structured(context, type = model_schema, convert = FALSE)
+        result <- normalize_structured_result(raw)
+
+        # Log raw result structure for diagnostics
+        result_names <- if (is.list(result)) paste(names(result), collapse = ", ") else class(result)
+        message(sprintf("  Raw result structure: %s", result_names))
+
+        # Check if model refused despite returning structured output
+        turns <- chat$get_turns()
+        if (length(turns) > 0) {
+          last_turn <- turns[[length(turns)]]
+          if (!is.null(last_turn@json$stop_reason) && last_turn@json$stop_reason == "refusal") {
+            stop("Model refused request (stop_reason: refusal)")
+          }
+        }
+
+        # Validate reasoning field if schema requires it.
+        # ellmer may drop NULL fields from structured output, so check
+        # both presence and content.
+        has_reasoning <- is.list(result) && "reasoning" %in% names(result)
+        reasoning_empty <- !has_reasoning ||
+          is.null(result$reasoning) ||
+          (is.character(result$reasoning) && nchar(result$reasoning) == 0)
+
+        if (reasoning_empty) {
+          schema_json <- tryCatch(schema@json, error = function(e) NULL)
+          schema_requires_reasoning <- !is.null(schema_json) &&
+            "reasoning" %in% schema_json$required
+          if (schema_requires_reasoning) {
+            stop("Model returned empty/missing reasoning (schema requires it)")
+          }
         }
       }
 

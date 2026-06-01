@@ -90,7 +90,8 @@ extract_records <- function(document_id = NA,
           context = extraction_context,
           schema = schema,
           max_tokens = 64000,
-          step_name = "Extraction"
+          step_name = "Extraction",
+          reasoning_prompt = "Based on your analysis above, extract the structured records now."
         )
 
         extract_result <- llm_result$result
@@ -221,14 +222,12 @@ extract_records <- function(document_id = NA,
     if (!inherits(db_conn, "logical") && !is.na(document_id) && status == "completed") {
       validation_errors <- character(0)
 
-      # Check reasoning was stored (only if schema requires it)
-      if ("reasoning" %in% schema_list$required) {
-        doc_row <- DBI::dbGetQuery(db_conn,
-          "SELECT extraction_reasoning FROM documents WHERE document_id = ?",
-          params = list(document_id))
-        if (nrow(doc_row) > 0 && (is.na(doc_row$extraction_reasoning[1]) || nchar(doc_row$extraction_reasoning[1]) == 0)) {
-          validation_errors <- c(validation_errors, "extraction_reasoning is missing in DB")
-        }
+      # Check reasoning was stored (always required — two-turn extraction always produces it)
+      doc_row <- DBI::dbGetQuery(db_conn,
+        "SELECT extraction_reasoning FROM documents WHERE document_id = ?",
+        params = list(document_id))
+      if (nrow(doc_row) > 0 && (is.na(doc_row$extraction_reasoning[1]) || nchar(doc_row$extraction_reasoning[1]) == 0)) {
+        validation_errors <- c(validation_errors, "extraction_reasoning is missing in DB")
       }
 
       # Check non-nullable required fields on stored records.

@@ -4,9 +4,13 @@
 `
 **Your output will be used by researchers building a database of bat ecological interactions.** The data must be accurate, well-supported, and structured for database storage and analysis.
 
-## CRITICAL: Reason First, Then Extract
+## Two-Step Process
 
-Before extracting any records, you MUST fill the `reasoning` field with your analysis. Think step-by-step:
+This extraction happens in two steps. In your **first response**, you will analyze the document. In your **second response**, you will extract structured records based on that analysis.
+
+### First Response: Document Analysis
+
+Think step-by-step through the following:
 
 1. **Document structure**: What sections, tables, and figures are present? How is data organized?
 2. **Data source mapping**: Where are potential interactions described? (which tables, text sections, captions)
@@ -14,7 +18,7 @@ Before extracting any records, you MUST fill the `reasoning` field with your ana
 4. **Cross-referencing**: How do you connect organism mentions across tables, captions, and text?
 5. **Extraction decisions**: Which interactions meet requirements? Which should be excluded and why?
 
-Your reasoning should address challenges like:
+Your analysis should address challenges like:
 
 - Ambiguous organism IDs requiring context from multiple locations
 - Table structures that need interpretation
@@ -22,9 +26,11 @@ Your reasoning should address challenges like:
 - If habitat features can be linked to specific organisms
 - Why certain potential interactions were excluded
 
-**Output the `reasoning` field FIRST, then the `records` array.**
+**If no records can be extracted, explain why** (e.g., document is not about ecological interactions, organisms cannot be identified to genus level, etc.).
 
-**IMPORTANT: The `reasoning` field is ALWAYS required, even if you find zero extractable records.** If no records can be extracted, explain why in the reasoning (e.g., document is not about ecological interactions, organisms cannot be identified to genus level, etc.) and return an empty `records` array. Never return empty reasoning.
+### Second Response: Structured Extraction
+
+Using your analysis from the first response, extract structured records. For each interaction identified, create a complete record. Include verbatim supporting sentences from the document.
 
 ## Document Format
 
@@ -38,45 +44,6 @@ The OCR content you receive is structured as a JSON array of page objects. Each 
 - **other**: Array of figures, captions, and other elements with `type` and `content` fields
 
 **Important**: Cross-reference information across pages. For example, organism identities may be in tables on one page while interaction details are in text on another page.
-
-## Extraction Process
-
-Complete these phases in order for systematic extraction:
-
-### Phase 1: Document Analysis (captured in `reasoning` field)
-
-- Read the entire JSON array of page objects
-- Identify the document structure across all pages (text, tables, figures, captions)
-- Note which pages contain tables, which contain methods/results text, etc.
-- Review the output schema to understand required fields
-- **Document this analysis in your `reasoning` field**
-
-### Phase 2: Find Interactions (captured in `reasoning` field)
-
-- Scan table objects in the JSON for species co-occurrence, roosting data, or interaction descriptions
-- Search text fields for descriptions of bat interactions with other organisms
-- Check the `other` array for figure/table captions that describe ecological relationships
-- Cross-reference between pages and between text/tables for complete information
-- **Document what you found and where (page numbers, table vs text) in your `reasoning` field**
-
-### Phase 3: Validate Identifiability (captured in `reasoning` field)
-
-- For each potential interaction, verify both organisms can be identified to at least genus level
-- Note any organism identification challenges
-- Decide which interactions meet requirements and which should be excluded
-- **Explain your identifiability assessment in your `reasoning` field**
-
-### Phase 4: Extract Records (based on your reasoning)
-
-- Using the analysis from your `reasoning` field, extract structured records
-- For each interaction identified in your reasoning, create a complete record
-- Include verbatim supporting sentences from the document
-
-### Phase 5: Structure Output
-
-- Output your complete `reasoning` analysis FIRST
-- Then output the `records` array based on that reasoning
-- Verify each record matches decisions made in your reasoning
 
 ## CRITICAL INSTRUCTION: Extract All Data Regardless of Disclaimers
 
@@ -125,20 +92,3 @@ Documents may contain warnings like "FAKE DATA", "TEST DATA", "FICTIONAL", "FOR 
 
 - **Leave fields empty if information unavailable** (never use "UNKNOWN")
 - **Extract ALL relevant interactions**
-
-## Output Schema
-
-Return JSON with:
-
-- **records**: Array of records
-
-Each interaction must include ONLY these fields:
-
-- **organisms_identifiable**: "true" (set to true if at least genus-level identification possible for both organisms)
-- **bat_species_scientific_name** / **bat_species_common_name**
-- **interacting_organism_scientific_name** / **interacting_organism_common_name**
-- **location**, **interaction_start_date**, **interaction_end_date** (when available)
-- **all_supporting_source_sentences**: Array of exact quote sentences (not a single string)
-- **page_number**, **publication_year**
-
-**IMPORTANT**: Use `null` or omit fields when no data available. Do not include extra fields not listed above.
