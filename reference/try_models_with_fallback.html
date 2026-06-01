@@ -9,7 +9,7 @@ If a model refuses (stop_reason == "refusal") or errors, tries the next model.'>
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.8</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,7 +52,8 @@ If a model refuses (stop_reason == "refusal") or errors, tries the next model.</
 <span>  <span class="va">schema</span>,</span>
 <span>  max_tokens <span class="op">=</span> <span class="fl">64000</span>,</span>
 <span>  max_retries <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  step_name <span class="op">=</span> <span class="st">"LLM call"</span></span>
+<span>  step_name <span class="op">=</span> <span class="st">"LLM call"</span>,</span>
+<span>  reasoning_prompt <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -69,11 +70,11 @@ If a model refuses (stop_reason == "refusal") or errors, tries the next model.</
 
 
 <dt id="arg-context">context<a class="anchor" aria-label="anchor" href="#arg-context"></a></dt>
-<dd><p>User context/input for the LLM</p></dd>
+<dd><p>User context/input for the LLM (turn 1 message)</p></dd>
 
 
 <dt id="arg-schema">schema<a class="anchor" aria-label="anchor" href="#arg-schema"></a></dt>
-<dd><p>ellmer type schema for structured output</p></dd>
+<dd><p>ellmer type schema for structured output (turn 2 in two-turn mode)</p></dd>
 
 
 <dt id="arg-max-tokens">max_tokens<a class="anchor" aria-label="anchor" href="#arg-max-tokens"></a></dt>
@@ -87,10 +88,25 @@ If a model refuses (stop_reason == "refusal") or errors, tries the next model.</
 <dt id="arg-step-name">step_name<a class="anchor" aria-label="anchor" href="#arg-step-name"></a></dt>
 <dd><p>Name of the step for logging (default "LLM call")</p></dd>
 
+
+<dt id="arg-reasoning-prompt">reasoning_prompt<a class="anchor" aria-label="anchor" href="#arg-reasoning-prompt"></a></dt>
+<dd><p>When non-NULL, enables two-turn mode. This string is
+the turn 2 user message instructing the model to extract after reasoning.
+The turn 1 result (reasoning) and turn 2 result (records) are combined into
+a single list returned as <code>result</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>When <code>reasoning_prompt</code> is provided, a two-turn conversation is used:
+turn 1 returns structured reasoning (always captured), turn 2 uses that
+reasoning as context and returns the structured records. Both turns share
+the same chat object so turn 1 reasoning is in context for turn 2.
+On any failure, both turns are retried together with the next model.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
