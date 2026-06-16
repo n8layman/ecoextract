@@ -22,6 +22,7 @@ process_single_document(
   embedding_provider = "openai",
   similarity_method = "llm",
   reps = 1,
+  existing_document_id = NULL,
   ...
 )
 }
@@ -63,6 +64,13 @@ and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"
 
 \item{reps}{Number of extraction passes (default: 1). Multiple passes increase
 recall by deduplicating each pass against accumulated results.}
+
+\item{existing_document_id}{When reprocessing a known document by ID, pass its
+\code{document_id} here to skip the file-hash lookup and use the existing row
+directly. This prevents duplicate rows when a file's hash has changed (e.g.
+after metadata edits) but the document is the same. Set by
+\code{process_documents()} when called with \code{document_id}; not intended
+for direct use.}
 
 \item{...}{Additional arguments}
 }

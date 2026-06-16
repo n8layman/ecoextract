@@ -1,5 +1,5 @@
 # Variables passed via crew's data argument to worker processes
-utils::globalVariables("capture_output")
+utils::globalVariables(c("capture_output", "pdf_file", "existing_document_id"))
 
 #' Check if a document should be forced to reprocess
 #'
@@ -331,7 +331,7 @@ process_documents <- function(pdf_path = NULL,
     id_docs <- DBI::dbGetQuery(
       query_conn,
       sprintf(
-        "SELECT file_path FROM documents WHERE document_id IN (%s)",
+        "SELECT document_id, file_path FROM documents WHERE document_id IN (%s)",
         id_placeholder
       ),
       params = as.list(as.integer(document_id))
@@ -342,6 +342,7 @@ process_documents <- function(pdf_path = NULL,
       stop("No documents found in database for the provided document_id")
     }
     pdf_files <- id_docs$file_path
+    pdf_document_ids <- id_docs$document_id
   }
 
   # Error if no documents to process
@@ -419,7 +420,8 @@ process_documents <- function(pdf_path = NULL,
                     min_similarity = min_similarity,
                     embedding_provider = embedding_provider,
                     similarity_method = similarity_method,
-                    reps = reps
+                    reps = reps,
+                    existing_document_id = existing_document_id
                   ), extra_args)
                 )
               }, type = "message")
@@ -449,7 +451,8 @@ process_documents <- function(pdf_path = NULL,
                 min_similarity = min_similarity,
                 embedding_provider = embedding_provider,
                 similarity_method = similarity_method,
-                reps = reps
+                reps = reps,
+                existing_document_id = existing_document_id
               ), extra_args)
             )
           }
@@ -472,6 +475,7 @@ process_documents <- function(pdf_path = NULL,
           embedding_provider = embedding_provider,
           similarity_method = similarity_method,
           reps = reps,
+          existing_document_id = if (exists("pdf_document_ids")) pdf_document_ids[i] else NULL,
           capture_output = !is.null(log_file),
           parent_env = parent_env,
           extra_args = extra_args
@@ -593,9 +597,9 @@ process_documents <- function(pdf_path = NULL,
 
   } else {
     # Sequential processing
-    for (pdf_file in pdf_files) {
+    for (i in seq_along(pdf_files)) {
       result <- process_single_document(
-        pdf_file = pdf_file,
+        pdf_file = pdf_files[i],
         db_conn = db_conn,
         schema_file = schema_src$path,
         extraction_prompt_file = extraction_prompt_file,
@@ -612,6 +616,7 @@ process_documents <- function(pdf_path = NULL,
         embedding_provider = embedding_provider,
         similarity_method = similarity_method,
         reps = reps,
+        existing_document_id = if (exists("pdf_document_ids")) pdf_document_ids[i] else NULL,
         ...
       )
       results_list[[length(results_list) + 1]] <- result
@@ -705,6 +710,12 @@ process_documents <- function(pdf_path = NULL,
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
 #' @param reps Number of extraction passes (default: 1). Multiple passes increase
 #'   recall by deduplicating each pass against accumulated results.
+#' @param existing_document_id When reprocessing a known document by ID, pass its
+#'   \code{document_id} here to skip the file-hash lookup and use the existing row
+#'   directly. This prevents duplicate rows when a file's hash has changed (e.g.
+#'   after metadata edits) but the document is the same. Set by
+#'   \code{process_documents()} when called with \code{document_id}; not intended
+#'   for direct use.
 #' @param ... Additional arguments
 #' @return List with processing result
 #' @export
@@ -725,6 +736,7 @@ process_single_document <- function(pdf_file,
                                     embedding_provider = "openai",
                                     similarity_method = "llm",
                                     reps = 1,
+                                    existing_document_id = NULL,
                                     ...) {
 
   # Log header
@@ -752,9 +764,19 @@ process_single_document <- function(pdf_file,
                           records_extracted = 0,
                           refinement_status = "skipped")
 
-  # Get or create document record to obtain document_id
-  # We need the document_id before we can check statuses or nullify them
-  if (file.exists(pdf_file)) {
+  # Get or create document record to obtain document_id.
+  # When existing_document_id is provided (reprocessing by ID), use it directly
+  # to avoid creating a duplicate row if the file hash has changed since first processing.
+  if (!is.null(existing_document_id)) {
+    doc_id <- as.integer(existing_document_id)
+    existing <- DBI::dbGetQuery(db_conn,
+      "SELECT document_id FROM documents WHERE document_id = ?",
+      params = list(doc_id))
+    if (nrow(existing) == 0) {
+      message(sprintf("  Skipping: document_id %d not found in database", doc_id))
+      return(status_tracking)
+    }
+  } else if (file.exists(pdf_file)) {
     file_hash <- digest::digest(file = pdf_file, algo = "md5")
     existing <- DBI::dbGetQuery(db_conn,
       "SELECT document_id FROM documents WHERE file_hash = ?",

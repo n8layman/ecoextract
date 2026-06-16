@@ -1,3 +1,13 @@
+# ecoextract 0.1.9
+
+## Bug fixes
+
+* `process_documents(document_id = ...)` now correctly reprocesses the
+  specified document in-place instead of creating a duplicate row when the
+  file's hash has changed since initial processing (e.g. after opening and
+  re-saving the PDF). The original `document_id` is passed through to
+  `process_single_document()` and used directly, bypassing the hash lookup.
+
 # ecoextract 0.1.8
 
 ## Improvements
