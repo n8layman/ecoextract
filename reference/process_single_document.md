@@ -23,6 +23,7 @@ process_single_document(
   embedding_provider = "openai",
   similarity_method = "llm",
   reps = 1,
+  existing_document_id = NULL,
   ...
 )
 ```
@@ -103,6 +104,15 @@ process_single_document(
 
   Number of extraction passes (default: 1). Multiple passes increase
   recall by deduplicating each pass against accumulated results.
+
+- existing_document_id:
+
+  When reprocessing a known document by ID, pass its `document_id` here
+  to skip the file-hash lookup and use the existing row directly. This
+  prevents duplicate rows when a file's hash has changed (e.g. after
+  metadata edits) but the document is the same. Set by
+  [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md)
+  when called with `document_id`; not intended for direct use.
 
 - ...:
 

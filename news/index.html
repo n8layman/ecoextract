@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.9</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,14 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.9" id="ecoextract-019">ecoextract 0.1.9<a class="anchor" aria-label="anchor" href="#ecoextract-019"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-9">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-9"></a></h3>
+<ul><li>
+<code>process_documents(document_id = ...)</code> now correctly reprocesses the specified document in-place instead of creating a duplicate row when the file’s hash has changed since initial processing (e.g. after opening and re-saving the PDF). The original <code>document_id</code> is passed through to <code><a href="../reference/process_single_document.html">process_single_document()</a></code> and used directly, bypassing the hash lookup.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.8" id="ecoextract-018">ecoextract 0.1.8<a class="anchor" aria-label="anchor" href="#ecoextract-018"></a></h2>
 <div class="section level3">
