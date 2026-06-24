@@ -358,7 +358,7 @@ get_record_columns_sql <- function(schema_json_list) {
 #' db <- "ecoextract_results.sqlite"
 #' save_document_to_db(db, "example.pdf", metadata = list(title = "My Paper"), overwrite = TRUE)
 #' }
-save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list(), overwrite = FALSE) {
+save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list(), overwrite = FALSE, document_id = NULL) {
   
   # Safe null/NA coalescing
   `%||NA%` <- function(x, y) {
@@ -377,18 +377,27 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
-  # Compute file hash and basic file info
+  # Compute file hash and basic file info using the raw path (must be resolvable)
   if (is.null(file_hash)) file_hash <- digest::digest(file_path, file = TRUE, algo = "md5")
   file_size <- if (file.exists(file_path)) as.numeric(file.info(file_path)$size) else NA_integer_
   file_name <- basename(file_path)
   timestamp <- as.character(Sys.time())
+  # Store path relative to the project root (found by walking up from the PDF's
+  # directory). Falls back to absolute path if no project marker is found.
+  stored_path <- to_project_relative_path(file_path)
 
   # Handle overwrite: drop existing row by hash if requested
   # Use retry logic for parallel processing
   doc_id <- retry_db_operation({
     doc_id_inner <- NULL
     if (overwrite) {
-      existing <- DBI::dbGetQuery(db_conn, "SELECT document_id FROM documents WHERE file_hash = ?", params = list(file_hash))
+      # When document_id is known (reprocessing by ID), use it directly to avoid
+      # creating a duplicate row if the file hash has changed since first processing.
+      existing <- if (!is.null(document_id)) {
+        DBI::dbGetQuery(db_conn, "SELECT document_id FROM documents WHERE document_id = ?", params = list(as.integer(document_id)))
+      } else {
+        DBI::dbGetQuery(db_conn, "SELECT document_id FROM documents WHERE file_hash = ?", params = list(file_hash))
+      }
       if (nrow(existing) > 0) {
         doc_id_inner <- existing$document_id[1]
         DBI::dbExecute(db_conn, "DELETE FROM records WHERE document_id = ?", params = list(doc_id_inner))
@@ -402,7 +411,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
     metadata_complete <- lapply(meta_keys, function(k) rlang::`%||%`(metadata[[k]], NA))
 
     # Combine with file info
-    params <- c(list(file_name, file_path, file_hash, file_size, timestamp), metadata_complete)
+    params <- c(list(file_name, stored_path, file_hash, file_size, timestamp), metadata_complete)
 
     # Insert new row (autoincrement)
     DBI::dbExecute(db_conn, "

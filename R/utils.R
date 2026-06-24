@@ -1,5 +1,42 @@
 #' Internal utility functions
 
+#' Find project root by walking up from a directory
+#'
+#' Walks up the directory tree from \code{start_dir} until a project marker
+#' (\code{.git}, \code{.Rproj}, \code{DESCRIPTION}, \code{.here}) is found.
+#' Returns \code{NULL} if no marker is found before the filesystem root —
+#' this happens when the PDF lives outside any recognised project (e.g. a
+#' one-off download or a network path). In that case callers fall back to
+#' storing an absolute path, which is machine-specific and will break if the
+#' database is shared or the folder is moved.
+#' @keywords internal
+find_project_root <- function(start_dir) {
+  markers <- c(".git", ".Rproj", "DESCRIPTION", ".here")
+  dir <- normalizePath(start_dir, winslash = "/", mustWork = FALSE)
+  repeat {
+    if (any(file.exists(file.path(dir, markers)))) return(dir)
+    parent <- normalizePath(dirname(dir), winslash = "/", mustWork = FALSE)
+    if (parent == dir) return(NULL)
+    dir <- parent
+  }
+}
+
+#' Convert a file path to project-relative form for database storage
+#'
+#' Uses \code{find_project_root()} starting from the file's own directory, so
+#' the root is always anchored to the PDF project — not the \code{.db} location
+#' or the working directory. Falls back to an absolute path when no project
+#' root is found.
+#' @keywords internal
+to_project_relative_path <- function(file_path) {
+  abs_path <- normalizePath(file_path, winslash = "/", mustWork = FALSE)
+  root <- find_project_root(dirname(abs_path))
+  if (is.null(root)) return(abs_path)
+  root_prefix <- paste0(root, "/")
+  if (!startsWith(abs_path, root_prefix)) return(abs_path)
+  substring(abs_path, nchar(root_prefix) + 1)
+}
+
 #' Create record IDs for a batch of records (internal)
 #' @param interactions Dataframe of records
 #' @param author_lastname Author lastname for ID generation

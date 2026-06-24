@@ -9,7 +9,8 @@ save_document_to_db(
   file_path,
   file_hash = NULL,
   metadata = list(),
-  overwrite = FALSE
+  overwrite = FALSE,
+  document_id = NULL
 )
 }
 \arguments{

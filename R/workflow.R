@@ -779,18 +779,25 @@ process_single_document <- function(pdf_file,
   } else if (file.exists(pdf_file)) {
     file_hash <- digest::digest(file = pdf_file, algo = "md5")
     existing <- DBI::dbGetQuery(db_conn,
-      "SELECT document_id FROM documents WHERE file_hash = ?",
+      "SELECT document_id, file_path FROM documents WHERE file_hash = ?",
       params = list(file_hash))
 
     if (nrow(existing) > 0) {
       doc_id <- existing$document_id[1]
+      if (!is.na(existing$file_path[1]) && existing$file_path[1] != to_project_relative_path(pdf_file)) {
+        retry_db_operation({
+          DBI::dbExecute(db_conn,
+            "UPDATE documents SET file_path = ?, file_name = ? WHERE document_id = ?",
+            params = list(to_project_relative_path(pdf_file), basename(pdf_file), doc_id))
+        })
+      }
     } else {
       # Insert new document record with retry logic
       doc_id <- retry_db_operation({
         DBI::dbExecute(db_conn,
           "INSERT INTO documents (file_name, file_path, file_hash, upload_timestamp)
            VALUES (?, ?, ?, ?)",
-          params = list(basename(pdf_file), pdf_file, file_hash, format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+          params = list(basename(pdf_file), to_project_relative_path(pdf_file), file_hash, format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
         DBI::dbGetQuery(db_conn,
           "SELECT document_id FROM documents WHERE file_hash = ?",
           params = list(file_hash))$document_id[1]
@@ -813,6 +820,16 @@ process_single_document <- function(pdf_file,
     message(sprintf("  %s: not on disk, using stored OCR content", basename(pdf_file)))
   }
   status_tracking$document_id <- doc_id
+
+  # If forced OCR reprocessing was requested but the file no longer exists, stop
+  # early without touching the DB so stored OCR content remains accessible.
+  # User can rerun without force_reprocess_ocr to proceed with stored content.
+  if (is_forced(force_reprocess_ocr, doc_id) && !file.exists(pdf_file)) {
+    message(sprintf("  File not found at stored path: %s", pdf_file))
+    message("  Rerun without force_reprocess_ocr to use stored OCR content.")
+    status_tracking$ocr_status <- paste("file not found:", pdf_file)
+    return(status_tracking)
+  }
 
   # Nullify statuses for forced documents (handles cascade)
   if (is_forced(force_reprocess_ocr, doc_id)) {
@@ -857,7 +874,8 @@ process_single_document <- function(pdf_file,
 
   if (should_run_step(doc$ocr_status[1], ocr_data_exists)) {
     ocr_result <- ocr_document(pdf_file, db_conn, force_reprocess = TRUE,
-                               provider = ocr_provider, timeout = ocr_timeout)
+                               provider = ocr_provider, timeout = ocr_timeout,
+                               document_id = existing_document_id)
     status_tracking$ocr_status <- ocr_result$status
 
     # Cascade: nullify metadata_status with retry logic

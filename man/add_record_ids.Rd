@@ -2,8 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{add_record_ids}
 \alias{add_record_ids}
-\title{Internal utility functions
-Create record IDs for a batch of records (internal)}
+\title{Create record IDs for a batch of records (internal)}
 \usage{
 add_record_ids(interactions, author_lastname, publication_year, offset = 0L)
 }
@@ -18,7 +17,6 @@ add_record_ids(interactions, author_lastname, publication_year, offset = 0L)
 Dataframe with record_id column added
 }
 \description{
-Internal utility functions
 Create record IDs for a batch of records (internal)
 }
 \keyword{internal}

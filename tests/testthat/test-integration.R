@@ -309,6 +309,78 @@ test_that("Gemini extraction works with additionalProperties stripping", {
   expect_true(nrow(records) >= 1, "Gemini should extract at least 1 record")
 })
 
+# Reprocessing by document_id --------------------------------------------------
+
+test_that("reprocessing by document_id does not create duplicate rows", {
+  cat("\n========== TEST: reprocessing by document_id does not duplicate rows ==========\n")
+  skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
+  skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
+
+  test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
+  skip_if_not(file.exists(test_pdf), "Test PDF not found")
+
+  db_path <- withr::local_tempfile(fileext = ".sqlite")
+  schema_file <- system.file("extdata", "schema.json", package = "ecoextract")
+  prompt_file <- system.file("prompts", "extraction_prompt.md", package = "ecoextract")
+
+  # Initial full pipeline run
+  process_documents(test_pdf, db_conn = db_path,
+                    schema_file = schema_file, extraction_prompt_file = prompt_file)
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  docs_before <- DBI::dbReadTable(con, "documents")
+  doc_id <- docs_before$document_id[1]
+  expect_equal(nrow(docs_before), 1)
+
+  # Reprocess OCR + extraction by document_id
+  result2 <- process_documents(
+    document_id = doc_id,
+    db_conn = db_path,
+    schema_file = schema_file,
+    extraction_prompt_file = prompt_file,
+    force_reprocess_ocr = TRUE,
+    force_reprocess_extraction = TRUE
+  )
+
+  docs_after <- DBI::dbReadTable(con, "documents")
+  expect_equal(nrow(docs_after), 1, info = "Reprocessing must not create a second documents row")
+  expect_equal(docs_after$document_id[1], doc_id, info = "document_id must be preserved")
+})
+
+test_that("force_reprocess_ocr on missing file returns file-not-found status without touching DB", {
+  db_path <- withr::local_tempfile(fileext = ".sqlite")
+  init_ecoextract_database(db_path)
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  # Insert a document row pointing to a non-existent path
+  DBI::dbExecute(con,
+    "INSERT INTO documents (file_name, file_path, file_hash, upload_timestamp, ocr_status)
+     VALUES (?, ?, ?, ?, ?)",
+    params = list("ghost.pdf", "/nonexistent/ghost.pdf", "abc123",
+                  format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "completed"))
+  doc_id <- DBI::dbGetQuery(con, "SELECT document_id FROM documents")$document_id[1]
+
+  result <- process_documents(
+    document_id = doc_id,
+    db_conn = db_path,
+    force_reprocess_ocr = TRUE
+  )
+
+  expect_match(result$ocr_status[1], "file not found",
+               info = "Should report file not found, not a generic OCR error")
+  # DB must be untouched — ocr_status still "completed" so next run uses stored content
+  db_status <- DBI::dbGetQuery(con,
+    "SELECT ocr_status FROM documents WHERE document_id = ?",
+    params = list(doc_id))$ocr_status[1]
+  expect_equal(db_status, "completed",
+               info = "ocr_status in DB must remain completed so rerun uses stored content")
+  expect_equal(nrow(DBI::dbReadTable(con, "documents")), 1L)
+})
+
 # Deduplication with Embeddings (requires OPENAI_API_KEY) ----------------------
 
 test_that("deduplicate_records detects exact duplicates using embeddings", {

@@ -66,9 +66,7 @@ perform_ocr <- function(pdf_file, provider = "tensorlake", timeout = 300) {
 #' @param max_wait_seconds Deprecated. Use timeout instead.
 #' @return List with status ("completed"/<error message>) and document_id
 #' @keywords internal
-ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "tensorlake", timeout = 300, max_wait_seconds = NULL) {
-
- document_id <- NA
+ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "tensorlake", timeout = 300, max_wait_seconds = NULL, document_id = NULL) {
 
   # Handle deprecated parameter
   if (!is.null(max_wait_seconds)) {
@@ -103,6 +101,7 @@ ocr_document <- function(pdf_file, db_conn, force_reprocess = TRUE, provider = "
       db_conn = db_conn,
       file_path = pdf_file,
       overwrite = TRUE,
+      document_id = document_id,
       metadata = list(
         document_content = ocr_result$json_content,
         ocr_images = ocr_result$ocr_images,

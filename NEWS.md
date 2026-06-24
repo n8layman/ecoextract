@@ -1,3 +1,30 @@
+# ecoextract 0.1.10
+
+## Bug fixes
+
+* Fixed `document_id <- NA` clobber in `ocr_document()` that caused
+  reprocessing via `document_id` to create a duplicate documents row when the
+  file hash had changed (e.g. after opening and re-saving the PDF).
+
+* `process_documents(document_id = X, force_reprocess_ocr = TRUE)` now returns
+  a clear `"file not found"` status and leaves the database untouched when the
+  stored file path no longer exists, instead of nullifying `ocr_status` and
+  failing mid-pipeline. A subsequent run without `force_reprocess_ocr` will use
+  the stored OCR content.
+
+## Improvements
+
+* PDF file paths are now stored relative to the project root (found by walking
+  up from the PDF file's directory until a `.git`, `.Rproj`, `DESCRIPTION`, or
+  `.here` marker is found). This makes paths portable across machines and when
+  the project folder is moved. **If no project root marker is found the absolute
+  path is stored as a fallback** — this is machine-specific and will break if
+  the database is shared or the project folder is moved.
+
+* When a document is identified by hash match but the file has moved to a new
+  path, `file_path` in the database is immediately updated to reflect the
+  current location.
+
 # ecoextract 0.1.9
 
 ## Bug fixes
