@@ -1,7 +1,6 @@
-# Internal utility functions Create record IDs for a batch of records (internal)
+# Create record IDs for a batch of records (internal)
 
-Internal utility functions Create record IDs for a batch of records
-(internal)
+Create record IDs for a batch of records (internal)
 
 ## Usage
 

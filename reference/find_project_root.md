@@ -1,0 +1,15 @@
+# Internal utility functions Find project root by walking up from a directory
+
+Walks up the directory tree from `start_dir` until a project marker
+(`.git`, `.Rproj`, `DESCRIPTION`, `.here`) is found. Returns `NULL` if
+no marker is found before the filesystem root — this happens when the
+PDF lives outside any recognised project (e.g. a one-off download or a
+network path). In that case callers fall back to storing an absolute
+path, which is machine-specific and will break if the database is shared
+or the folder is moved.
+
+## Usage
+
+``` r
+find_project_root(start_dir)
+```

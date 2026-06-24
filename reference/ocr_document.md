@@ -12,7 +12,8 @@ ocr_document(
   force_reprocess = TRUE,
   provider = "tensorlake",
   timeout = 300,
-  max_wait_seconds = NULL
+  max_wait_seconds = NULL,
+  document_id = NULL
 )
 ```
 

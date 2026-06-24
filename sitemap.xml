@@ -33,6 +33,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/extract_fields_from_json_schema.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/extract_metadata.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/extract_records.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/find_project_root.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/generate_columns_from_json_schema.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/generate_record_id.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_context.html</loc></url>
@@ -83,6 +84,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/scrub_pipeline_stages.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/should_run_step.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/strip_non_standard_schema_properties.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/to_project_relative_path.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/try_models_with_fallback.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/validate_force_param.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/validate_schema_with_db.html</loc></url>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.9</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.10</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,19 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.10" id="ecoextract-0110">ecoextract 0.1.10<a class="anchor" aria-label="anchor" href="#ecoextract-0110"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-10">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-10"></a></h3>
+<ul><li><p>Fixed <code>document_id &lt;- NA</code> clobber in <code><a href="../reference/ocr_document.html">ocr_document()</a></code> that caused reprocessing via <code>document_id</code> to create a duplicate documents row when the file hash had changed (e.g. after opening and re-saving the PDF).</p></li>
+<li><p><code>process_documents(document_id = X, force_reprocess_ocr = TRUE)</code> now returns a clear <code>"file not found"</code> status and leaves the database untouched when the stored file path no longer exists, instead of nullifying <code>ocr_status</code> and failing mid-pipeline. A subsequent run without <code>force_reprocess_ocr</code> will use the stored OCR content.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="improvements-0-1-10">Improvements<a class="anchor" aria-label="anchor" href="#improvements-0-1-10"></a></h3>
+<ul><li><p>PDF file paths are now stored relative to the project root (found by walking up from the PDF file’s directory until a <code>.git</code>, <code>.Rproj</code>, <code>DESCRIPTION</code>, or <code>.here</code> marker is found). This makes paths portable across machines and when the project folder is moved. <strong>If no project root marker is found the absolute path is stored as a fallback</strong> — this is machine-specific and will break if the database is shared or the project folder is moved.</p></li>
+<li><p>When a document is identified by hash match but the file has moved to a new path, <code>file_path</code> in the database is immediately updated to reflect the current location.</p></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.9" id="ecoextract-019">ecoextract 0.1.9<a class="anchor" aria-label="anchor" href="#ecoextract-019"></a></h2>
 <div class="section level3">
