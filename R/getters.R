@@ -645,7 +645,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
     DBI::dbExecute(con, query, params = params)
 
     # If original_df provided, diff and update records
-    if (!is.null(original_df) && nrow(original_df) > 0) {
+    if (!is.null(original_df)) {
       changes <- diff_records(original_df, records_df)
 
       # Handle deleted records (use id for stable identification)
