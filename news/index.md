@@ -1,5 +1,19 @@
 # Changelog
 
+## ecoextract 0.1.11
+
+### Bug fixes
+
+- [`save_document()`](https://n8layman.github.io/ecoextract/reference/save_document.md)
+  no longer silently drops user-added rows when the document has zero
+  LLM-extracted records. Previously the diff/insert block was guarded by
+  `nrow(original_df) > 0`, which skipped the insert path when
+  `original_df` was an empty tibble. The
+  [`nrow()`](https://rdrr.io/r/base/nrow.html) guard is removed;
+  [`diff_records()`](https://n8layman.github.io/ecoextract/reference/diff_records.md)
+  already handles a 0-row `original_df` correctly. Passing
+  `original_df = NULL` still skips record changes as documented.
+
 ## ecoextract 0.1.10
 
 ### Bug fixes

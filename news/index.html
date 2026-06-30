@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,14 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.11" id="ecoextract-0111">ecoextract 0.1.11<a class="anchor" aria-label="anchor" href="#ecoextract-0111"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-11">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-11"></a></h3>
+<ul><li>
+<code><a href="../reference/save_document.html">save_document()</a></code> no longer silently drops user-added rows when the document has zero LLM-extracted records. Previously the diff/insert block was guarded by <code>nrow(original_df) &gt; 0</code>, which skipped the insert path when <code>original_df</code> was an empty tibble. The <code><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow()</a></code> guard is removed; <code><a href="../reference/diff_records.html">diff_records()</a></code> already handles a 0-row <code>original_df</code> correctly. Passing <code>original_df = NULL</code> still skips record changes as documented.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.10" id="ecoextract-0110">ecoextract 0.1.10<a class="anchor" aria-label="anchor" href="#ecoextract-0110"></a></h2>
 <div class="section level3">
