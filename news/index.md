@@ -1,5 +1,61 @@
 # Changelog
 
+## ecoextract 0.1.14
+
+### Bug fixes
+
+- [`migrate_ecoextract_database()`](https://n8layman.github.io/ecoextract/reference/migrate_ecoextract_database.md)
+  now correctly upgrades databases whose `records` table was created by
+  `dbWriteTable` rather than
+  [`init_ecoextract_database()`](https://n8layman.github.io/ecoextract/reference/init_ecoextract_database.md).
+  The previous approach patched the DDL string from `sqlite_master`,
+  which silently failed when column names were backtick-quoted or
+  `AUTOINCREMENT` was absent. The migration now builds the new DDL from
+  `PRAGMA table_info` and uses `ALTER TABLE ... RENAME TO` /
+  `CREATE TABLE` / `dbAppendTable` / `DROP TABLE` instead of DROP +
+  CREATE + `dbWriteTable`, so the schema change is guaranteed regardless
+  of how the original table was created.
+
+- Records with `NULL` id (possible when the original table was created
+  without `AUTOINCREMENT`) now receive a fresh UUID during migration
+  instead of remaining NULL.
+
+- Schema migration warning is now issued from
+  [`get_records()`](https://n8layman.github.io/ecoextract/reference/get_records.md)
+  (as a message, printed immediately) and
+  [`save_document()`](https://n8layman.github.io/ecoextract/reference/save_document.md)
+  (as a hard error) rather than from
+  [`init_ecoextract_database()`](https://n8layman.github.io/ecoextract/reference/init_ecoextract_database.md),
+  which is only called when creating new databases. Old-schema databases
+  opened for reading or writing are now always surfaced correctly.
+
+## ecoextract 0.1.13
+
+### Improvements
+
+- `records.id` is now `TEXT PRIMARY KEY` (UUID v4) instead of
+  `INTEGER PRIMARY KEY AUTOINCREMENT`. UUIDs are generated in R using
+  base functions only (no new dependency). This makes records
+  collision-free when merging databases from independent researchers.
+
+- Added
+  [`migrate_ecoextract_database()`](https://n8layman.github.io/ecoextract/reference/migrate_ecoextract_database.md)
+  to upgrade existing databases created before 0.1.13. The function
+  recreates `records` and `record_edits` with TEXT ids, backfills UUIDs
+  from a per-session integer-to-UUID map, and runs the entire operation
+  in a single transaction. Safe to re-run.
+
+- [`init_ecoextract_database()`](https://n8layman.github.io/ecoextract/reference/init_ecoextract_database.md)
+  now warns when it detects the old integer-id schema, prompting the
+  user to run
+  [`migrate_ecoextract_database()`](https://n8layman.github.io/ecoextract/reference/migrate_ecoextract_database.md).
+
+- All record insert paths (bulk extraction via
+  [`save_records_to_db()`](https://n8layman.github.io/ecoextract/reference/save_records_to_db.md)
+  and single-row user additions via
+  [`save_document()`](https://n8layman.github.io/ecoextract/reference/save_document.md))
+  now generate UUIDs for rows that do not already have an id.
+
 ## ecoextract 0.1.12
 
 ### Bug fixes

@@ -36,6 +36,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/find_project_root.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/generate_columns_from_json_schema.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/generate_record_id.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/generate_uuid.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_context.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_db_stats.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_document_content.html</loc></url>
@@ -66,6 +67,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/match_and_restore_record_ids.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/merge_refinements.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/migrate_database.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/migrate_ecoextract_database.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/normalize_array_fields.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/normalize_structured_result.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/ocr_document.html</loc></url>

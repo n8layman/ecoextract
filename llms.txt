@@ -377,6 +377,8 @@ Initialize and configure databases
 
 - [`init_ecoextract_database()`](https://n8layman.github.io/ecoextract/reference/init_ecoextract_database.md)
   : Initialize EcoExtract database
+- [`migrate_ecoextract_database()`](https://n8layman.github.io/ecoextract/reference/migrate_ecoextract_database.md)
+  : Migrate an ecoextract database to use UUID identifiers
 - [`init_ecoextract()`](https://n8layman.github.io/ecoextract/reference/init_ecoextract.md)
   : Initialize ecoextract Project Configuration
 

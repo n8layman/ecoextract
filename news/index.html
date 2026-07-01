@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.12</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.14</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,25 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.14" id="ecoextract-0114">ecoextract 0.1.14<a class="anchor" aria-label="anchor" href="#ecoextract-0114"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-14">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-14"></a></h3>
+<ul><li><p><code><a href="../reference/migrate_ecoextract_database.html">migrate_ecoextract_database()</a></code> now correctly upgrades databases whose <code>records</code> table was created by <code>dbWriteTable</code> rather than <code><a href="../reference/init_ecoextract_database.html">init_ecoextract_database()</a></code>. The previous approach patched the DDL string from <code>sqlite_master</code>, which silently failed when column names were backtick-quoted or <code>AUTOINCREMENT</code> was absent. The migration now builds the new DDL from <code>PRAGMA table_info</code> and uses <code>ALTER TABLE ... RENAME TO</code> / <code>CREATE TABLE</code> / <code>dbAppendTable</code> / <code>DROP TABLE</code> instead of DROP + CREATE + <code>dbWriteTable</code>, so the schema change is guaranteed regardless of how the original table was created.</p></li>
+<li><p>Records with <code>NULL</code> id (possible when the original table was created without <code>AUTOINCREMENT</code>) now receive a fresh UUID during migration instead of remaining NULL.</p></li>
+<li><p>Schema migration warning is now issued from <code><a href="../reference/get_records.html">get_records()</a></code> (as a message, printed immediately) and <code><a href="../reference/save_document.html">save_document()</a></code> (as a hard error) rather than from <code><a href="../reference/init_ecoextract_database.html">init_ecoextract_database()</a></code>, which is only called when creating new databases. Old-schema databases opened for reading or writing are now always surfaced correctly.</p></li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.13" id="ecoextract-0113">ecoextract 0.1.13<a class="anchor" aria-label="anchor" href="#ecoextract-0113"></a></h2>
+<div class="section level3">
+<h3 id="improvements-0-1-13">Improvements<a class="anchor" aria-label="anchor" href="#improvements-0-1-13"></a></h3>
+<ul><li><p><code>records.id</code> is now <code>TEXT PRIMARY KEY</code> (UUID v4) instead of <code>INTEGER PRIMARY KEY AUTOINCREMENT</code>. UUIDs are generated in R using base functions only (no new dependency). This makes records collision-free when merging databases from independent researchers.</p></li>
+<li><p>Added <code><a href="../reference/migrate_ecoextract_database.html">migrate_ecoextract_database()</a></code> to upgrade existing databases created before 0.1.13. The function recreates <code>records</code> and <code>record_edits</code> with TEXT ids, backfills UUIDs from a per-session integer-to-UUID map, and runs the entire operation in a single transaction. Safe to re-run.</p></li>
+<li><p><code><a href="../reference/init_ecoextract_database.html">init_ecoextract_database()</a></code> now warns when it detects the old integer-id schema, prompting the user to run <code><a href="../reference/migrate_ecoextract_database.html">migrate_ecoextract_database()</a></code>.</p></li>
+<li><p>All record insert paths (bulk extraction via <code><a href="../reference/save_records_to_db.html">save_records_to_db()</a></code> and single-row user additions via <code><a href="../reference/save_document.html">save_document()</a></code>) now generate UUIDs for rows that do not already have an id.</p></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.12" id="ecoextract-0112">ecoextract 0.1.12<a class="anchor" aria-label="anchor" href="#ecoextract-0112"></a></h2>
 <div class="section level3">
