@@ -375,6 +375,12 @@ migrate_ecoextract_database <- function(db_conn) {
     )
 
     all_records$id <- uuid_map[old_ids]
+    # Records with NULL id don't index into uuid_map cleanly — assign fresh UUIDs
+    na_ids <- is.na(all_records$id)
+    if (any(na_ids)) {
+      all_records$id[na_ids] <- vapply(which(na_ids), function(i) generate_uuid(), character(1))
+    }
+
     if (nrow(all_edits) > 0) {
       all_edits$record_id <- uuid_map[as.character(all_edits$record_id)]
       all_edits$id <- vapply(seq_len(nrow(all_edits)), function(i) generate_uuid(), character(1))
