@@ -310,10 +310,7 @@ migrate_database <- function(con) {
   # Warn if records.id is still INTEGER (needs UUID migration)
   id_col <- records_info[records_info$name == "id", ]
   if (nrow(id_col) > 0 && toupper(id_col$type) == "INTEGER") {
-    warning(
-      "records table uses integer IDs. Run migrate_ecoextract_database() to upgrade to UUID identifiers.",
-      call. = FALSE
-    )
+    message("Warning: records table uses integer IDs. Run migrate_ecoextract_database() to upgrade to UUID identifiers.")
   }
 
   # Check for OCR provider tracking columns in documents table
