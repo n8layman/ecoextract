@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.11</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.12</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,14 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.12" id="ecoextract-0112">ecoextract 0.1.12<a class="anchor" aria-label="anchor" href="#ecoextract-0112"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-12">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-12"></a></h3>
+<ul><li>
+<code><a href="../reference/save_document.html">save_document()</a></code> now assigns <code>id</code> after inserting a user-added row, fixing infinite duplication on repeated verify clicks in databases created with the old schema where <code>id</code> was a plain <code>INTEGER</code> rather than <code>INTEGER PRIMARY KEY</code>. After each insert, <code>UPDATE records SET id = last_insert_rowid() WHERE rowid = last_insert_rowid()</code> is executed; this is a no-op on new-schema databases where <code>id</code> is already set by autoincrement.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.11" id="ecoextract-0111">ecoextract 0.1.11<a class="anchor" aria-label="anchor" href="#ecoextract-0111"></a></h2>
 <div class="section level3">

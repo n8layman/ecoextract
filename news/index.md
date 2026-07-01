@@ -1,5 +1,18 @@
 # Changelog
 
+## ecoextract 0.1.12
+
+### Bug fixes
+
+- [`save_document()`](https://n8layman.github.io/ecoextract/reference/save_document.md)
+  now assigns `id` after inserting a user-added row, fixing infinite
+  duplication on repeated verify clicks in databases created with the
+  old schema where `id` was a plain `INTEGER` rather than
+  `INTEGER PRIMARY KEY`. After each insert,
+  `UPDATE records SET id = last_insert_rowid() WHERE rowid = last_insert_rowid()`
+  is executed; this is a no-op on new-schema databases where `id` is
+  already set by autoincrement.
+
 ## ecoextract 0.1.11
 
 ### Bug fixes
