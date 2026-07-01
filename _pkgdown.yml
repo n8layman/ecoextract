@@ -60,6 +60,7 @@ reference:
     desc: Initialize and configure databases
     contents:
       - init_ecoextract_database
+      - migrate_ecoextract_database
       - init_ecoextract
 
   - title: Data Access
