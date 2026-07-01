@@ -257,9 +257,6 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_record ON records (record_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_record_edits_record ON record_edits (record_id)")
 
-    # Run migrations for existing databases
-    migrate_database(con)
-
     if (is.character(db_conn)) {
       cat("EcoExtract database initialized:", db_conn, "\n")
     } else {
@@ -307,12 +304,6 @@ migrate_database <- function(con) {
     DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN added_by_user INTEGER DEFAULT 0")
   }
 
-  # Warn if records.id is still INTEGER (needs UUID migration)
-  id_col <- records_info[records_info$name == "id", ]
-  if (nrow(id_col) > 0 && toupper(id_col$type) == "INTEGER") {
-    message("Warning: records table uses integer IDs. Run migrate_ecoextract_database() to upgrade to UUID identifiers.")
-  }
-
   # Check for OCR provider tracking columns in documents table
   documents_info <- DBI::dbGetQuery(con, "PRAGMA table_info(documents)")
   if (!"ocr_provider" %in% documents_info$name) {
@@ -323,6 +314,20 @@ migrate_database <- function(con) {
   }
 
   invisible(NULL)
+}
+
+#' Check whether the records table uses the old integer-id schema
+#'
+#' Returns TRUE if `records.id` is INTEGER (pre-0.1.13 schema), FALSE otherwise.
+#' Used by \code{get_records()} (warn) and \code{save_document()} (error) to
+#' surface migration need at actual database-use time rather than at init time.
+#' @param con An open DBI connection.
+#' @keywords internal
+needs_uuid_migration <- function(con) {
+  if (!"records" %in% DBI::dbListTables(con)) return(FALSE)
+  info <- DBI::dbGetQuery(con, "PRAGMA table_info(records)")
+  id_col <- info[info$name == "id", ]
+  nrow(id_col) > 0 && toupper(id_col$type) == "INTEGER"
 }
 
 #' Migrate an ecoextract database to use UUID identifiers

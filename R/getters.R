@@ -324,6 +324,10 @@ get_records <- function(document_id = NULL, db_conn = "ecoextract_records.db") {
     on.exit(DBI::dbDisconnect(con), add = TRUE)
   }
 
+  if (needs_uuid_migration(con)) {
+    message("Warning: database uses integer record IDs (pre-0.1.13 schema). Run migrate_ecoextract_database() to upgrade to UUID identifiers.")
+  }
+
   tryCatch({
     if (is.null(document_id)) {
       # Get all records
@@ -614,6 +618,10 @@ save_document <- function(document_id, records_df, original_df = NULL,
 
   if (close_on_exit) {
     on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
+  if (needs_uuid_migration(con)) {
+    stop("Database uses integer record IDs (pre-0.1.13 schema). Run migrate_ecoextract_database() before saving.")
   }
 
   # Validate document exists
