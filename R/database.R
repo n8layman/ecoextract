@@ -380,31 +380,31 @@ migrate_ecoextract_database <- function(db_conn) {
       all_edits$id <- vapply(seq_len(nrow(all_edits)), function(i) generate_uuid(), character(1))
     }
 
-    # Get original DDL and patch id types
-    records_ddl <- DBI::dbGetQuery(con,
-      "SELECT sql FROM sqlite_master WHERE type='table' AND name='records'")$sql
-    records_ddl <- gsub(
-      "id INTEGER PRIMARY KEY AUTOINCREMENT",
-      "id TEXT PRIMARY KEY",
-      records_ddl, fixed = TRUE
-    )
+    # Build DDL from PRAGMA table_info so format differences in sqlite_master don't matter.
+    # Uses RENAME -> CREATE -> INSERT -> DROP to avoid dbWriteTable recreating the schema.
+    rec_col_defs <- migration_col_defs(records_info,
+      overrides = list(id = "id TEXT PRIMARY KEY"))
+    edit_info <- DBI::dbGetQuery(con, "PRAGMA table_info(record_edits)")
+    edit_col_defs <- migration_col_defs(edit_info,
+      overrides = list(id = "id TEXT PRIMARY KEY", record_id = "record_id TEXT NOT NULL"))
 
-    edits_ddl <- DBI::dbGetQuery(con,
-      "SELECT sql FROM sqlite_master WHERE type='table' AND name='record_edits'")$sql
-    edits_ddl <- gsub("id INTEGER PRIMARY KEY AUTOINCREMENT", "id TEXT PRIMARY KEY", edits_ddl, fixed = TRUE)
-    edits_ddl <- gsub("record_id INTEGER NOT NULL", "record_id TEXT NOT NULL", edits_ddl, fixed = TRUE)
+    DBI::dbExecute(con, "ALTER TABLE record_edits RENAME TO record_edits_old")
+    DBI::dbExecute(con, "ALTER TABLE records RENAME TO records_old")
 
-    DBI::dbExecute(con, "DROP TABLE IF EXISTS record_edits")
-    DBI::dbExecute(con, "DROP TABLE IF EXISTS records")
-    DBI::dbExecute(con, records_ddl)
-    DBI::dbExecute(con, edits_ddl)
+    DBI::dbExecute(con, paste0(
+      "CREATE TABLE records (", paste(rec_col_defs, collapse = ", "), ")"))
+    DBI::dbExecute(con, paste0(
+      "CREATE TABLE record_edits (", paste(edit_col_defs, collapse = ", "), ")"))
 
     if (nrow(all_records) > 0) {
-      DBI::dbWriteTable(con, "records", all_records, append = TRUE, row.names = FALSE)
+      DBI::dbAppendTable(con, "records", all_records)
     }
     if (nrow(all_edits) > 0) {
-      DBI::dbWriteTable(con, "record_edits", all_edits, append = TRUE, row.names = FALSE)
+      DBI::dbAppendTable(con, "record_edits", all_edits)
     }
+
+    DBI::dbExecute(con, "DROP TABLE records_old")
+    DBI::dbExecute(con, "DROP TABLE record_edits_old")
 
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_document ON records (document_id)")
     DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_record ON records (record_id)")
@@ -420,6 +420,26 @@ migrate_ecoextract_database <- function(db_conn) {
   DBI::dbExecute(con, "PRAGMA foreign_keys = ON")
   message("Migration complete.")
   invisible(NULL)
+}
+
+#' Build column definition strings for migration DDL from PRAGMA table_info output
+#' @param info Data frame from PRAGMA table_info
+#' @param overrides Named list mapping column name to full definition string
+#' @keywords internal
+migration_col_defs <- function(info, overrides = list()) {
+  vapply(seq_len(nrow(info)), function(i) {
+    col <- info[i, ]
+    name <- col$name
+    if (name %in% names(overrides)) return(overrides[[name]])
+    type <- toupper(trimws(col$type))
+    if (!nzchar(type)) type <- "TEXT"
+    def <- paste(name, type)
+    if (isTRUE(col$notnull == 1L)) def <- paste(def, "NOT NULL")
+    if (!is.na(col$dflt_value) && nzchar(col$dflt_value)) {
+      def <- paste(def, "DEFAULT", col$dflt_value)
+    }
+    def
+  }, character(1))
 }
 
 #' Get record table column definitions as SQL
