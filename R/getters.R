@@ -755,6 +755,8 @@ save_document <- function(document_id, records_df, original_df = NULL,
           ))
 
           DBI::dbExecute(con, query, params = params)
+          DBI::dbExecute(con,
+            "UPDATE records SET id = last_insert_rowid() WHERE rowid = last_insert_rowid()")
         }
       }
     }
