@@ -1,3 +1,27 @@
+# ecoextract 0.1.14
+
+## Bug fixes
+
+* `migrate_ecoextract_database()` now correctly upgrades databases whose
+  `records` table was created by `dbWriteTable` rather than
+  `init_ecoextract_database()`. The previous approach patched the DDL string
+  from `sqlite_master`, which silently failed when column names were
+  backtick-quoted or `AUTOINCREMENT` was absent. The migration now builds the
+  new DDL from `PRAGMA table_info` and uses `ALTER TABLE ... RENAME TO` /
+  `CREATE TABLE` / `dbAppendTable` / `DROP TABLE` instead of DROP + CREATE +
+  `dbWriteTable`, so the schema change is guaranteed regardless of how the
+  original table was created.
+
+* Records with `NULL` id (possible when the original table was created without
+  `AUTOINCREMENT`) now receive a fresh UUID during migration instead of
+  remaining NULL.
+
+* Schema migration warning is now issued from `get_records()` (as a message,
+  printed immediately) and `save_document()` (as a hard error) rather than
+  from `init_ecoextract_database()`, which is only called when creating new
+  databases. Old-schema databases opened for reading or writing are now always
+  surfaced correctly.
+
 # ecoextract 0.1.13
 
 ## Improvements
