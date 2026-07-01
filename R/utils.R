@@ -37,6 +37,23 @@ to_project_relative_path <- function(file_path) {
   substring(abs_path, nchar(root_prefix) + 1)
 }
 
+#' Generate a UUID v4 identifier
+#'
+#' Produces a standards-compliant UUID v4 using base R only (no extra dependency).
+#' @return Character string in the form "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+#' @keywords internal
+generate_uuid <- function() {
+  b <- sample(0L:255L, 16L, replace = TRUE)
+  b[7] <- bitwOr(bitwAnd(b[7], 0x0fL), 0x40L)
+  b[9] <- bitwOr(bitwAnd(b[9], 0x3fL), 0x80L)
+  h <- sprintf("%02x", b)
+  paste0(paste(h[1:4], collapse = ""), "-",
+         paste(h[5:6], collapse = ""), "-",
+         paste(h[7:8], collapse = ""), "-",
+         paste(h[9:10], collapse = ""), "-",
+         paste(h[11:16], collapse = ""))
+}
+
 #' Create record IDs for a batch of records (internal)
 #' @param interactions Dataframe of records
 #' @param author_lastname Author lastname for ID generation

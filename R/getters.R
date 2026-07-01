@@ -668,7 +668,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
         schema_cols <- setdiff(names(records_df), metadata_cols)
 
         for (rid_key in names(changes$modified)) {
-          rid <- as.integer(rid_key)
+          rid <- rid_key
           changed_cols <- changes$modified[[rid_key]]
           orig_vals <- changes$original_values[[rid_key]]
 
@@ -726,20 +726,20 @@ save_document <- function(document_id, records_df, original_df = NULL,
 
           # Prepare insert - exclude metadata and derived columns
           exclude_cols <- c(
-            "id",  # Auto-increment, don't insert
+            "id",  # Added explicitly below as UUID
             "document_id",  # Added explicitly below
             "extraction_timestamp", "fields_changed_count", "deleted_by_user", "added_by_user",
             "human_edited"  # Derived column, not in database
           )
           insert_cols <- setdiff(names(new_row), exclude_cols)
-          insert_cols <- c(insert_cols, "document_id", "added_by_user", "extraction_timestamp")
+          insert_cols <- c(insert_cols, "id", "document_id", "added_by_user", "extraction_timestamp")
 
           placeholders <- paste(rep("?", length(insert_cols)), collapse = ", ")
           query <- paste0("INSERT INTO records (", paste(insert_cols, collapse = ", "),
                           ") VALUES (", placeholders, ")")
 
           # Build params - get values for data columns (not the explicitly added ones)
-          data_cols <- setdiff(insert_cols, c("document_id", "added_by_user", "extraction_timestamp"))
+          data_cols <- setdiff(insert_cols, c("id", "document_id", "added_by_user", "extraction_timestamp"))
           params <- lapply(data_cols, function(col) {
             val <- new_row[[col]]
             if (is.list(val)) {
@@ -749,14 +749,13 @@ save_document <- function(document_id, records_df, original_df = NULL,
             }
           })
           params <- c(params, list(
+            generate_uuid(), # id
             document_id,
             1L,           # added_by_user = TRUE
             reviewed_at   # extraction_timestamp
           ))
 
           DBI::dbExecute(con, query, params = params)
-          DBI::dbExecute(con,
-            "UPDATE records SET id = last_insert_rowid() WHERE rowid = last_insert_rowid()")
         }
       }
     }

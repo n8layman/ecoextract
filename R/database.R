@@ -221,7 +221,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     schema_columns <- get_record_columns_sql(schema_json_list)
     record_table_sql <- paste0("
       CREATE TABLE IF NOT EXISTS records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT PRIMARY KEY,
         document_id INTEGER NOT NULL,
         record_id TEXT NOT NULL,
         ", schema_columns, "
@@ -242,8 +242,8 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     # Create record_edits audit table for tracking column-level changes
     DBI::dbExecute(con, "
       CREATE TABLE IF NOT EXISTS record_edits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        record_id INTEGER NOT NULL,
+        id TEXT PRIMARY KEY,
+        record_id TEXT NOT NULL,
         column_name TEXT NOT NULL,
         original_value TEXT,
         edited_at TEXT NOT NULL,
@@ -290,8 +290,8 @@ migrate_database <- function(con) {
   if (!"record_edits" %in% tables) {
     DBI::dbExecute(con, "
       CREATE TABLE IF NOT EXISTS record_edits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        record_id INTEGER NOT NULL,
+        id TEXT PRIMARY KEY,
+        record_id TEXT NOT NULL,
         column_name TEXT NOT NULL,
         original_value TEXT,
         edited_at TEXT NOT NULL,
@@ -307,6 +307,15 @@ migrate_database <- function(con) {
     DBI::dbExecute(con, "ALTER TABLE records ADD COLUMN added_by_user INTEGER DEFAULT 0")
   }
 
+  # Warn if records.id is still INTEGER (needs UUID migration)
+  id_col <- records_info[records_info$name == "id", ]
+  if (nrow(id_col) > 0 && toupper(id_col$type) == "INTEGER") {
+    warning(
+      "records table uses integer IDs. Run migrate_ecoextract_database() to upgrade to UUID identifiers.",
+      call. = FALSE
+    )
+  }
+
   # Check for OCR provider tracking columns in documents table
   documents_info <- DBI::dbGetQuery(con, "PRAGMA table_info(documents)")
   if (!"ocr_provider" %in% documents_info$name) {
@@ -316,6 +325,98 @@ migrate_database <- function(con) {
     DBI::dbExecute(con, "ALTER TABLE documents ADD COLUMN ocr_log TEXT")
   }
 
+  invisible(NULL)
+}
+
+#' Migrate an ecoextract database to use UUID identifiers
+#'
+#' Converts `records.id` and `record_edits.record_id` / `record_edits.id`
+#' from `INTEGER` to `TEXT` (UUID v4). Run once on databases created with
+#' ecoextract < 0.1.13. Safe to re-run — exits silently if already migrated.
+#'
+#' The migration runs inside a transaction. Foreign key enforcement is disabled
+#' for the duration of the table recreation and restored afterwards.
+#'
+#' @param db_conn A DBI connection object or a path to an SQLite database file.
+#' @return `NULL` invisibly.
+#' @export
+migrate_ecoextract_database <- function(db_conn) {
+  close_on_exit <- is.character(db_conn)
+  con <- if (close_on_exit) DBI::dbConnect(RSQLite::SQLite(), db_conn) else db_conn
+  withr::defer(if (close_on_exit) DBI::dbDisconnect(con))
+
+  records_info <- DBI::dbGetQuery(con, "PRAGMA table_info(records)")
+  id_col <- records_info[records_info$name == "id", ]
+
+  if (nrow(id_col) == 0) stop("No 'id' column found in records table.")
+  if (toupper(id_col$type) != "INTEGER") {
+    message("Database already uses UUID identifiers. No migration needed.")
+    return(invisible(NULL))
+  }
+
+  message("Migrating database to UUID identifiers...")
+
+  # PRAGMA foreign_keys must be set outside a transaction
+  DBI::dbExecute(con, "PRAGMA foreign_keys = OFF")
+
+  tryCatch({
+    DBI::dbBegin(con)
+
+    all_records <- DBI::dbGetQuery(con, "SELECT * FROM records")
+    all_edits   <- DBI::dbGetQuery(con, "SELECT * FROM record_edits")
+
+    # Build integer-id -> UUID mapping
+    old_ids  <- as.character(all_records$id)
+    uuid_map <- stats::setNames(
+      vapply(seq_along(old_ids), function(i) generate_uuid(), character(1)),
+      old_ids
+    )
+
+    all_records$id <- uuid_map[old_ids]
+    if (nrow(all_edits) > 0) {
+      all_edits$record_id <- uuid_map[as.character(all_edits$record_id)]
+      all_edits$id <- vapply(seq_len(nrow(all_edits)), function(i) generate_uuid(), character(1))
+    }
+
+    # Get original DDL and patch id types
+    records_ddl <- DBI::dbGetQuery(con,
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='records'")$sql
+    records_ddl <- gsub(
+      "id INTEGER PRIMARY KEY AUTOINCREMENT",
+      "id TEXT PRIMARY KEY",
+      records_ddl, fixed = TRUE
+    )
+
+    edits_ddl <- DBI::dbGetQuery(con,
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='record_edits'")$sql
+    edits_ddl <- gsub("id INTEGER PRIMARY KEY AUTOINCREMENT", "id TEXT PRIMARY KEY", edits_ddl, fixed = TRUE)
+    edits_ddl <- gsub("record_id INTEGER NOT NULL", "record_id TEXT NOT NULL", edits_ddl, fixed = TRUE)
+
+    DBI::dbExecute(con, "DROP TABLE IF EXISTS record_edits")
+    DBI::dbExecute(con, "DROP TABLE IF EXISTS records")
+    DBI::dbExecute(con, records_ddl)
+    DBI::dbExecute(con, edits_ddl)
+
+    if (nrow(all_records) > 0) {
+      DBI::dbWriteTable(con, "records", all_records, append = TRUE, row.names = FALSE)
+    }
+    if (nrow(all_edits) > 0) {
+      DBI::dbWriteTable(con, "record_edits", all_edits, append = TRUE, row.names = FALSE)
+    }
+
+    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_document ON records (document_id)")
+    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_records_record ON records (record_id)")
+    DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_record_edits_record ON record_edits (record_id)")
+
+    DBI::dbCommit(con)
+  }, error = function(e) {
+    DBI::dbRollback(con)
+    DBI::dbExecute(con, "PRAGMA foreign_keys = ON")
+    stop("Migration failed: ", e$message)
+  })
+
+  DBI::dbExecute(con, "PRAGMA foreign_keys = ON")
+  message("Migration complete.")
   invisible(NULL)
 }
 
@@ -747,7 +848,19 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     DBI::dbBegin(con)
     tryCatch({
       if (mode == "insert") {
-        # Insert mode: Simply append all records (extraction already deduplicated)
+        # Assign UUIDs to any rows that don't yet have an id
+        if (!"id" %in% names(interactions_clean)) {
+          interactions_clean$id <- vapply(
+            seq_len(nrow(interactions_clean)), function(i) generate_uuid(), character(1)
+          )
+        } else {
+          na_ids <- is.na(interactions_clean$id)
+          if (any(na_ids)) {
+            interactions_clean$id[na_ids] <- vapply(
+              which(na_ids), function(i) generate_uuid(), character(1)
+            )
+          }
+        }
         DBI::dbWriteTable(con, "records", interactions_clean, append = TRUE, row.names = FALSE)
       } else if (mode == "update") {
         # Update mode: Only update existing records (for refinement)

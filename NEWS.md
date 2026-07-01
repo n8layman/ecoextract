@@ -1,3 +1,24 @@
+# ecoextract 0.1.13
+
+## Improvements
+
+* `records.id` is now `TEXT PRIMARY KEY` (UUID v4) instead of
+  `INTEGER PRIMARY KEY AUTOINCREMENT`. UUIDs are generated in R using base
+  functions only (no new dependency). This makes records collision-free when
+  merging databases from independent researchers.
+
+* Added `migrate_ecoextract_database()` to upgrade existing databases created
+  before 0.1.13. The function recreates `records` and `record_edits` with TEXT
+  ids, backfills UUIDs from a per-session integer-to-UUID map, and runs the
+  entire operation in a single transaction. Safe to re-run.
+
+* `init_ecoextract_database()` now warns when it detects the old integer-id
+  schema, prompting the user to run `migrate_ecoextract_database()`.
+
+* All record insert paths (bulk extraction via `save_records_to_db()` and
+  single-row user additions via `save_document()`) now generate UUIDs for rows
+  that do not already have an id.
+
 # ecoextract 0.1.12
 
 ## Bug fixes

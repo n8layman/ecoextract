@@ -27,6 +27,19 @@ test_that("add_record_ids adds IDs to all rows", {
   expect_true(all(!is.na(result$record_id)))
 })
 
+test_that("generate_uuid produces valid UUID v4", {
+  uuid <- generate_uuid()
+
+  expect_type(uuid, "character")
+  expect_equal(nchar(uuid), 36L)
+  expect_match(uuid, "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+})
+
+test_that("generate_uuid produces unique values", {
+  uuids <- vapply(seq_len(100L), function(i) generate_uuid(), character(1))
+  expect_equal(length(unique(uuids)), 100L)
+})
+
 # Utilities --------------------------------------------------------------------
 
 test_that("estimate_tokens handles various inputs", {

@@ -200,3 +200,114 @@ test_that("array fields stored as single-level JSON arrays in database", {
   expect_equal(multi, '["Sentence one.","Sentence two."]')
   expect_equal(single, '["Single sentence."]')
 })
+
+# UUID Migration ---------------------------------------------------------------
+
+test_that("records.id is TEXT (UUID) in new databases", {
+  db_path <- local_test_db()
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  info <- DBI::dbGetQuery(con, "PRAGMA table_info(records)")
+  id_type <- info[info$name == "id", "type"]
+  expect_equal(toupper(id_type), "TEXT")
+})
+
+test_that("save_records_to_db assigns UUID ids on insert", {
+  db_path <- local_test_db()
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+  records <- sample_records()
+  save_records_to_db(db_path, doc_id, records, list())
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  saved <- DBI::dbGetQuery(con, "SELECT id FROM records")
+
+  expect_equal(nrow(saved), nrow(records))
+  expect_true(all(grepl(
+    "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+    saved$id
+  )))
+})
+
+test_that("migrate_ecoextract_database upgrades INTEGER ids to UUID TEXT", {
+  db_path <- withr::local_tempfile(fileext = ".sqlite")
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  # Build minimal old-schema database (pre-0.1.13)
+  DBI::dbExecute(con, "
+    CREATE TABLE documents (
+      document_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      file_hash TEXT NOT NULL UNIQUE,
+      file_name TEXT
+    )
+  ")
+  DBI::dbExecute(con, "INSERT INTO documents (file_hash, file_name) VALUES ('abc123', 'test.pdf')")
+  doc_id <- DBI::dbGetQuery(con, "SELECT last_insert_rowid() AS id")$id
+
+  DBI::dbExecute(con, "
+    CREATE TABLE records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      document_id INTEGER NOT NULL,
+      record_id TEXT NOT NULL,
+      extraction_timestamp TEXT NOT NULL,
+      prompt_hash TEXT NOT NULL,
+      fields_changed_count INTEGER DEFAULT 0,
+      deleted_by_user TEXT,
+      added_by_user INTEGER DEFAULT 0,
+      UNIQUE (document_id, record_id),
+      FOREIGN KEY (document_id) REFERENCES documents (document_id)
+    )
+  ")
+  DBI::dbExecute(con, "
+    CREATE TABLE record_edits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      record_id INTEGER NOT NULL,
+      column_name TEXT NOT NULL,
+      original_value TEXT,
+      edited_at TEXT NOT NULL,
+      FOREIGN KEY (record_id) REFERENCES records (id)
+    )
+  ")
+
+  DBI::dbExecute(con,
+    "INSERT INTO records (document_id, record_id, extraction_timestamp, prompt_hash) VALUES (?, 'r1', '2024-01-01', 'h1')",
+    params = list(doc_id))
+  DBI::dbExecute(con,
+    "INSERT INTO records (document_id, record_id, extraction_timestamp, prompt_hash) VALUES (?, 'r2', '2024-01-01', 'h1')",
+    params = list(doc_id))
+  DBI::dbExecute(con,
+    "INSERT INTO record_edits (record_id, column_name, original_value, edited_at) VALUES (1, 'col', 'old', '2024-01-01')")
+
+  # Verify old schema before migration
+  info_before <- DBI::dbGetQuery(con, "PRAGMA table_info(records)")
+  expect_equal(toupper(info_before[info_before$name == "id", "type"]), "INTEGER")
+
+  migrate_ecoextract_database(con)
+
+  # id type is now TEXT
+  info_after <- DBI::dbGetQuery(con, "PRAGMA table_info(records)")
+  expect_equal(toupper(info_after[info_after$name == "id", "type"]), "TEXT")
+
+  # All records preserved with valid UUID ids
+  records <- DBI::dbGetQuery(con, "SELECT * FROM records")
+  expect_equal(nrow(records), 2L)
+  expect_true(all(grepl(
+    "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+    records$id
+  )))
+
+  # record_edits FK updated to new UUID
+  edits <- DBI::dbGetQuery(con, "SELECT * FROM record_edits")
+  expect_equal(nrow(edits), 1L)
+  expect_true(grepl(
+    "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+    edits$record_id
+  ))
+
+  # Re-running is a no-op
+  expect_message(migrate_ecoextract_database(con), "already")
+})
