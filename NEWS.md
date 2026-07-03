@@ -1,3 +1,13 @@
+# ecoextract 0.1.15
+
+## Bug fixes
+
+* `get_document_content()` no longer throws `"missing value where TRUE/FALSE
+  needed"` when `document_content` is `NULL` in the database (returned as `NA`
+  in R). The `is.null()` check did not catch `NA`, causing `NA == ""` to
+  evaluate to `NA` and `if(NA)` to error. Fixed by extracting the value first
+  and checking with `is.na()` / `nzchar()`.
+
 # ecoextract 0.1.14
 
 ## Bug fixes

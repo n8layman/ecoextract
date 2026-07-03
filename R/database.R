@@ -1478,11 +1478,12 @@ get_document_content <- function(document_id, db_conn) {
       SELECT document_content FROM documents WHERE document_id = ?
     ", params = list(document_id))
     
-    if (nrow(result) == 0 || is.null(result$document_content) || result$document_content == "") {
+    content <- result$document_content[1]
+    if (nrow(result) == 0 || is.null(content) || is.na(content) || !nzchar(content)) {
       return(NA)
     }
     
-    return(result$document_content[1])
+    return(content)
   }, error = function(e) {
     message("Error retrieving document content: ", e$message)
     return(NA)
