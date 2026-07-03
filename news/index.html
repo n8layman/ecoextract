@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.14</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.15</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,14 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.15" id="ecoextract-0115">ecoextract 0.1.15<a class="anchor" aria-label="anchor" href="#ecoextract-0115"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-15">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-15"></a></h3>
+<ul><li>
+<code><a href="../reference/get_document_content.html">get_document_content()</a></code> no longer throws <code>"missing value where TRUE/FALSE needed"</code> when <code>document_content</code> is <code>NULL</code> in the database (returned as <code>NA</code> in R). The <code><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null()</a></code> check did not catch <code>NA</code>, causing <code>NA == ""</code> to evaluate to <code>NA</code> and <code>if(NA)</code> to error. Fixed by extracting the value first and checking with <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code> / <code><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar()</a></code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.14" id="ecoextract-0114">ecoextract 0.1.14<a class="anchor" aria-label="anchor" href="#ecoextract-0114"></a></h2>
 <div class="section level3">
