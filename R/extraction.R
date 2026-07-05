@@ -179,9 +179,11 @@ extract_records <- function(document_id = NA,
 
         "ok"
       }, error = function(e) {
-        message(sprintf("  Extraction rep %d failed: %s", rep, e$message))
+        err_msg <- e$message
+        message(sprintf("  Extraction rep %d failed: %s", rep, err_msg))
+        track$status <- paste("Extraction failed:", err_msg)
+        track$error_log <- if (is.na(track$error_log)) err_msg else paste(track$error_log, err_msg, sep = "; ")
         if (rep == 1 && length(track$models_used) == 0) {
-          # First rep failed — propagate so outer tryCatch handles it
           stop(e)
         }
         "failed"

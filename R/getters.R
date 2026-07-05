@@ -699,9 +699,9 @@ save_document <- function(document_id, records_df, original_df = NULL,
           # Insert into record_edits audit table for each changed column
           for (col in changed_cols) {
             DBI::dbExecute(con,
-              "INSERT INTO record_edits (record_id, column_name, original_value, edited_at)
-               VALUES (?, ?, ?, ?)",
-              params = list(rid, col, orig_vals[[col]], reviewed_at))
+              "INSERT INTO record_edits (id, record_id, column_name, original_value, edited_at)
+               VALUES (?, ?, ?, ?, ?)",
+              params = list(generate_uuid(), rid, col, orig_vals[[col]], reviewed_at))
           }
         }
       }
