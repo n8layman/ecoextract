@@ -49,10 +49,13 @@ validate_force_param <- function(param, param_name) {
 #' Process PDFs through the complete pipeline: OCR → Metadata → Extract → Refine
 #'
 #' @param pdf_path Path to a single PDF file, a character vector of PDF paths, or a directory
-#'   of PDFs. Mutually exclusive with \code{document_id}.
+#'   of PDFs. Mutually exclusive with \code{document_id}. If neither \code{pdf_path} nor
+#'   \code{document_id} is given, all documents in \code{db_conn} are processed.
 #' @param document_id Integer vector of document IDs from the database to reprocess.
 #'   For each ID, the stored file path is looked up; if the file exists on disk it is used,
 #'   otherwise the stored OCR content is used directly. Mutually exclusive with \code{pdf_path}.
+#'   If neither \code{pdf_path} nor \code{document_id} is given, all documents in \code{db_conn}
+#'   are processed.
 #' @param db_conn Database connection (any DBI backend) or path to SQLite database file.
 #'   If a path is provided, creates SQLite database if it doesn't exist.
 #'   If a connection is provided, tables must already exist (use \code{init_ecoextract_database()} first).
@@ -186,9 +189,6 @@ process_documents <- function(pdf_path = NULL,
   if (!is.null(pdf_path) && !is.null(document_id)) {
     stop("pdf_path and document_id are mutually exclusive: provide one or the other")
   }
-  if (is.null(pdf_path) && is.null(document_id)) {
-    stop("One of pdf_path or document_id must be provided")
-  }
 
   # Validate force parameters
   validate_force_param(force_reprocess_ocr, "force_reprocess_ocr")
@@ -319,7 +319,21 @@ process_documents <- function(pdf_path = NULL,
     }
   }
 
-  # Resolve pdf_files from document_id
+  # Resolve pdf_files from document_id (or all documents in the DB if neither was given)
+  if (is.null(pdf_path) && is.null(document_id)) {
+    if (inherits(db_conn, "DBIConnection")) {
+      query_conn <- db_conn
+    } else {
+      query_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+      configure_sqlite_connection(query_conn)
+    }
+    all_docs <- DBI::dbGetQuery(query_conn, "SELECT document_id, file_path FROM documents")
+    if (!inherits(db_conn, "DBIConnection")) DBI::dbDisconnect(query_conn)
+    if (nrow(all_docs) == 0) stop("No documents found in database")
+    pdf_files <- all_docs$file_path
+    pdf_document_ids <- all_docs$document_id
+  }
+
   if (!is.null(document_id)) {
     if (inherits(db_conn, "DBIConnection")) {
       query_conn <- db_conn

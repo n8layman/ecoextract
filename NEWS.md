@@ -1,3 +1,11 @@
+# ecoextract 0.1.19
+
+## New features
+
+* `process_documents()` now accepts `db_conn` alone — omitting both `pdf_path`
+  and `document_id` processes all documents already in the database. Useful for
+  re-running extraction on a database that was split from a larger one.
+
 # ecoextract 0.1.18
 
 ## Bug fixes
