@@ -543,7 +543,7 @@ process_documents <- function(pdf_path = NULL,
 
           # Log error details
           if (!is.null(log_file)) {
-            cat(sprintf("\n[%s] [%d/%d] %s\n", timestamp, completed, total, result$name),
+            cat(sprintf("\n[%s] [%d/%d] %s (document_id: %d)\n", timestamp, completed, total, result$name, r$document_id),
                 file = log_file, append = TRUE)
             cat(sprintf("Status: %s\n", toupper(result$status)), file = log_file, append = TRUE)
             cat(sprintf("Error: %s\n", error_msg), file = log_file, append = TRUE)
@@ -574,7 +574,7 @@ process_documents <- function(pdf_path = NULL,
           has_failure <- any(!c(r$ocr_status, r$metadata_status, r$extraction_status, r$refinement_status) %in% c("completed", "skipped"))
           overall_status <- if (has_failure) "FAILED" else "COMPLETED"
 
-          cat(sprintf("[%d/%d] %s\n", completed, total, result$name))
+          cat(sprintf("[%d/%d] %s (document_id: %d)\n", completed, total, result$name, r$document_id))
           cat(sprintf("Status: %s\n", overall_status))
           cat(sprintf("  OCR: %s\n", r$ocr_status))
           cat(sprintf("  Metadata: %s\n", r$metadata_status))
@@ -584,7 +584,7 @@ process_documents <- function(pdf_path = NULL,
 
           # Log full workflow output if available
           if (!is.null(log_file)) {
-            cat(sprintf("\n[%s] [%d/%d] %s\n", timestamp, completed, total, result$name),
+            cat(sprintf("\n[%s] [%d/%d] %s (document_id: %d)\n", timestamp, completed, total, result$name, r$document_id),
                 file = log_file, append = TRUE)
             cat(strrep("-", 70), "\n", file = log_file, append = TRUE)
             if (!is.null(worker_output) && length(worker_output) > 0) {
