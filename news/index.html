@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.15</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.16</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,14 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.16" id="ecoextract-0116">ecoextract 0.1.16<a class="anchor" aria-label="anchor" href="#ecoextract-0116"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-16">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-16"></a></h3>
+<ul><li><p><code><a href="../reference/save_document.html">save_document()</a></code> now correctly includes <code>id</code> (UUID) when inserting into <code>record_edits</code>. Since 0.1.13 the column is <code>TEXT PRIMARY KEY</code> (NOT NULL), so omitting it caused every cell edit followed by Verify to fail with a NOT NULL constraint error and roll back the entire save (<a href="https://github.com/n8layman/ecoextract/issues/133" class="external-link">#133</a>).</p></li>
+<li><p>Extraction write failures are no longer silently swallowed. When <code><a href="../reference/save_records_to_db.html">save_records_to_db()</a></code> throws, the error message is now written into <code>extraction_status</code> (e.g. <code>"Extraction failed: ..."</code>) rather than leaving the document marked <code>"completed"</code> with 0 records extracted (<a href="https://github.com/n8layman/ecoextract/issues/134" class="external-link">#134</a>).</p></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.15" id="ecoextract-0115">ecoextract 0.1.15<a class="anchor" aria-label="anchor" href="#ecoextract-0115"></a></h2>
 <div class="section level3">
