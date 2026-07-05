@@ -1,5 +1,11 @@
 # Changelog
 
+## ecoextract 0.1.20
+
+### Minor improvements
+
+- Parallel worker completion messages now include `document_id`.
+
 ## ecoextract 0.1.19
 
 ### New features
