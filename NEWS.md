@@ -1,3 +1,17 @@
+# ecoextract 0.1.16
+
+## Bug fixes
+
+* `save_document()` now correctly includes `id` (UUID) when inserting into
+  `record_edits`. Since 0.1.13 the column is `TEXT PRIMARY KEY` (NOT NULL), so
+  omitting it caused every cell edit followed by Verify to fail with a NOT NULL
+  constraint error and roll back the entire save (#133).
+
+* Extraction write failures are no longer silently swallowed. When
+  `save_records_to_db()` throws, the error message is now written into
+  `extraction_status` (e.g. `"Extraction failed: ..."`) rather than leaving
+  the document marked `"completed"` with 0 records extracted (#134).
+
 # ecoextract 0.1.15
 
 ## Bug fixes
