@@ -388,6 +388,9 @@ process_documents <- function(pdf_path = NULL,
     controller$start()
     on.exit(controller$terminate(), add = TRUE)
 
+    # Generate unique seeds per task so parallel workers have independent RNG state
+    task_seeds <- sample.int(.Machine$integer.max, length(pdf_files))
+
     # Push tasks for each PDF
     # When logging, capture all message() output from the worker
     for (i in seq_along(pdf_files)) {
@@ -480,6 +483,7 @@ process_documents <- function(pdf_path = NULL,
           parent_env = parent_env,
           extra_args = extra_args
         ),
+        seed = task_seeds[i],
         name = basename(pdf_files[i])
       )
     }

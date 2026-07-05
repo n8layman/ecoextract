@@ -1,11 +1,14 @@
 Type: Package
 Package: ecoextract
 Title: Ecological Data Extraction and Refinement
-Version: 0.1.17
+Version: 0.1.18
 Authors@R: c(
     person("Nathan", "Layman", , "nathan.layman@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-2238-6584")),
-    person("Valentine", "Herrmann", role = "ctb"))
+    person("Valentine", "Herrmann", role = "ctb"),
+    person("Cadhla", "Firt", role = "ctb"),
+    person("Amanda", "Liew", role = "ctb"),
+    person("Aja", "Sherman", role = "ctb"))
 Description: Structured ecological data extraction and refinement from
     scientific literature.  Provides functions for OCR processing,
     extracting structured data from documents, and refining extracted data

@@ -1,3 +1,12 @@
+# ecoextract 0.1.18
+
+## Bug fixes
+
+* `process_documents()` with `workers > 1` now passes a unique seed to each
+  parallel worker via `crew`'s `seed` argument. Previously, workers spawned
+  simultaneously could inherit identical RNG state and generate colliding UUIDs,
+  causing UNIQUE constraint failures on `records.id`.
+
 # ecoextract 0.1.17
 
 ## Bug fixes
