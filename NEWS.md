@@ -1,3 +1,14 @@
+# ecoextract 0.1.17
+
+## Bug fixes
+
+* `process_documents()` with `force_reprocess_extraction` now deletes existing
+  unedited records for the document before re-extracting, instead of relying on
+  dedup to filter them out. This prevents record accumulation across multiple
+  force runs and eliminates the risk of UNIQUE constraint failures on
+  `records.id`. Human-edited records (those with entries in `record_edits`) are
+  preserved.
+
 # ecoextract 0.1.16
 
 ## Bug fixes

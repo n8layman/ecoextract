@@ -852,6 +852,18 @@ process_single_document <- function(pdf_file,
         "UPDATE documents SET extraction_status = NULL WHERE document_id = ?",
         params = list(doc_id))
     })
+    retry_db_operation({
+      unedited_ids <- DBI::dbGetQuery(db_conn,
+        "SELECT id FROM records WHERE document_id = ?
+         AND id NOT IN (SELECT DISTINCT record_id FROM record_edits)",
+        params = list(doc_id))$id
+      if (length(unedited_ids) > 0) {
+        placeholders <- paste(rep("?", length(unedited_ids)), collapse = ", ")
+        DBI::dbExecute(db_conn,
+          sprintf("DELETE FROM records WHERE id IN (%s)", placeholders),
+          params = as.list(unedited_ids))
+      }
+    })
   }
 
   # Fetch current document state
