@@ -28,7 +28,7 @@ graph LR
 
 | Package | Purpose | Links |
 |---------|---------|-------|
-| [ohseer](https://github.com/n8layman/ohseer) | OCR processing via Tensorlake | [GitHub](https://github.com/n8layman/ohseer) |
+| [ohseer](https://github.com/n8layman/ohseer) | OCR processing (Mistral, Tensorlake, Claude) | [GitHub](https://github.com/n8layman/ohseer) |
 | [ecoextract](https://github.com/n8layman/ecoextract) | AI-powered extraction pipeline | [Docs](https://n8layman.github.io/ecoextract/) \| [GitHub](https://github.com/n8layman/ecoextract) |
 | [ecoreview](https://github.com/n8layman/ecoreview) | Interactive Shiny review app | [GitHub](https://github.com/n8layman/ecoreview) |
 
@@ -133,16 +133,22 @@ MISTRAL_API_KEY=your_mistral_key
 
 ## OCR Provider Selection
 
-EcoExtract supports multiple OCR providers through [ohseer](https://github.com/n8layman/ohseer). By default it uses Tensorlake, but you can switch to Mistral or Claude:
+EcoExtract supports multiple OCR providers through [ohseer](https://github.com/n8layman/ohseer). By default it uses Mistral, but you can switch to Tensorlake or Claude:
 
 ```r
-# Use default provider (Tensorlake)
+# Use default provider (Mistral)
 process_documents("papers/")
 
-# Use Mistral OCR
+# Use Tensorlake OCR
 process_documents(
   pdf_path = "papers/",
-  ocr_provider = "mistral"
+  ocr_provider = "tensorlake"
+)
+
+# Use Claude OCR
+process_documents(
+  pdf_path = "papers/",
+  ocr_provider = "claude"
 )
 
 # Use Claude OCR
@@ -215,6 +221,17 @@ See the [Configuration Guide](https://n8layman.github.io/ecoextract/articles/con
 - `get_ocr_html_preview()` - Render OCR output with embedded images as HTML
 - `get_db_stats()` - Get document and record counts from database
 - `export_db()` - Export records with metadata to tibble or CSV file
+- `export_bibtex()` - Export document bibliography to BibTeX format
+- `calculate_accuracy()` - Calculate detection recall, field precision, F1, and edit severity after human review
+
+## Contributing
+
+The `main` branch is protected. All changes must go through a pull request. PRs must pass the full CI suite before merging, which includes:
+
+- `R CMD CHECK` (no errors, no warnings)
+- Unit and integration tests (`devtools::test()`) — integration tests require live API keys and perform real extractions
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## Testing
 
@@ -223,7 +240,7 @@ devtools::test()   # Run all tests
 devtools::check()  # Run package checks
 ```
 
-Integration tests require API keys in a `.env` file. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Integration tests require API keys in a `.env` file.
 
 ## File Structure
 
@@ -237,7 +254,8 @@ ecoextract/
 │   ├── refinement.R        # Data refinement functions
 │   ├── deduplication.R     # Record deduplication (LLM, embedding, Jaccard)
 │   ├── database.R          # Database operations
-│   ├── getters.R           # Data access functions (get_*, export_db)
+│   ├── bibtex.R            # Bibliography export (BibTeX format)
+│   ├── getters.R           # Data access functions (get_*, export_db, export_bibtex)
 │   ├── config_loader.R     # Configuration file loading + init_ecoextract()
 │   ├── prompts.R           # Prompt loading
 │   ├── utils.R             # Utilities
