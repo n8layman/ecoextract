@@ -16,7 +16,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/n8layman/ecoextract/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/n8layman/ecoextract/blob/HEAD/DESCRIPTION)
 
 Layman N (2026). *ecoextract: Ecological Data Extraction and
 Refinement*. R package version 0.1.20,
