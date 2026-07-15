@@ -251,7 +251,14 @@ devtools::test()   # Run all tests
 devtools::check()  # Run package checks
 ```
 
-Integration tests require API keys in a `.env` file.
+Integration tests require API keys in a `.env` file and perform live extractions against real APIs — they verify API response structure, not content accuracy.
+
+The `main` branch is protected. All changes must be submitted as a pull request. PRs must pass the full CI suite before merging:
+
+- `R CMD CHECK` with no errors or warnings
+- Full test suite including integration tests (requires live API keys configured in CI)
+
+This ensures every merge has been validated against real API behavior, not just mocks.
 
 ## File Structure
 
