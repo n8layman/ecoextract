@@ -117,12 +117,19 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p><strong>Recommended: renv</strong> (reproducible, locks dependency versions)</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Install the ecosystem (pak recommended)</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ohseer"</span><span class="op">)</span>      <span class="co"># OCR processing</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ecoextract"</span><span class="op">)</span>  <span class="co"># Data extraction</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ecoreview"</span><span class="op">)</span>   <span class="co"># Review app (optional)</span></span></code></pre></div>
-<p>See the <a href="https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html">Complete Guide</a> for alternative installation methods and troubleshooting.</p>
+<code class="sourceCode R"><span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/init.html" class="external-link">init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="st">"n8layman/ohseer"</span><span class="op">)</span>      <span class="co"># OCR processing</span></span>
+<span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="st">"n8layman/ecoextract"</span><span class="op">)</span>  <span class="co"># Data extraction</span></span>
+<span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="st">"n8layman/ecoreview"</span><span class="op">)</span>   <span class="co"># Review app (optional)</span></span>
+<span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/snapshot.html" class="external-link">snapshot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Alternative: pak</strong></p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ohseer"</span><span class="op">)</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ecoextract"</span><span class="op">)</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"n8layman/ecoreview"</span><span class="op">)</span>   <span class="co"># optional</span></span></code></pre></div>
+<p>See the <a href="https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html">Complete Guide</a> for troubleshooting.</p>
 </div>
 <div class="section level2">
 <h2 id="api-key-setup">API Key Setup<a class="anchor" aria-label="anchor" href="#api-key-setup"></a>
@@ -145,12 +152,12 @@
 </li>
 </ul>
 <p>Create a <code>.env</code> file in your project root (make sure it’s in <code>.gitignore</code> first!):</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="va">ANTHROPIC_API_KEY</span><span class="op">=</span>your_anthropic_api_key_here</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your_mistral_api_key_here</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># Optional providers</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="va">TENSORLAKE_API_KEY</span><span class="op">=</span>your_tensorlake_api_key_here</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="va">GOOGLE_API_KEY</span><span class="op">=</span>your_google_api_key_here</span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="va">OPENAI_API_KEY</span><span class="op">=</span>your_openai_api_key_here</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="va">ANTHROPIC_API_KEY</span><span class="op">=</span>your_anthropic_api_key_here</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your_mistral_api_key_here</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co"># Optional providers</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="va">TENSORLAKE_API_KEY</span><span class="op">=</span>your_tensorlake_api_key_here</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="va">GOOGLE_API_KEY</span><span class="op">=</span>your_google_api_key_here</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="va">OPENAI_API_KEY</span><span class="op">=</span>your_openai_api_key_here</span></code></pre></div>
 <p>The <code>.env</code> file is automatically loaded when R starts in the project directory. See the <a href="https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html#api-key-setup">Complete Guide</a> for detailed setup instructions.</p>
 <p>By default, ecoextract uses <code>anthropic/claude-sonnet-4-5</code> for extraction and <code>mistral</code> for OCR. To use different providers, pass the <code>model</code> or <code>ocr_provider</code> parameters to <code><a href="reference/process_documents.html">process_documents()</a></code>. Supported LLM providers: Anthropic (<code>anthropic/</code>), Google Gemini (<code>google_gemini/</code>), OpenAI (<code>openai/</code>), Mistral (<code>mistral/</code>), Groq (<code>groq/</code>).</p>
 <p><strong>Note:</strong> OpenAI models require schemas to follow <a href="https://platform.openai.com/docs/guides/structured-outputs/supported-schemas" class="external-link">OpenAI’s structured output rules</a> – specifically <code>"additionalProperties": false</code> on every object and all properties listed in <code>required</code>. Schemas generated by <code><a href="reference/init_ecoextract.html">init_ecoextract()</a></code> follow these rules by default. See the <a href="https://n8layman.github.io/ecoextract/articles/configuration.html">Configuration Guide</a> for details.</p>
@@ -158,7 +165,7 @@
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/n8layman/ecoextract" class="external-link">ecoextract</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Process all PDFs in a folder through the 4-step pipeline:</span></span>
@@ -176,7 +183,7 @@
 <h2 id="model-fallback">Model Fallback<a class="anchor" aria-label="anchor" href="#model-fallback"></a>
 </h2>
 <p>EcoExtract supports tiered model fallback to handle content refusals (e.g., Claude refusing disease/biosecurity papers). Provide a vector of models to try sequentially:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Single model (default)</span></span>
 <span><span class="fu"><a href="reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
 <span>  pdf_path <span class="op">=</span> <span class="st">"papers/"</span>,</span>
@@ -194,16 +201,16 @@
 <span><span class="op">)</span></span></code></pre></div>
 <p><strong>Audit logging</strong>: The database tracks which model succeeded for each step (metadata, extraction, refinement) in <code>*_llm_model</code> columns. All failed attempts with error messages and timestamps are logged in <code>*_log</code> columns for debugging.</p>
 <p><strong>API keys</strong>: Add keys for fallback providers to your <code>.env</code>:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="va">ANTHROPIC_API_KEY</span><span class="op">=</span>your_anthropic_key</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="va">GOOGLE_API_KEY</span><span class="op">=</span>your_google_key</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="va">OPENAI_API_KEY</span><span class="op">=</span>your_openai_key</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your_mistral_key</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="va">ANTHROPIC_API_KEY</span><span class="op">=</span>your_anthropic_key</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="va">GOOGLE_API_KEY</span><span class="op">=</span>your_google_key</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="va">OPENAI_API_KEY</span><span class="op">=</span>your_openai_key</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="va">MISTRAL_API_KEY</span><span class="op">=</span>your_mistral_key</span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="ocr-provider-selection">OCR Provider Selection<a class="anchor" aria-label="anchor" href="#ocr-provider-selection"></a>
 </h2>
 <p>EcoExtract supports multiple OCR providers through <a href="https://github.com/n8layman/ohseer" class="external-link">ohseer</a>. By default it uses Mistral, but you can switch to Tensorlake or Claude:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use default provider (Mistral)</span></span>
 <span><span class="fu"><a href="reference/process_documents.html">process_documents</a></span><span class="op">(</span><span class="st">"papers/"</span><span class="op">)</span></span>
 <span></span>
@@ -259,7 +266,7 @@
 <h2 id="custom-schemas">Custom Schemas<a class="anchor" aria-label="anchor" href="#custom-schemas"></a>
 </h2>
 <p>EcoExtract is domain-agnostic and works with any JSON schema:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create custom config directory with templates</span></span>
 <span><span class="fu"><a href="reference/init_ecoextract.html">init_ecoextract</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -330,7 +337,7 @@
 <div class="section level2">
 <h2 id="testing">Testing<a class="anchor" aria-label="anchor" href="#testing"></a>
 </h2>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># Run all tests</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">check</a></span><span class="op">(</span><span class="op">)</span>  <span class="co"># Run package checks</span></span></code></pre></div>
 <p>Integration tests require API keys in a <code>.env</code> file.</p>
