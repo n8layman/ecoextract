@@ -40,14 +40,25 @@ graph LR
 
 ## Installation
 
+**Recommended: renv** (reproducible, locks dependency versions)
+
 ```r
-# Install the ecosystem (pak recommended)
-pak::pak("n8layman/ohseer")      # OCR processing
-pak::pak("n8layman/ecoextract")  # Data extraction
-pak::pak("n8layman/ecoreview")   # Review app (optional)
+renv::init()
+renv::install("n8layman/ohseer")      # OCR processing
+renv::install("n8layman/ecoextract")  # Data extraction
+renv::install("n8layman/ecoreview")   # Review app (optional)
+renv::snapshot()
 ```
 
-See the [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for alternative installation methods and troubleshooting.
+**Alternative: pak**
+
+```r
+pak::pak("n8layman/ohseer")
+pak::pak("n8layman/ecoextract")
+pak::pak("n8layman/ecoreview")   # optional
+```
+
+See the [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextract-workflow.html) for troubleshooting.
 
 ## API Key Setup
 
