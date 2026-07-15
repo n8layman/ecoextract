@@ -9,8 +9,8 @@ EcoExtract automates the extraction of structured data from PDFs using OCR and L
 ```mermaid
 graph LR
     A[PDF Papers] -->|ohseer| B[OCR]
-    B -->|ecoextract| C[Metadata]
-    B -->|ecoextract + Claude| D[Data Extraction]
+    B -->|ecoextract| C[Metadata Extraction]
+    B -->|ecoextract| D[Data Extraction]
     C --> E[SQLite Database]
     D --> E
     E -.->|optional| F[Refinement]
