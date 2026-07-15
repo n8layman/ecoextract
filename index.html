@@ -340,7 +340,14 @@
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># Run all tests</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">check</a></span><span class="op">(</span><span class="op">)</span>  <span class="co"># Run package checks</span></span></code></pre></div>
-<p>Integration tests require API keys in a <code>.env</code> file.</p>
+<p>Integration tests require API keys in a <code>.env</code> file and perform live extractions against real APIs — they verify API response structure, not content accuracy.</p>
+<p>The <code>main</code> branch is protected. All changes must be submitted as a pull request. PRs must pass the full CI suite before merging:</p>
+<ul>
+<li>
+<code>R CMD CHECK</code> with no errors or warnings</li>
+<li>Full test suite including integration tests (requires live API keys configured in CI)</li>
+</ul>
+<p>This ensures every merge has been validated against real API behavior, not just mocks.</p>
 </div>
 <div class="section level2">
 <h2 id="file-structure">File Structure<a class="anchor" aria-label="anchor" href="#file-structure"></a>
