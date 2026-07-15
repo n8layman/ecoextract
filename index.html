@@ -59,8 +59,8 @@
 </h2>
 <pre class="mermaid"><code>graph LR
     A[PDF Papers] --&gt;|ohseer| B[OCR]
-    B --&gt;|ecoextract| C[Metadata]
-    B --&gt;|ecoextract + Claude| D[Data Extraction]
+    B --&gt;|ecoextract| C[Metadata Extraction]
+    B --&gt;|ecoextract| D[Data Extraction]
     C --&gt; E[SQLite Database]
     D --&gt; E
     E -.-&gt;|optional| F[Refinement]
