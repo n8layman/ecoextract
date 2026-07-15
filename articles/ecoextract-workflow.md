@@ -233,18 +233,18 @@ MISTRAL_API_KEY=your_mistral_key
 
 EcoExtract supports multiple OCR providers through
 [ohseer](https://github.com/n8layman/ohseer). By default it uses
-Tensorlake, but you can switch to Mistral or Claude, or use provider
+Mistral, but you can switch to Tensorlake or Claude, or use provider
 fallback:
 
 ``` r
 
-# Use default provider (Tensorlake)
+# Use default provider (Mistral)
 process_documents("papers/")
 
-# Use Mistral OCR (better structure preservation)
+# Use Tensorlake OCR
 process_documents(
   pdf_path = "papers/",
-  ocr_provider = "mistral"
+  ocr_provider = "tensorlake"
 )
 
 # Use Claude OCR
@@ -337,6 +337,26 @@ Each `force_reprocess_*` parameter accepts:
 - `TRUE` – force reprocess all documents
 - Integer vector (e.g., `c(5L, 12L)`) – force reprocess specific
   document IDs
+
+When forcing re-extraction, existing unedited records are deleted before
+re-extracting. Human-edited records (those with entries in
+`record_edits`) are preserved.
+
+#### Reprocessing without specifying documents
+
+If you omit both `pdf_path` and `document_id`, all documents already in
+the database are processed. This is useful when working with a database
+that was copied or split from a larger one:
+
+``` r
+
+# Reprocess all documents in an existing database
+process_documents(
+  db_conn = "ecoextract_records.db",
+  force_reprocess_extraction = TRUE,
+  model = "anthropic/claude-sonnet-4-5"
+)
+```
 
 ### Deduplication
 
@@ -620,7 +640,7 @@ The SQLite database has two main tables:
 
 **records** – Stores extracted data records:
 
-- `id` – Primary key (auto-increment)
+- `id` – Primary key (UUID v4, TEXT)
 - `document_id` – Foreign key to documents
 - `record_id` – Human-readable identifier (e.g., “Smith2023-001”)
 - Custom fields defined by your schema
