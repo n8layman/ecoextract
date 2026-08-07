@@ -340,6 +340,7 @@ is_content_refusal <- function(error_msg, raw_content = NULL, stop_reason = NULL
 #' @keywords internal
 check_api_keys_for_models <- function(models) {
   # Map provider prefixes to environment variable names
+  # Local providers (ollama, vllm) require no API key and are excluded
   provider_keys <- list(
     "anthropic" = "ANTHROPIC_API_KEY",
     "openai" = "OPENAI_API_KEY",
@@ -430,17 +431,37 @@ try_models_with_fallback <- function(
       if (attempt > 1) message(sprintf("  Retry %d/%d for %s", attempt, max_retries, model))
       # Create chat instance
       is_gemini <- startsWith(model, "google_gemini/")
-      chat <- ellmer::chat(
-        name = model,
-        system_prompt = system_prompt,
-        echo = "none",
-        params = if (is_gemini) {
-          # Disable Gemini thinking to avoid truncating structured output.
-          ellmer::params(max_tokens = max_tokens, reasoning_tokens = 0)
-        } else {
-          list(max_tokens = max_tokens)
-        }
-      )
+      is_ollama <- startsWith(model, "ollama/")
+      is_vllm   <- startsWith(model, "vllm/")
+      model_name <- sub("^[^/]+/", "", model)
+      chat <- if (is_ollama) {
+        ellmer::chat_ollama(
+          model = model_name,
+          system_prompt = system_prompt,
+          echo = "none",
+          params = list(max_tokens = max_tokens)
+        )
+      } else if (is_vllm) {
+        ellmer::chat_vllm(
+          base_url = Sys.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"),
+          model = model_name,
+          system_prompt = system_prompt,
+          echo = "none",
+          params = list(max_tokens = max_tokens)
+        )
+      } else {
+        ellmer::chat(
+          name = model,
+          system_prompt = system_prompt,
+          echo = "none",
+          params = if (is_gemini) {
+            # Disable Gemini thinking to avoid truncating structured output.
+            ellmer::params(max_tokens = max_tokens, reasoning_tokens = 0)
+          } else {
+            list(max_tokens = max_tokens)
+          }
+        )
+      }
 
       # Strip non-standard JSON Schema properties ($schema, x-*, _comment,
       # additionalProperties) that waste tokens and some providers reject.

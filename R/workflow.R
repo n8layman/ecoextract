@@ -68,6 +68,8 @@ validate_force_param <- function(param, param_name) {
 #'   Default: "anthropic/claude-sonnet-4-5".
 #'   Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
 #'   c("anthropic/claude-sonnet-4-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")
+#'   Local models: "ollama/qwen3:8b" (requires Ollama running locally),
+#'   "vllm/qwen3-8b" (requires vLLM; set VLLM_BASE_URL env var, default http://localhost:8000/v1)
 #' @param force_reprocess_ocr Controls OCR reprocessing. NULL (default) uses normal skip logic,
 #'   TRUE forces all documents, or an integer vector of document_ids to force specific documents.
 #' @param force_reprocess_metadata Controls metadata reprocessing. NULL (default) uses normal skip logic,
