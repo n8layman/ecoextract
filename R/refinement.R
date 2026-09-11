@@ -89,10 +89,11 @@ refine_records <- function(db_conn = NULL, document_id,
     schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
     schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
 
-    # Step 3: Convert to ellmer type schema
+    # Step 3: Convert to ellmer type schema, declaring record_id so the model
+    # returns it for each refined record
     schema <- ellmer::TypeJsonSchema(
       description = rlang::`%||%`(schema_list$description, "Interaction schema"),
-      json = schema_list
+      json = add_record_id_to_schema(schema_list)
     )
 
     # Load extraction prompt (provides domain context for refinement)
@@ -365,6 +366,30 @@ merge_refinements <- function(original_records, refined_records) {
   }
 
   return(updated_records)
+}
+
+#' Declare record_id in a records schema for refinement (internal)
+#'
+#' Refinement must return each record's \code{record_id} so edits map back to
+#' existing rows. \code{record_id} is a system field and not part of project
+#' schemas, and with \code{additionalProperties: false} the model cannot add
+#' undeclared fields, so it is added here as a required string.
+#'
+#' @param schema_list Parsed records JSON schema
+#' @return Schema list with record_id added to the record properties and required fields
+#' @keywords internal
+add_record_id_to_schema <- function(schema_list) {
+  items <- schema_list$properties$records$items
+  items$properties <- c(
+    list(record_id = list(
+      type = "string",
+      description = "record_id of the existing record being refined, copied exactly"
+    )),
+    items$properties
+  )
+  items$required <- c(list("record_id"), items$required)
+  schema_list$properties$records$items <- items
+  schema_list
 }
 
 #' Restore id and record_id from existing records after LLM refinement

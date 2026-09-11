@@ -63,6 +63,20 @@ test_that("clean_schema_for_api removes additionalProperties for Gemini", {
   expect_null(json$properties$items$items$additionalProperties)
 })
 
+test_that("add_record_id_to_schema declares record_id as a required record field", {
+  schema_list <- jsonlite::fromJSON(
+    load_config_file(NULL, "schema.json", "extdata"),
+    simplifyVector = FALSE
+  )
+  original_fields <- names(schema_list$properties$records$items$properties)
+
+  items <- add_record_id_to_schema(schema_list)$properties$records$items
+
+  expect_equal(items$properties$record_id$type, "string")
+  expect_true("record_id" %in% unlist(items$required))
+  expect_true(all(original_fields %in% names(items$properties)))
+})
+
 test_that("generate_uuid produces valid UUID v4", {
   uuid <- generate_uuid()
 

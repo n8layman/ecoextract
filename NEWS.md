@@ -35,6 +35,9 @@
   as Claude Sonnet 4.6 and Haiku 4.5 (#142).
 * When every model fails, the error message links to the README's new
   Troubleshooting section (#142).
+* Refinement now declares `record_id` in the schema it sends, so models return
+  it for each refined record. It was previously an undeclared extra field,
+  which `"additionalProperties": false` disallows (#145).
 
 ## Documentation
 
