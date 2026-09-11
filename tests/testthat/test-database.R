@@ -10,10 +10,12 @@ test_that("process_documents errors when both pdf_path and document_id given", {
   )
 })
 
-test_that("process_documents errors when neither pdf_path nor document_id given", {
+test_that("process_documents errors when neither pdf_path nor document_id given and the database is empty", {
+  db_path <- local_test_db()
+
   expect_error(
-    process_documents(),
-    "One of pdf_path or document_id must be provided"
+    process_documents(db_conn = db_path),
+    "No documents found in database"
   )
 })
 

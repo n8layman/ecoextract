@@ -1,27 +1,31 @@
-#' Extract Publication Metadata
+#' Extract Document Metadata
 #'
-#' Extracts publication metadata from OCR-processed scientific documents:
-#' - Title, authors, publication year, DOI, journal
-#' - Saves results to documents table
-#'
-#' This is a schema-agnostic step that extracts universal publication metadata
-#' regardless of the domain-specific extraction schema used in later steps.
+#' Extracts document-level metadata from OCR-processed documents and saves it
+#' to the documents table. The fields come from the metadata schema, loaded
+#' with the usual config priority (explicit file, then
+#' \code{ecoextract/metadata_schema.json}, then the package default of
+#' bibliographic fields for journal articles).
 #' Skip logic is handled by the workflow - this function always runs when called.
 #'
 #' @param document_id Document ID in database
 #' @param db_conn Database connection
 #' @param force_reprocess Ignored (kept for backward compatibility). Skip logic handled by workflow.
-#' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")
+#' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-5")
+#' @param metadata_schema_file Path to custom metadata schema JSON file (optional)
+#' @param metadata_prompt_file Path to custom metadata prompt file (optional)
 #' @return List with status ("completed"/<error message>) and document_id
 #' @keywords internal
-extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model = "anthropic/claude-sonnet-4-5") {
+extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
+                             model = "anthropic/claude-sonnet-5",
+                             metadata_schema_file = NULL,
+                             metadata_prompt_file = NULL) {
 
   # Handle database connection - accept either connection object or path
   if (!inherits(db_conn, "DBIConnection")) {
     # Path string - initialize if needed, then connect
     if (!file.exists(db_conn)) {
       cat("Initializing new database:", db_conn, "\n")
-      init_ecoextract_database(db_conn)
+      init_ecoextract_database(db_conn, metadata_schema_file = metadata_schema_file)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
     configure_sqlite_connection(db_conn)
@@ -42,19 +46,19 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model
       "Metadata extraction failed: No document content found in database"
     } else {
 
-    message("Extracting publication metadata...")
+    message("Extracting document metadata...")
 
-    # Load metadata schema and convert to native ellmer types
-    schema_path <- system.file("extdata", "metadata_schema.json", package = "ecoextract")
-    if (!file.exists(schema_path)) {
-      stop("Metadata schema not found at: ", schema_path)
-    }
-
-    schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-    schema <- json_schema_to_ellmer_type_metadata(schema_path)
+    # Load metadata schema (custom or default) and convert to ellmer TypeJsonSchema
+    schema_json <- load_config_file(metadata_schema_file, "metadata_schema.json", "extdata", return_content = TRUE)
+    schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+    metadata_fields <- get_metadata_fields(schema_list)
+    schema <- ellmer::TypeJsonSchema(
+      description = rlang::`%||%`(schema_list$description, "Document metadata schema"),
+      json = schema_list
+    )
 
     # Load metadata extraction prompt
-    metadata_prompt <- get_metadata_prompt()
+    metadata_prompt <- get_metadata_prompt(metadata_prompt_file)
 
     # Load context template
     context_template <- get_metadata_context()
@@ -85,60 +89,40 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model
            paste(names(metadata_result), collapse = ", "))
     }
 
-    pub_metadata <- metadata_result$publication_metadata
+    doc_metadata <- metadata_result$publication_metadata
 
-    # Convert authors array to JSON string for storage
-    authors_json <- if (!is.null(pub_metadata$authors) && length(pub_metadata$authors) > 0) {
-      jsonlite::toJSON(pub_metadata$authors, auto_unbox = FALSE)
-    } else {
-      NA_character_
-    }
+    # Serialize array and object fields to JSON strings for storage
+    metadata <- purrr::imap(metadata_fields, function(field_spec, field) {
+      value <- doc_metadata[[field]]
+      if (is.null(value) || length(value) == 0) return(NA)
+      if (json_property_type(field_spec) %in% c("array", "object")) {
+        as.character(jsonlite::toJSON(value, auto_unbox = TRUE))
+      } else {
+        value
+      }
+    })
 
-    # Convert bibliography array to JSON string for storage
-    references_json <- if (!is.null(pub_metadata$bibliography) && length(pub_metadata$bibliography) > 0) {
-      jsonlite::toJSON(pub_metadata$bibliography, auto_unbox = FALSE)
-    } else {
-      NA_character_
-    }
-
-    # Save metadata to database
     save_metadata_to_db(
       document_id = document_id,
       db_conn = db_conn,
-      metadata = list(
-        title = pub_metadata$title,
-        first_author_lastname = pub_metadata$first_author_lastname,
-        authors = authors_json,
-        publication_year = pub_metadata$publication_year,
-        doi = pub_metadata$doi,
-        journal = pub_metadata$journal,
-        volume = pub_metadata$volume,
-        issue = pub_metadata$issue,
-        pages = pub_metadata$pages,
-        issn = pub_metadata$issn,
-        publisher = pub_metadata$publisher,
-        bibliography = references_json,
-        language = pub_metadata$language
-      ),
+      metadata = metadata,
       metadata_llm_model = model_used,
       metadata_log = error_log
     )
 
-      # Log metadata extracted to console for user.
+      # Log metadata extracted to console for user. Arrays are summarized by length.
       message("Metadata extraction completed:")
-      message(glue::glue("  title: {rlang::`%||%`(pub_metadata$title, '<empty>')}"))
-      message(glue::glue("  first_author_lastname: {rlang::`%||%`(pub_metadata$first_author_lastname, '<empty>')}"))
-      message(glue::glue("  authors: {if(!is.null(pub_metadata$authors)) paste(pub_metadata$authors, collapse=', ') else '<empty>'}"))
-      message(glue::glue("  publication_year: {rlang::`%||%`(pub_metadata$publication_year, '<empty>')}"))
-      message(glue::glue("  doi: {rlang::`%||%`(pub_metadata$doi, '<empty>')}"))
-      message(glue::glue("  journal: {rlang::`%||%`(pub_metadata$journal, '<empty>')}"))
-      message(glue::glue("  volume: {rlang::`%||%`(pub_metadata$volume, '<empty>')}"))
-      message(glue::glue("  issue: {rlang::`%||%`(pub_metadata$issue, '<empty>')}"))
-      message(glue::glue("  pages: {rlang::`%||%`(pub_metadata$pages, '<empty>')}"))
-      message(glue::glue("  issn: {rlang::`%||%`(pub_metadata$issn, '<empty>')}"))
-      message(glue::glue("  publisher: {rlang::`%||%`(pub_metadata$publisher, '<empty>')}"))
-      message(glue::glue("  language: {rlang::`%||%`(pub_metadata$language, '<empty>')}"))
-      message(glue::glue("  references: {if(!is.null(pub_metadata$bibliography)) length(pub_metadata$bibliography) else 0} citations"))
+      purrr::iwalk(metadata_fields, function(field_spec, field) {
+        value <- doc_metadata[[field]]
+        shown <- if (is.null(value) || length(value) == 0) {
+          "<empty>"
+        } else if (json_property_type(field_spec) %in% c("array", "object")) {
+          paste(length(value), "items")
+        } else {
+          value
+        }
+        message(glue::glue("  {field}: {shown}"))
+      })
 
       "completed"
     }
@@ -149,52 +133,58 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE, model
   return(list(status = status, document_id = document_id))
 }
 
-#' Convert metadata JSON schema to native ellmer type specification
+#' Load the metadata JSON schema (internal)
 #'
-#' Converts the metadata schema to ellmer's native type functions for
-#' proper dataframe conversion
+#' Uses the config priority order: an explicit file, then
+#' \code{ecoextract/metadata_schema.json} in the project directory, then the
+#' package default.
 #'
-#' @param schema_path Path to metadata JSON schema file
-#' @return Ellmer type specification object
+#' @param schema_file Path to custom metadata schema JSON file (optional)
+#' @return Parsed metadata JSON schema as a list
 #' @keywords internal
-json_schema_to_ellmer_type_metadata <- function(schema_path) {
-  # Read and parse JSON schema
-  schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
-  schema <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
+load_metadata_schema <- function(schema_file = NULL) {
+  schema_path <- load_config_file(schema_file, "metadata_schema.json", "extdata", return_content = FALSE)
+  jsonlite::fromJSON(schema_path, simplifyVector = FALSE)
+}
 
-  # Build publication_metadata object
-  pub_meta_props <- schema$properties$publication_metadata$properties
-  pub_meta_fields <- list(
-    title = ellmer::type_string(description = pub_meta_props$title$description, required = FALSE),
-    first_author_lastname = ellmer::type_string(description = pub_meta_props$first_author_lastname$description, required = FALSE),
-    authors = ellmer::type_array(
-      items = ellmer::type_string(),
-      description = pub_meta_props$authors$description,
-      required = FALSE
-    ),
-    publication_year = ellmer::type_integer(description = pub_meta_props$publication_year$description, required = FALSE),
-    doi = ellmer::type_string(description = pub_meta_props$doi$description, required = FALSE),
-    journal = ellmer::type_string(description = pub_meta_props$journal$description, required = FALSE),
-    volume = ellmer::type_string(description = pub_meta_props$volume$description, required = FALSE),
-    issue = ellmer::type_string(description = pub_meta_props$issue$description, required = FALSE),
-    pages = ellmer::type_string(description = pub_meta_props$pages$description, required = FALSE),
-    issn = ellmer::type_string(description = pub_meta_props$issn$description, required = FALSE),
-    publisher = ellmer::type_string(description = pub_meta_props$publisher$description, required = FALSE),
-    bibliography = ellmer::type_array(
-      items = ellmer::type_string(),
-      description = pub_meta_props$bibliography$description,
-      required = FALSE
-    ),
-    language = ellmer::type_string(description = pub_meta_props$language$description, required = FALSE)
-  )
+#' Get field definitions from a metadata schema (internal)
+#' @param schema_list Parsed metadata JSON schema
+#' @return Named list of field definitions
+#' @keywords internal
+get_metadata_fields <- function(schema_list) {
+  fields <- schema_list$properties$publication_metadata$properties
+  if (is.null(fields)) {
+    stop("Metadata schema must contain 'properties.publication_metadata.properties'")
+  }
+  fields
+}
 
-  # Build complete schema with publication_metadata as optional
-  pub_meta_type <- do.call(ellmer::type_object, pub_meta_fields)
-  pub_meta_type@required <- FALSE
-
-  ellmer::type_object(
-    publication_metadata = pub_meta_type
-  )
+#' Get the metadata fields that form record IDs (internal)
+#'
+#' Reads \code{x-record-id-fields} from the metadata schema's
+#' \code{publication_metadata} object. Each entry must be a metadata field,
+#' \code{document_id}, or \code{file_name}.
+#'
+#' @param schema_list Parsed metadata JSON schema
+#' @return Character vector of field names
+#' @keywords internal
+get_record_id_fields <- function(schema_list) {
+  id_fields <- unlist(schema_list$properties$publication_metadata[["x-record-id-fields"]])
+  if (length(id_fields) == 0) {
+    stop(
+      "Metadata schema is missing 'x-record-id-fields' array.\n",
+      "This field names the metadata fields that form record IDs.\n",
+      "Add to your metadata schema at properties > publication_metadata:\n\n",
+      '  "x-record-id-fields": ["field1", "field2"]'
+    )
+  }
+  allowed <- c(names(get_metadata_fields(schema_list)), "document_id", "file_name")
+  unknown <- setdiff(id_fields, allowed)
+  if (length(unknown) > 0) {
+    stop("x-record-id-fields entries must be metadata fields, document_id, or file_name. ",
+         "Unknown: ", paste(unknown, collapse = ", "))
+  }
+  id_fields
 }
 
 #' Get metadata prompt from package or custom location (internal)

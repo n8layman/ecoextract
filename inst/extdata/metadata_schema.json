@@ -3,10 +3,18 @@
   "title": "Publication Metadata Schema",
   "description": "Schema for extracting publication bibliographic metadata",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "publication_metadata": {
       "type": "object",
       "description": "Publication bibliographic metadata",
+      "additionalProperties": false,
+      "x-record-id-fields": ["first_author_lastname", "publication_year"],
+      "required": [
+        "title", "first_author_lastname", "authors", "publication_year", "doi",
+        "journal", "volume", "issue", "pages", "issn", "publisher",
+        "bibliography", "language"
+      ],
       "properties": {
         "title": {
           "type": ["string", "null"],

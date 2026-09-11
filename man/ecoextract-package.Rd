@@ -28,6 +28,9 @@ Authors:
 Other contributors:
 \itemize{
   \item Valentine Herrmann [contributor]
+  \item Cadhla Firt [contributor]
+  \item Amanda Liew [contributor]
+  \item Aja Sherman [contributor]
 }
 
 }

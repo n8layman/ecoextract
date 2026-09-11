@@ -15,5 +15,7 @@ List with non-standard properties removed
 \description{
 Removes properties that waste tokens and some providers reject:
 additionalProperties, $schema, _comment, and x-* extensions.
+\code{clean_schema_for_api()} sets additionalProperties back to false
+for providers that require it.
 }
 \keyword{internal}

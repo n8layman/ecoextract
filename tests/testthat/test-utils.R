@@ -4,27 +4,63 @@
 # ID Generation ----------------------------------------------------------------
 
 test_that("generate_record_id creates correct format", {
-  id <- generate_record_id("Smith", 2020, 1)
+  id <- generate_record_id(build_record_id_prefix(list("Smith", 2020L)), 1)
 
   expect_type(id, "character")
-  expect_match(id, "Smith_2020_1_r1")
+  expect_equal(id, "Smith_2020_1_r1")
 })
 
-test_that("generate_record_id handles special characters", {
-  id <- generate_record_id("O'Brien", 2020, 1)
+test_that("generate_record_id numbers a vector of sequence numbers", {
+  ids <- generate_record_id("Smith_2020_1", 3:5)
 
-  expect_match(id, "OBrien_2020_1_r1")
+  expect_equal(ids, c("Smith_2020_1_r3", "Smith_2020_1_r4", "Smith_2020_1_r5"))
 })
 
-test_that("add_record_ids adds IDs to all rows", {
-  records <- sample_records()
-  records$record_id <- NULL
+test_that("build_record_id_prefix strips non-alphanumeric characters", {
+  expect_equal(build_record_id_prefix(list("O'Brien", 2020L)), "OBrien_2020_1")
+  expect_equal(build_record_id_prefix(list("2024-001234")), "2024001234_1")
+})
 
-  result <- add_record_ids(records, "Test", 2020)
+test_that("build_record_id_prefix uses Unknown for missing values", {
+  expect_equal(build_record_id_prefix(list(NA, 2020L)), "Unknown_2020_1")
+  expect_equal(build_record_id_prefix(list("Smith", NULL)), "Smith_Unknown_1")
+  expect_equal(build_record_id_prefix(list("--")), "Unknown_1")
+})
 
-  expect_true("record_id" %in% names(result))
-  expect_equal(nrow(result), nrow(records))
-  expect_true(all(!is.na(result$record_id)))
+# Schema Cleaning --------------------------------------------------------------
+
+nested_object_schema <- function() {
+  list(
+    type = "object",
+    additionalProperties = TRUE,
+    properties = list(
+      items = list(
+        type = "array",
+        items = list(type = "object", properties = list(a = list(type = "string")))
+      ),
+      nullable_obj = list(type = list("object", "null"), properties = list())
+    )
+  )
+}
+
+test_that("clean_schema_for_api sets additionalProperties false on every object", {
+  schema <- ellmer::TypeJsonSchema(description = "test", json = nested_object_schema())
+
+  json <- clean_schema_for_api(schema)@json
+
+  expect_false(json$additionalProperties)
+  expect_false(json$properties$items$items$additionalProperties)
+  expect_false(json$properties$nullable_obj$additionalProperties)
+  expect_null(json$properties$items$additionalProperties)
+})
+
+test_that("clean_schema_for_api removes additionalProperties for Gemini", {
+  schema <- ellmer::TypeJsonSchema(description = "test", json = nested_object_schema())
+
+  json <- clean_schema_for_api(schema, gemini = TRUE)@json
+
+  expect_null(json$additionalProperties)
+  expect_null(json$properties$items$items$additionalProperties)
 })
 
 test_that("generate_uuid produces valid UUID v4", {

@@ -100,6 +100,26 @@ test_that("through = 'ocr' preserves OCR and clears later stages", {
   expect_true(is.na(doc$refinement_status))
 })
 
+test_that("through = 'ocr' clears custom metadata columns", {
+  local_custom_metadata_schema()
+  db_path <- local_test_db()
+  insert_full_document(db_path)
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  DBI::dbExecute(con, "UPDATE documents SET doc_code = 'A-1', doc_number = 42")
+  DBI::dbDisconnect(con)
+
+  trial_dir <- withr::local_tempdir()
+  trial_paths <- duplicate_for_trials(db_path, n = 1, through = "ocr", dir = trial_dir)
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), trial_paths[1])
+  withr::defer(DBI::dbDisconnect(con))
+  doc <- DBI::dbGetQuery(con, "SELECT doc_code, doc_number, metadata_status FROM documents LIMIT 1")
+
+  expect_true(is.na(doc$doc_code))
+  expect_true(is.na(doc$doc_number))
+  expect_true(is.na(doc$metadata_status))
+})
+
 test_that("through = 'metadata' preserves OCR + metadata and clears extraction", {
   db_path <- local_test_db()
   insert_full_document(db_path)

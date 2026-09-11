@@ -62,18 +62,26 @@ validate_force_param <- function(param, param_name) {
 #' @param schema_file Optional custom schema file
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
+#' @param metadata_schema_file Optional custom metadata schema. Defaults to
+#'   \code{ecoextract/metadata_schema.json} if present, otherwise the package's
+#'   bibliographic schema.
+#' @param metadata_prompt_file Optional custom metadata prompt. Defaults to
+#'   \code{ecoextract/metadata_prompt.md} if present, otherwise the package prompt.
 #' @param model LLM model(s) to use for metadata extraction, record extraction, and refinement.
 #'   Can be a single model name (character string) or a vector of models for tiered fallback.
 #'   When a vector is provided, models are tried sequentially until one succeeds.
-#'   Default: "anthropic/claude-sonnet-4-5".
+#'   Default: "anthropic/claude-sonnet-5".
 #'   Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
-#'   c("anthropic/claude-sonnet-4-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")
+#'   c("anthropic/claude-sonnet-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")
 #' @param force_reprocess_ocr Controls OCR reprocessing. NULL (default) uses normal skip logic,
 #'   TRUE forces all documents, or an integer vector of document_ids to force specific documents.
 #' @param force_reprocess_metadata Controls metadata reprocessing. NULL (default) uses normal skip logic,
 #'   TRUE forces all documents, or an integer vector of document_ids to force specific documents.
 #' @param force_reprocess_extraction Controls extraction reprocessing. NULL (default) uses normal skip logic,
 #'   TRUE forces all documents, or an integer vector of document_ids to force specific documents.
+#' @param run_metadata If TRUE, run metadata step. Default TRUE. Set FALSE for corpora
+#'   with no useful document metadata (e.g. when record IDs come from \code{document_id}
+#'   or \code{file_name}) to skip one LLM call per document.
 #' @param run_extraction If TRUE, run extraction step to find new records. Default TRUE.
 #' @param run_refinement Controls refinement step. NULL (default) skips refinement,
 #'   TRUE runs on all documents with records, or an integer vector of document_ids
@@ -147,6 +155,14 @@ validate_force_param <- function(param, param_name) {
 #' # Skip extraction, refinement only on existing records
 #' process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
 #'
+#' # Custom metadata schema and prompt for a non-literature corpus
+#' process_documents("pdfs/",
+#'                   metadata_schema_file = "config/metadata_schema.json",
+#'                   metadata_prompt_file = "config/metadata_prompt.md")
+#'
+#' # Skip the metadata step (e.g. record IDs built from document_id)
+#' process_documents("pdfs/", run_metadata = FALSE)
+#'
 #' # Search for PDFs in all subdirectories
 #' process_documents("research_papers/", recursive = TRUE)
 #'
@@ -168,12 +184,15 @@ process_documents <- function(pdf_path = NULL,
                              schema_file = NULL,
                              extraction_prompt_file = NULL,
                              refinement_prompt_file = NULL,
-                             model = "anthropic/claude-sonnet-4-5",
+                             metadata_schema_file = NULL,
+                             metadata_prompt_file = NULL,
+                             model = "anthropic/claude-sonnet-5",
                              ocr_provider = "mistral",
                              ocr_timeout = 300,
                              force_reprocess_ocr = NULL,
                              force_reprocess_metadata = NULL,
                              force_reprocess_extraction = NULL,
+                             run_metadata = TRUE,
                              run_extraction = TRUE,
                              run_refinement = NULL,
                              min_similarity = 0.9,
@@ -283,18 +302,29 @@ process_documents <- function(pdf_path = NULL,
     }
   }
 
+  # Validate metadata schema (custom or default) names its record ID fields
+  metadata_schema_src <- detect_config_source(metadata_schema_file, "metadata_schema.json", "extdata")
+  metadata_prompt_src <- detect_config_source(metadata_prompt_file, "metadata_prompt.md", "prompts")
+  metadata_schema_list <- load_metadata_schema(metadata_schema_src$path)
+  record_id_fields <- get_record_id_fields(metadata_schema_list)
+
   # Report configuration
-  if (schema_src$source == "package" && extraction_src$source == "package") {
-    cat("Using package default schema and extraction prompt\n")
+  config_srcs <- list(
+    "Schema" = schema_src,
+    "Extraction prompt" = extraction_src,
+    "Metadata schema" = metadata_schema_src,
+    "Metadata prompt" = metadata_prompt_src
+  )
+  custom_srcs <- purrr::keep(config_srcs, function(src) src$source != "package")
+  if (length(custom_srcs) == 0) {
+    cat("Using package default schemas and prompts\n")
     cat("  Run init_ecoextract() to customize for your domain\n\n")
   } else {
     cat("Configuration:\n")
-    if (schema_src$source != "package") {
-      cat("  Schema:", schema_src$source, "-", schema_src$path, "\n")
-    }
-    if (extraction_src$source != "package") {
-      cat("  Extraction prompt:", extraction_src$source, "-", extraction_src$path, "\n")
-    }
+    purrr::iwalk(custom_srcs, function(src, label) {
+      cat(" ", paste0(label, ":"), src$source, "-", src$path, "\n")
+    })
+    cat("  Record ID fields:", paste(record_id_fields, collapse = " + "), "\n")
     cat("  Required fields:", paste(required_fields, collapse = ", "), "\n")
     cat("  Deduplication key:", paste(unique_fields, collapse = " + "), "\n")
     cat("\n")
@@ -309,7 +339,8 @@ process_documents <- function(pdf_path = NULL,
     # Initialize DB if needed
     if (!file.exists(db_conn)) {
       cat("Initializing new database:", db_conn, "\n")
-      init_ecoextract_database(db_conn, schema_file = schema_src$path)
+      init_ecoextract_database(db_conn, schema_file = schema_src$path,
+                               metadata_schema_file = metadata_schema_src$path)
     }
     if (!use_parallel) {
       # Sequential mode: connect now
@@ -317,6 +348,16 @@ process_documents <- function(pdf_path = NULL,
       configure_sqlite_connection(db_conn)
       on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
     }
+  }
+
+  # Add columns for custom metadata fields to an existing database here, before
+  # any parallel workers start, so workers never race to alter the table
+  if (inherits(db_conn, "DBIConnection")) {
+    add_metadata_columns(db_conn, metadata_schema_list)
+  } else {
+    setup_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+    add_metadata_columns(setup_conn, metadata_schema_list)
+    DBI::dbDisconnect(setup_conn)
   }
 
   # Resolve pdf_files from document_id (or all documents in the DB if neither was given)
@@ -426,12 +467,15 @@ process_documents <- function(pdf_path = NULL,
                     schema_file = schema_file,
                     extraction_prompt_file = extraction_prompt_file,
                     refinement_prompt_file = refinement_prompt_file,
+                    metadata_schema_file = metadata_schema_file,
+                    metadata_prompt_file = metadata_prompt_file,
                     model = model,
                     ocr_provider = ocr_provider,
                     ocr_timeout = ocr_timeout,
                     force_reprocess_ocr = force_reprocess_ocr,
                     force_reprocess_metadata = force_reprocess_metadata,
                     force_reprocess_extraction = force_reprocess_extraction,
+                    run_metadata = run_metadata,
                     run_extraction = run_extraction,
                     run_refinement = run_refinement,
                     min_similarity = min_similarity,
@@ -457,12 +501,15 @@ process_documents <- function(pdf_path = NULL,
                 schema_file = schema_file,
                 extraction_prompt_file = extraction_prompt_file,
                 refinement_prompt_file = refinement_prompt_file,
+                metadata_schema_file = metadata_schema_file,
+                metadata_prompt_file = metadata_prompt_file,
                 model = model,
                 ocr_provider = ocr_provider,
                 ocr_timeout = ocr_timeout,
                 force_reprocess_ocr = force_reprocess_ocr,
                 force_reprocess_metadata = force_reprocess_metadata,
                 force_reprocess_extraction = force_reprocess_extraction,
+                run_metadata = run_metadata,
                 run_extraction = run_extraction,
                 run_refinement = run_refinement,
                 min_similarity = min_similarity,
@@ -480,12 +527,15 @@ process_documents <- function(pdf_path = NULL,
           schema_file = schema_src$path,
           extraction_prompt_file = extraction_prompt_file,
           refinement_prompt_file = refinement_prompt_file,
+          metadata_schema_file = metadata_schema_src$path,
+          metadata_prompt_file = metadata_prompt_file,
           model = model,
           ocr_provider = ocr_provider,
           ocr_timeout = ocr_timeout,
           force_reprocess_ocr = force_reprocess_ocr,
           force_reprocess_metadata = force_reprocess_metadata,
           force_reprocess_extraction = force_reprocess_extraction,
+          run_metadata = run_metadata,
           run_extraction = run_extraction,
           run_refinement = run_refinement,
           min_similarity = min_similarity,
@@ -622,12 +672,15 @@ process_documents <- function(pdf_path = NULL,
         schema_file = schema_src$path,
         extraction_prompt_file = extraction_prompt_file,
         refinement_prompt_file = refinement_prompt_file,
+        metadata_schema_file = metadata_schema_src$path,
+        metadata_prompt_file = metadata_prompt_file,
         model = model,
         ocr_provider = ocr_provider,
         ocr_timeout = ocr_timeout,
         force_reprocess_ocr = force_reprocess_ocr,
         force_reprocess_metadata = force_reprocess_metadata,
         force_reprocess_extraction = force_reprocess_extraction,
+        run_metadata = run_metadata,
         run_extraction = run_extraction,
         run_refinement = run_refinement,
         min_similarity = min_similarity,
@@ -712,8 +765,10 @@ process_documents <- function(pdf_path = NULL,
 #' @param schema_file Optional custom schema
 #' @param extraction_prompt_file Optional custom extraction prompt
 #' @param refinement_prompt_file Optional custom refinement prompt
+#' @param metadata_schema_file Optional custom metadata schema
+#' @param metadata_prompt_file Optional custom metadata prompt
 #' @param model LLM model(s) to use for metadata extraction, record extraction, and refinement.
-#'   Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"
+#'   Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-5"
 #' @param ocr_provider OCR provider(s) to use (default: "mistral"). Accepts a character
 #'   vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first
 #'   and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"
@@ -721,6 +776,7 @@ process_documents <- function(pdf_path = NULL,
 #' @param force_reprocess_ocr NULL, TRUE, or integer vector of document_ids to force OCR
 #' @param force_reprocess_metadata NULL, TRUE, or integer vector of document_ids to force metadata
 #' @param force_reprocess_extraction NULL, TRUE, or integer vector of document_ids to force extraction
+#' @param run_metadata If TRUE, run metadata step (default: TRUE)
 #' @param run_extraction If TRUE, run extraction step (default: TRUE)
 #' @param run_refinement NULL, TRUE, or integer vector of document_ids to run refinement
 #' @param min_similarity Minimum cosine similarity for deduplication (default: 0.9)
@@ -742,12 +798,15 @@ process_single_document <- function(pdf_file,
                                     schema_file = NULL,
                                     extraction_prompt_file = NULL,
                                     refinement_prompt_file = NULL,
-                                    model = "anthropic/claude-sonnet-4-5",
+                                    metadata_schema_file = NULL,
+                                    metadata_prompt_file = NULL,
+                                    model = "anthropic/claude-sonnet-5",
                                     ocr_provider = "mistral",
                                     ocr_timeout = 300,
                                     force_reprocess_ocr = NULL,
                                     force_reprocess_metadata = NULL,
                                     force_reprocess_extraction = NULL,
+                                    run_metadata = TRUE,
                                     run_extraction = TRUE,
                                     run_refinement = NULL,
                                     min_similarity = 0.9,
@@ -767,12 +826,19 @@ process_single_document <- function(pdf_file,
     # Path string - initialize if needed, then connect
     if (!file.exists(db_conn)) {
       cat("Initializing new database:", db_conn, "\n")
-      init_ecoextract_database(db_conn, schema_file = schema_file)
+      init_ecoextract_database(db_conn, schema_file = schema_file,
+                               metadata_schema_file = metadata_schema_file)
     }
     db_conn <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
     configure_sqlite_connection(db_conn)
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
+
+  # Ensure columns exist for custom metadata fields (no-op when called from
+  # process_documents(), which adds them before dispatching documents)
+  metadata_schema_list <- load_metadata_schema(metadata_schema_file)
+  add_metadata_columns(db_conn, metadata_schema_list)
+  metadata_fields <- names(get_metadata_fields(metadata_schema_list))
 
   # Initialize status tracking with filename only (all start as 'skipped')
   status_tracking <- list(file_name = basename(pdf_file),
@@ -886,18 +952,14 @@ process_single_document <- function(pdf_file,
 
   # Fetch current document state
   doc <- DBI::dbGetQuery(db_conn,
-    "SELECT document_id, document_content, ocr_status, metadata_status, extraction_status,
-            title, first_author_lastname, publication_year
+    "SELECT document_id, document_content, ocr_status, metadata_status, extraction_status
      FROM documents WHERE document_id = ?",
     params = list(doc_id))
 
-  # Compute data_exists for each step
+  # Compute data_exists for OCR (metadata is checked after the OCR cascade)
  ocr_data_exists <- !is.na(doc$document_content[1]) &&
                      !is.null(doc$document_content[1]) &&
                      nchar(doc$document_content[1]) > 0
- metadata_data_exists <- !is.na(doc$title[1]) && !is.null(doc$title[1]) &&
-                          !is.na(doc$first_author_lastname[1]) && !is.null(doc$first_author_lastname[1]) &&
-                          !is.na(doc$publication_year[1]) && !is.null(doc$publication_year[1])
 
   # Step 1: OCR Processing
   message("\n[1/4] OCR Processing...")
@@ -936,18 +998,24 @@ process_single_document <- function(pdf_file,
   # Step 2: Extract Metadata
   message("\n[2/4] Extracting Metadata...")
 
-  if (!failure) {
+  if (run_metadata && !failure) {
     # Re-fetch to get updated metadata_status after potential cascade
     doc <- DBI::dbGetQuery(db_conn,
-      "SELECT metadata_status, title, first_author_lastname, publication_year
-       FROM documents WHERE document_id = ?",
+      paste("SELECT metadata_status,",
+            paste(DBI::dbQuoteIdentifier(db_conn, metadata_fields), collapse = ", "),
+            "FROM documents WHERE document_id = ?"),
       params = list(doc_id))
-   metadata_data_exists <- !is.na(doc$title[1]) && !is.null(doc$title[1]) &&
-                            !is.na(doc$first_author_lastname[1]) && !is.null(doc$first_author_lastname[1]) &&
-                            !is.na(doc$publication_year[1]) && !is.null(doc$publication_year[1])
+    # Metadata exists if any metadata schema field is populated
+    metadata_data_exists <- any(!is.na(unlist(doc[1, metadata_fields])))
 
     if (should_run_step(doc$metadata_status[1], metadata_data_exists)) {
-      metadata_result <- extract_metadata(document_id = doc_id, db_conn, force_reprocess = TRUE, model = model)
+      metadata_result <- extract_metadata(
+        document_id = doc_id,
+        db_conn = db_conn,
+        model = model,
+        metadata_schema_file = metadata_schema_file,
+        metadata_prompt_file = metadata_prompt_file
+      )
       status_tracking$metadata_status <- metadata_result$status
 
       # Cascade: nullify extraction_status with retry logic
@@ -991,6 +1059,7 @@ process_single_document <- function(pdf_file,
         document_id = doc_id,
         db_conn = db_conn,
         schema_file = schema_file,
+        metadata_schema_file = metadata_schema_file,
         extraction_prompt_file = extraction_prompt_file,
         model = model,
         min_similarity = min_similarity,
@@ -1048,6 +1117,7 @@ process_single_document <- function(pdf_file,
         document_id = doc_id,
         extraction_prompt_file = extraction_prompt_file,
         schema_file = schema_file,
+        metadata_schema_file = metadata_schema_file,
         refinement_prompt_file = refinement_prompt_file,
         model = model
       )

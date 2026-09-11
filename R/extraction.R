@@ -13,7 +13,9 @@
 #' @param extraction_prompt_file Path to custom extraction prompt file (optional)
 #' @param extraction_context_file Path to custom extraction context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
+#' @param metadata_schema_file Path to custom metadata schema JSON file (optional;
+#'   its x-record-id-fields determine record IDs)
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-5")
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "mistral")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
@@ -28,7 +30,8 @@ extract_records <- function(document_id = NA,
                                  extraction_prompt_file = NULL,
                                  extraction_context_file = NULL,
                                  schema_file = NULL,
-                                 model = "anthropic/claude-sonnet-4-5",
+                                 metadata_schema_file = NULL,
+                                 model = "anthropic/claude-sonnet-5",
                                  min_similarity = 0.9,
                                  embedding_provider = "openai",
                                  similarity_method = "llm",
@@ -162,7 +165,8 @@ extract_records <- function(document_id = NA,
                   prompt_hash = extraction_prompt_hash
                 ),
                 schema_list = schema_list,
-                mode = "insert"
+                mode = "insert",
+                metadata_schema_file = metadata_schema_file
               )
             }
             track$records_count <- track$records_count + dedup_result$new_records_count
@@ -306,20 +310,55 @@ extract_records <- function(document_id = NA,
   })
 }
 
-# CLAUDE: This is generic enough. All papers will have author and pub year. And the point of this package is to extract data from pubs. Schemas might be different but this will be the same
-#' Generate record ID for a record (internal)
-#' @param author_lastname Author surname
-#' @param publication_year Publication year
-#' @param sequence_number Sequence number for this record
-#' @return Character record ID
+#' Generate record IDs (internal)
+#' @param prefix Record ID prefix for the document, from \code{build_record_id_prefix()}
+#' @param sequence_number Sequence number(s) of records within the document
+#' @return Character vector of record IDs
 #' @keywords internal
-generate_record_id <- function(author_lastname, publication_year, sequence_number = 1) {
-  # Clean author name
-  clean_author <- stringr::str_replace_all(author_lastname, "[^A-Za-z]", "")
-  if (nchar(clean_author) == 0) clean_author <- "Author"
+generate_record_id <- function(prefix, sequence_number = 1) {
+  paste0(prefix, "_r", sequence_number)
+}
 
-  # Create record ID: Author_Year_Paper_Record
-  # Paper number (1) differentiates multiple papers from same author/year
-  # Record number is the sequence within that paper
-  paste0(clean_author, "_", publication_year, "_1_r", sequence_number)
+#' Build a record ID prefix from a document's identifier values (internal)
+#'
+#' Joins the values of the metadata fields named in \code{x-record-id-fields},
+#' each stripped to letters and digits, followed by the replicate number.
+#' Missing or empty values become "Unknown". For the default metadata schema
+#' this gives "Author_Year_1".
+#'
+#' @param id_values List of identifier values, in \code{x-record-id-fields} order
+#' @return Character record ID prefix
+#' @keywords internal
+build_record_id_prefix <- function(id_values) {
+  parts <- purrr::map_chr(id_values, function(value) {
+    cleaned <- if (is.null(value) || is.na(value)) "" else {
+      stringr::str_replace_all(as.character(value), "[^A-Za-z0-9]", "")
+    }
+    if (nchar(cleaned) == 0) "Unknown" else cleaned
+  })
+  # Replicate number is always 1 for now (see issue #141)
+  paste0(paste(parts, collapse = "_"), "_1")
+}
+
+#' Get the record ID prefix for a document in the database (internal)
+#'
+#' Looks up the document's values for the fields named in the metadata
+#' schema's \code{x-record-id-fields}. \code{file_name} is used without its
+#' extension.
+#'
+#' @param con Database connection
+#' @param document_id Document ID
+#' @param metadata_schema_file Path to custom metadata schema JSON file (optional)
+#' @return Character record ID prefix
+#' @keywords internal
+get_record_id_prefix <- function(con, document_id, metadata_schema_file = NULL) {
+  id_fields <- get_record_id_fields(load_metadata_schema(metadata_schema_file))
+  doc <- DBI::dbGetQuery(con,
+    paste("SELECT", paste(DBI::dbQuoteIdentifier(con, id_fields), collapse = ", "),
+          "FROM documents WHERE document_id = ?"),
+    params = list(document_id))
+  if ("file_name" %in% id_fields) {
+    doc$file_name <- tools::file_path_sans_ext(doc$file_name)
+  }
+  build_record_id_prefix(as.list(doc[1, id_fields, drop = FALSE]))
 }

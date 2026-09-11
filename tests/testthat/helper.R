@@ -15,6 +15,49 @@ local_test_db <- function(env = parent.frame()) {
   return(db_path)
 }
 
+#' Create a temporary project with a custom metadata schema
+#'
+#' Writes ecoextract/metadata_schema.json with generic fields (one string, one
+#' integer, one array) and changes into the project directory for the calling
+#' test. Both are undone automatically.
+#' @param id_fields Value for x-record-id-fields (NULL omits it)
+#' @param env Environment for cleanup (default: parent.frame())
+#' @return Path to the temporary project directory
+local_custom_metadata_schema <- function(id_fields = list("doc_code", "doc_number"),
+                                         env = parent.frame()) {
+  project_dir <- withr::local_tempdir(.local_envir = env)
+  dir.create(file.path(project_dir, "ecoextract"))
+
+  doc_metadata <- list(
+    type = "object",
+    description = "Custom document metadata",
+    properties = list(
+      doc_code = list(type = list("string", "null"), description = "Document code"),
+      doc_number = list(type = list("integer", "null"), description = "Document number"),
+      doc_tags = list(
+        type = list("array", "null"),
+        items = list(type = "string"),
+        description = "Document tags"
+      )
+    )
+  )
+  doc_metadata[["x-record-id-fields"]] <- id_fields
+
+  schema <- list(
+    type = "object",
+    properties = list(publication_metadata = doc_metadata),
+    required = list("publication_metadata")
+  )
+  jsonlite::write_json(
+    schema,
+    file.path(project_dir, "ecoextract", "metadata_schema.json"),
+    auto_unbox = TRUE
+  )
+
+  withr::local_dir(project_dir, .local_envir = env)
+  project_dir
+}
+
 #' Get database schema dynamically from JSON
 #' @return Character vector of column names from the active schema
 get_db_schema_columns <- function() {

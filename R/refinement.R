@@ -12,14 +12,17 @@ utils::globalVariables(c("record_id", "id"))
 #' @param refinement_prompt_file Path to custom refinement prompt file (optional, uses generic if not provided)
 #' @param refinement_context_file Path to custom refinement context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
+#' @param metadata_schema_file Path to custom metadata schema JSON file (optional;
+#'   its x-record-id-fields determine record IDs)
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-5")
 #' @return List with refinement results
 #' @keywords internal
 refine_records <- function(db_conn = NULL, document_id,
                                 extraction_prompt_file = NULL, refinement_prompt_file = NULL,
                                 refinement_context_file = NULL,
                                 schema_file = NULL,
-                                model = "anthropic/claude-sonnet-4-5") {
+                                metadata_schema_file = NULL,
+                                model = "anthropic/claude-sonnet-5") {
 
   status <- "skipped"
   records_count <- 0
@@ -267,7 +270,8 @@ refine_records <- function(db_conn = NULL, document_id,
           prompt_hash = prompt_hash
         ),
         schema_list = schema_list,  # Pass schema for array normalization
-        mode = "update"  # Refinement only updates existing records
+        mode = "update",  # Refinement only updates existing records
+        metadata_schema_file = metadata_schema_file
       )
 
       status <- "completed"

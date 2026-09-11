@@ -591,6 +591,9 @@ diff_records <- function(original_df, records_df) {
 #' @param original_df Original records dataframe (before edits, for diff). If NULL,
 #'   only updates reviewed_at timestamp without modifying records.
 #' @param db_conn Database connection or path to SQLite database file
+#' @param metadata_schema_file Optional path to a metadata JSON schema file. Its
+#'   \code{x-record-id-fields} determine IDs for records added during review.
+#'   Defaults to \code{ecoextract/metadata_schema.json} or the package default.
 #' @param ... Additional metadata fields to update on the document
 #' @return Invisibly returns the document_id
 #' @export
@@ -605,7 +608,7 @@ diff_records <- function(original_df, records_df) {
 #' )
 #' }
 save_document <- function(document_id, records_df, original_df = NULL,
-                          db_conn = "ecoextract_records.db", ...) {
+                          db_conn = "ecoextract_records.db", metadata_schema_file = NULL, ...) {
   # Handle database connection
   if (inherits(db_conn, "DBIConnection")) {
     con <- db_conn
@@ -708,10 +711,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
 
       # Handle added records
       if (nrow(changes$added) > 0) {
-        # Get existing record metadata for the document
-        doc_meta <- DBI::dbGetQuery(con,
-          "SELECT first_author_lastname, publication_year FROM documents WHERE document_id = ?",
-          params = list(document_id))
+        record_id_prefix <- get_record_id_prefix(con, document_id, metadata_schema_file)
 
         # Get max sequence number for this document
         max_seq <- DBI::dbGetQuery(con,
@@ -724,12 +724,7 @@ save_document <- function(document_id, records_df, original_df = NULL,
           # Generate record_id if missing
           record_id_val <- new_row$record_id[[1]]
           if (is.na(record_id_val) || record_id_val == "") {
-            # Handle both NULL and NA for author/year
-            author <- doc_meta$first_author_lastname
-            if (is.null(author) || length(author) == 0 || is.na(author)) author <- "Unknown"
-            year <- doc_meta$publication_year
-            if (is.null(year) || length(year) == 0 || is.na(year)) year <- format(Sys.Date(), "%Y")
-            new_row$record_id <- generate_record_id(author, year, max_seq + i)
+            new_row$record_id <- generate_record_id(record_id_prefix, max_seq + i)
           }
 
           # Prepare insert - exclude metadata and derived columns
