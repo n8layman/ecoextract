@@ -1,8 +1,11 @@
-# Extract Publication Metadata
+# Extract Document Metadata
 
-Extracts publication metadata from OCR-processed scientific documents: -
-Title, authors, publication year, DOI, journal - Saves results to
-documents table
+Extracts document-level metadata from OCR-processed documents and saves
+it to the documents table. The fields come from the metadata schema,
+loaded with the usual config priority (explicit file, then
+`ecoextract/metadata_schema.json`, then the package default of
+bibliographic fields for journal articles). Skip logic is handled by the
+workflow - this function always runs when called.
 
 ## Usage
 
@@ -11,7 +14,9 @@ extract_metadata(
   document_id,
   db_conn,
   force_reprocess = TRUE,
-  model = "anthropic/claude-sonnet-4-5"
+  model = "anthropic/claude-sonnet-5",
+  metadata_schema_file = NULL,
+  metadata_prompt_file = NULL
 )
 ```
 
@@ -33,15 +38,16 @@ extract_metadata(
 - model:
 
   LLM model for metadata extraction (default:
-  "anthropic/claude-sonnet-4-5")
+  "anthropic/claude-sonnet-5")
+
+- metadata_schema_file:
+
+  Path to custom metadata schema JSON file (optional)
+
+- metadata_prompt_file:
+
+  Path to custom metadata prompt file (optional)
 
 ## Value
 
 List with status ("completed"/\<error message\>) and document_id
-
-## Details
-
-This is a schema-agnostic step that extracts universal publication
-metadata regardless of the domain-specific extraction schema used in
-later steps. Skip logic is handled by the workflow - this function
-always runs when called.

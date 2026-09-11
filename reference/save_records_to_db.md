@@ -11,7 +11,8 @@ save_records_to_db(
   interactions_df,
   metadata = list(),
   schema_list = NULL,
-  mode = "insert"
+  mode = "insert",
+  metadata_schema_file = NULL
 )
 ```
 
@@ -36,6 +37,11 @@ save_records_to_db(
 - schema_list:
 
   Optional parsed JSON schema for array normalization
+
+- metadata_schema_file:
+
+  Optional path to metadata JSON schema file (its x-record-id-fields
+  determine record IDs)
 
 ## Value
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.20</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.21</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,32 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.21" id="ecoextract-0121">ecoextract 0.1.21<a class="anchor" aria-label="anchor" href="#ecoextract-0121"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-1-21">New features<a class="anchor" aria-label="anchor" href="#new-features-0-1-21"></a></h3>
+<ul><li>Projects can supply their own metadata schema and prompt, via <code>ecoextract/metadata_schema.json</code> and <code>ecoextract/metadata_prompt.md</code> or the new <code>metadata_schema_file</code> and <code>metadata_prompt_file</code> arguments to <code><a href="../reference/process_documents.html">process_documents()</a></code>. Fields not already in the <code>documents</code> table are added as columns (<a href="https://github.com/n8layman/ecoextract/issues/138" class="external-link">#138</a>).</li>
+<li>New <code>run_metadata</code> argument to <code><a href="../reference/process_documents.html">process_documents()</a></code> skips the metadata step (<a href="https://github.com/n8layman/ecoextract/issues/138" class="external-link">#138</a>).</li>
+<li>Record IDs are built from the fields named in the metadata schema’s <code>x-record-id-fields</code> (metadata fields, <code>document_id</code>, or <code>file_name</code>) instead of hardcoded author and year. The default schema keeps <code>first_author_lastname</code> and <code>publication_year</code>, so default IDs are unchanged (<code>Smith_2020_1_r1</code>) (<a href="https://github.com/n8layman/ecoextract/issues/138" class="external-link">#138</a>).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-changes-0-1-21">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-1-21"></a></h3>
+<ul><li>The default model is now <code>anthropic/claude-sonnet-5</code> (was <code>anthropic/claude-sonnet-4-5</code>) for all steps (<a href="https://github.com/n8layman/ecoextract/issues/142" class="external-link">#142</a>).</li>
+<li>A document’s metadata now counts as present if any metadata schema field is populated. Previously title, first author, and year were all required, so documents missing one re-ran metadata on every pass.</li>
+<li>Missing record ID values become <code>Unknown</code> (previously a missing year became the current year).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-21">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-21"></a></h3>
+<ul><li>Schemas sent to Anthropic and OpenAI now have <code>"additionalProperties": false</code> on every object instead of having it stripped, which Claude Sonnet 4.6 rejected with HTTP 400. Gemini schemas still have it removed (<a href="https://github.com/n8layman/ecoextract/issues/140" class="external-link">#140</a>).</li>
+<li>The default metadata schema lists every field in <code>required</code> (with nullable types), so it stays within the structured-output limits of older models such as Claude Sonnet 4.6 and Haiku 4.5 (<a href="https://github.com/n8layman/ecoextract/issues/142" class="external-link">#142</a>).</li>
+<li>When every model fails, the error message links to the README’s new Troubleshooting section (<a href="https://github.com/n8layman/ecoextract/issues/142" class="external-link">#142</a>).</li>
+<li>Refinement now declares <code>record_id</code> in the schema it sends, so models return it for each refined record. It was previously an undeclared extra field, which <code>"additionalProperties": false</code> disallows (<a href="https://github.com/n8layman/ecoextract/issues/145" class="external-link">#145</a>).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-1-21">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-1-21"></a></h3>
+<ul><li>README and configuration guide cover custom metadata schemas and troubleshooting unexplained schema errors, including measured model limits (<a href="https://github.com/n8layman/ecoextract/issues/142" class="external-link">#142</a>).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.20" id="ecoextract-0120">ecoextract 0.1.20<a class="anchor" aria-label="anchor" href="#ecoextract-0120"></a></h2>
 <div class="section level3">

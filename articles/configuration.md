@@ -30,6 +30,14 @@ There’s also an optional refinement prompt:
 3.  **`refinement_prompt.md`** - Instructions for the refinement step
     (validating and enhancing data)
 
+And an optional metadata schema and prompt, for corpora that are not
+journal articles (see [Custom Document
+Metadata](#custom-document-metadata)):
+
+4.  **`metadata_schema.json`** - Document-level fields extracted once
+    per document
+5.  **`metadata_prompt.md`** - Instructions for the metadata step
+
 ## Understanding the Schema
 
 ### Schema Basics
@@ -111,7 +119,9 @@ The schema supports standard JSON Schema types:
 
 **⚠️ IMPORTANT**: `record_id` is a reserved system field:
 
-- **Format**: `AuthorYear-oN` (e.g., `Smith2020-o1`)
+- **Format**: `{id fields}_{replicate}_r{N}` (e.g., `Smith_2020_1_r1`),
+  built from the metadata fields named in the metadata schema’s
+  `x-record-id-fields`
 - **Purpose**: Unique identifier for each record
 - **Generated**: Automatically by the system
 - **Do NOT include in your schema** - this is managed internally
@@ -381,6 +391,91 @@ results <- process_documents(
   force_reprocess_extraction = TRUE
 )
 ```
+
+## Custom Document Metadata
+
+Before extraction, the metadata step pulls document-level fields into
+the `documents` table. The package default extracts bibliographic
+metadata for journal articles (title, authors, publication year, DOI,
+journal, …). For other corpora, such as shipment declarations or
+permits, supply your own metadata schema and prompt:
+
+- **`ecoextract/metadata_schema.json`** replaces the default metadata
+  schema
+- **`ecoextract/metadata_prompt.md`** replaces the default metadata
+  prompt
+
+To use files elsewhere, pass them explicitly; explicit files take
+priority over `ecoextract/`:
+
+``` r
+
+process_documents("pdfs/",
+                  metadata_schema_file = "config/metadata_schema.json",
+                  metadata_prompt_file = "config/metadata_prompt.md")
+```
+
+If your documents have no useful document-level metadata, skip the step
+with `run_metadata = FALSE`. This saves one LLM call per document. Pair
+it with a metadata schema whose `x-record-id-fields` is
+`["document_id"]` or `["file_name"]`, so record IDs don’t depend on
+metadata values.
+
+The metadata schema wraps its fields in a `publication_metadata` object
+and names the fields that form record IDs in `x-record-id-fields`:
+
+``` json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "publication_metadata": {
+      "type": "object",
+      "description": "Shipment declaration metadata",
+      "additionalProperties": false,
+      "x-record-id-fields": ["control_number"],
+      "required": ["control_number", "port_of_entry", "filing_date"],
+      "properties": {
+        "control_number": {
+          "type": ["string", "null"],
+          "description": "Declaration control number printed on Form 3-177"
+        },
+        "port_of_entry": {
+          "type": ["string", "null"],
+          "description": "Port where the shipment entered"
+        },
+        "filing_date": {
+          "type": ["string", "null"],
+          "description": "Date the declaration was filed (YYYY-MM-DD)"
+        }
+      }
+    }
+  },
+  "required": ["publication_metadata"]
+}
+```
+
+Fields that are not already `documents` columns are added to the table
+automatically. Array and object fields are stored as JSON text. The
+default bibliographic columns stay in the table (empty for these
+documents), so
+[`export_bibtex()`](https://n8layman.github.io/ecoextract/reference/export_bibtex.md)
+still works on journal-article databases.
+
+`x-record-id-fields` can name metadata fields, `document_id`, or
+`file_name` (used without its extension). With the schema above, records
+get IDs like `2024123456_1_r1`; with `["document_id"]` they get
+`42_1_r1`. Choose fields with short values: each value is stripped to
+letters and digits and used in full.
+
+**Keep metadata schemas within model limits.** Older models enforce
+tight structured-output limits and report them only as
+`Schema is too complex`. Claude Sonnet 4.6, for example, accepts at most
+12 optional fields and 16 nullable (union-typed) fields. List every
+field in `required` and use nullable types (`["string", "null"]`) for
+values that may be absent, as the example does, and keep nullable fields
+to 16 or fewer.
 
 ## Working with Array Fields
 
@@ -825,6 +920,51 @@ names(schema$properties)  # Should include "records"
 # Test with default schema first
 process_documents("test.pdf", "test.db", schema_file = NULL)
 ```
+
+### Unexplained Schema Errors
+
+If the API rejects a schema with `Schema is too complex` or another HTTP
+400 that points at the schema, **try a newer model first**. These errors
+are usually about the model, not the schema: older models enforce much
+tighter structured-output limits than current ones. The package’s own
+default metadata schema, before it was restructured, failed on
+`anthropic/claude-sonnet-4-6` and `anthropic/claude-haiku-4-5` and
+passed on `anthropic/claude-sonnet-5` and `anthropic/claude-opus-5`,
+with nothing about the schema needing to change.
+
+These errors are easy to misread:
+
+- The message names the schema and gives no field count, limit, or
+  offending field.
+- Anthropic does not publish these limits, and they have tightened over
+  time without a changelog entry, so a schema that used to work can
+  start failing.
+- [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md)
+  tries every model in `model` in turn. If all of them are older models,
+  every attempt fails with the same error and the failure looks like it
+  comes from the schema.
+
+If you need to stay on an older model, these are the limits measured on
+`anthropic/claude-sonnet-4-6` for a single flat object (September 2026):
+
+| Field style                                  | Limit                  |
+|----------------------------------------------|------------------------|
+| Optional (omitted from `required`)           | 12                     |
+| Required and nullable (`["string", "null"]`) | 16                     |
+| Required, single type                        | no limit reached at 40 |
+
+Optional and nullable fields are the expensive constructs. The limits
+also share a combined budget, with an optional field costing roughly
+three to four times a required one (12 optional plus 28 required fails,
+though each passes alone). The union limit is the only one the API
+states outright:
+
+    Schemas contains too many parameters with union types (18 parameters with
+    type arrays or anyOf). ... (limit: 16 parameters with unions).
+
+To fit a schema within these limits, list every field in `required`, use
+nullable types only for values that may be absent, and keep nullable
+fields to 16 or fewer.
 
 ### LLM Not Following Instructions
 

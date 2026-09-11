@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.20</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.21</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -280,7 +280,7 @@ models to try sequentially:</p>
 <code class="sourceCode R"><span><span class="co"># Single model (default)</span></span>
 <span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
 <span>  pdf_path <span class="op">=</span> <span class="st">"papers/"</span>,</span>
-<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-4-5"</span></span>
+<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-5"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Tiered fallback: try Claude, then Gemini (1M context), then Mistral</span></span>
@@ -288,7 +288,7 @@ models to try sequentially:</p>
 <span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
 <span>  pdf_path <span class="op">=</span> <span class="st">"papers/"</span>,</span>
 <span>  model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>    <span class="st">"anthropic/claude-sonnet-4-5"</span>,</span>
+<span>    <span class="st">"anthropic/claude-sonnet-5"</span>,</span>
 <span>    <span class="st">"google_gemini/gemini-2.5-flash"</span>,</span>
 <span>    <span class="st">"mistral/mistral-large-latest"</span></span>
 <span>  <span class="op">)</span></span>
@@ -460,7 +460,7 @@ working with a database that was copied or split from a larger one:</p>
 <span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span></span>
 <span>  db_conn <span class="op">=</span> <span class="st">"ecoextract_records.db"</span>,</span>
 <span>  force_reprocess_extraction <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-4-5"</span></span>
+<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-5"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
@@ -852,6 +852,12 @@ usually resolves automatically. Verify WAL mode is enabled:</p>
 <span></span>
 <span><span class="co"># Test with default schema first</span></span>
 <span><span class="fu"><a href="../reference/process_documents.html">process_documents</a></span><span class="op">(</span><span class="st">"test.pdf"</span>, <span class="st">"test.db"</span>, schema_file <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+<p>If the API returns <code>Schema is too complex</code> or another
+unexplained HTTP 400, try a newer model
+(e.g. <code>anthropic/claude-sonnet-5</code>) before changing your
+schema. Older models enforce much tighter structured-output limits. See
+<a href="configuration.html#unexplained-schema-errors">Unexplained
+Schema Errors</a> for the measured limits.</p>
 </div>
 <div class="section level3">
 <h3 id="ocr-failures">OCR Failures<a class="anchor" aria-label="anchor" href="#ocr-failures"></a>

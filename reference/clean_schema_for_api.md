@@ -1,7 +1,8 @@
 # Clean a TypeJsonSchema for API use
 
 Strips non-standard properties. For Gemini, also converts nullable
-types.
+types; for all other providers, sets `additionalProperties: false` on
+every object.
 
 ## Usage
 
@@ -17,7 +18,7 @@ clean_schema_for_api(schema, gemini = FALSE)
 
 - gemini:
 
-  Logical. If TRUE, also convert nullable type arrays.
+  Logical. If TRUE, apply Gemini's schema format.
 
 ## Value
 

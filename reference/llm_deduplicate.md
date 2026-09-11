@@ -11,7 +11,7 @@ llm_deduplicate(
   new_records,
   existing_records,
   key_fields,
-  model = "anthropic/claude-sonnet-4-5"
+  model = "anthropic/claude-sonnet-5"
 )
 ```
 
@@ -31,7 +31,7 @@ llm_deduplicate(
 
 - model:
 
-  LLM model (default: "anthropic/claude-sonnet-4-5")
+  LLM model (default: "anthropic/claude-sonnet-5")
 
 ## Value
 

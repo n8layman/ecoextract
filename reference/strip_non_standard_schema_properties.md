@@ -2,6 +2,8 @@
 
 Removes properties that waste tokens and some providers reject:
 additionalProperties, \$schema, \_comment, and x-\* extensions.
+[`clean_schema_for_api()`](https://n8layman.github.io/ecoextract/reference/clean_schema_for_api.md)
+sets additionalProperties back to false for providers that require it.
 
 ## Usage
 

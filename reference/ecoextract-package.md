@@ -27,3 +27,9 @@ Authors:
 Other contributors:
 
 - Valentine Herrmann \[contributor\]
+
+- Cadhla Firt \[contributor\]
+
+- Amanda Liew \[contributor\]
+
+- Aja Sherman \[contributor\]

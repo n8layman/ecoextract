@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.20</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.21</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,12 +48,15 @@
 <span>  schema_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extraction_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  refinement_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-4-5"</span>,</span>
+<span>  metadata_schema_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  metadata_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-5"</span>,</span>
 <span>  ocr_provider <span class="op">=</span> <span class="st">"mistral"</span>,</span>
 <span>  ocr_timeout <span class="op">=</span> <span class="fl">300</span>,</span>
 <span>  force_reprocess_ocr <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force_reprocess_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force_reprocess_extraction <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  run_metadata <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  run_extraction <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  run_refinement <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_similarity <span class="op">=</span> <span class="fl">0.9</span>,</span>
@@ -89,9 +92,17 @@
 <dd><p>Optional custom refinement prompt</p></dd>
 
 
+<dt id="arg-metadata-schema-file">metadata_schema_file<a class="anchor" aria-label="anchor" href="#arg-metadata-schema-file"></a></dt>
+<dd><p>Optional custom metadata schema</p></dd>
+
+
+<dt id="arg-metadata-prompt-file">metadata_prompt_file<a class="anchor" aria-label="anchor" href="#arg-metadata-prompt-file"></a></dt>
+<dd><p>Optional custom metadata prompt</p></dd>
+
+
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
 <dd><p>LLM model(s) to use for metadata extraction, record extraction, and refinement.
-Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"</p></dd>
+Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-5"</p></dd>
 
 
 <dt id="arg-ocr-provider">ocr_provider<a class="anchor" aria-label="anchor" href="#arg-ocr-provider"></a></dt>
@@ -114,6 +125,10 @@ and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"
 
 <dt id="arg-force-reprocess-extraction">force_reprocess_extraction<a class="anchor" aria-label="anchor" href="#arg-force-reprocess-extraction"></a></dt>
 <dd><p>NULL, TRUE, or integer vector of document_ids to force extraction</p></dd>
+
+
+<dt id="arg-run-metadata">run_metadata<a class="anchor" aria-label="anchor" href="#arg-run-metadata"></a></dt>
+<dd><p>If TRUE, run metadata step (default: TRUE)</p></dd>
 
 
 <dt id="arg-run-extraction">run_extraction<a class="anchor" aria-label="anchor" href="#arg-run-extraction"></a></dt>

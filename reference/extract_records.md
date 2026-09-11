@@ -13,7 +13,8 @@ extract_records(
   extraction_prompt_file = NULL,
   extraction_context_file = NULL,
   schema_file = NULL,
-  model = "anthropic/claude-sonnet-4-5",
+  metadata_schema_file = NULL,
+  model = "anthropic/claude-sonnet-5",
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
@@ -48,10 +49,15 @@ extract_records(
 
   Path to custom schema JSON file (optional)
 
+- metadata_schema_file:
+
+  Path to custom metadata schema JSON file (optional; its
+  x-record-id-fields determine record IDs)
+
 - model:
 
   Provider and model in format "provider/model" (default:
-  "anthropic/claude-sonnet-4-5")
+  "anthropic/claude-sonnet-5")
 
 - min_similarity:
 

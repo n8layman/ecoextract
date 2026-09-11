@@ -23,8 +23,8 @@ try_models_with_fallback(
 
 - models:
 
-  Character vector of model names (e.g.,
-  c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest"))
+  Character vector of model names (e.g., c("anthropic/claude-sonnet-5",
+  "mistral/mistral-large-latest"))
 
 - system_prompt:
 

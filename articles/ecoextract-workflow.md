@@ -200,7 +200,7 @@ models to try sequentially:
 # Single model (default)
 process_documents(
   pdf_path = "papers/",
-  model = "anthropic/claude-sonnet-4-5"
+  model = "anthropic/claude-sonnet-5"
 )
 
 # Tiered fallback: try Claude, then Gemini (1M context), then Mistral
@@ -208,7 +208,7 @@ process_documents(
 process_documents(
   pdf_path = "papers/",
   model = c(
-    "anthropic/claude-sonnet-4-5",
+    "anthropic/claude-sonnet-5",
     "google_gemini/gemini-2.5-flash",
     "mistral/mistral-large-latest"
   )
@@ -354,7 +354,7 @@ that was copied or split from a larger one:
 process_documents(
   db_conn = "ecoextract_records.db",
   force_reprocess_extraction = TRUE,
-  model = "anthropic/claude-sonnet-4-5"
+  model = "anthropic/claude-sonnet-5"
 )
 ```
 
@@ -717,6 +717,13 @@ names(schema$properties)  # Should include "records"
 # Test with default schema first
 process_documents("test.pdf", "test.db", schema_file = NULL)
 ```
+
+If the API returns `Schema is too complex` or another unexplained HTTP
+400, try a newer model (e.g. `anthropic/claude-sonnet-5`) before
+changing your schema. Older models enforce much tighter
+structured-output limits. See [Unexplained Schema
+Errors](https://n8layman.github.io/ecoextract/articles/configuration.html#unexplained-schema-errors)
+for the measured limits.
 
 ### OCR Failures
 

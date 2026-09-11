@@ -14,7 +14,7 @@ deduplicate_records(
   min_similarity = 0.9,
   embedding_provider = "mistral",
   similarity_method = "llm",
-  model = "anthropic/claude-sonnet-4-5"
+  model = "anthropic/claude-sonnet-5"
 )
 ```
 
@@ -47,7 +47,7 @@ deduplicate_records(
 
 - model:
 
-  LLM model for llm method (default: "anthropic/claude-sonnet-4-5")
+  LLM model for llm method (default: "anthropic/claude-sonnet-5")
 
 ## Value
 

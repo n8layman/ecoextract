@@ -1,27 +1,24 @@
-# Generate record ID for a record (internal)
+# Generate record IDs (internal)
 
-Generate record ID for a record (internal)
+Generate record IDs (internal)
 
 ## Usage
 
 ``` r
-generate_record_id(author_lastname, publication_year, sequence_number = 1)
+generate_record_id(prefix, sequence_number = 1)
 ```
 
 ## Arguments
 
-- author_lastname:
+- prefix:
 
-  Author surname
-
-- publication_year:
-
-  Publication year
+  Record ID prefix for the document, from
+  [`build_record_id_prefix()`](https://n8layman.github.io/ecoextract/reference/build_record_id_prefix.md)
 
 - sequence_number:
 
-  Sequence number for this record
+  Sequence number(s) of records within the document
 
 ## Value
 
-Character record ID
+Character vector of record IDs

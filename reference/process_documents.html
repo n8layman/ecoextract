@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.20</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.21</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,12 +49,15 @@
 <span>  schema_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extraction_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  refinement_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-4-5"</span>,</span>
+<span>  metadata_schema_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  metadata_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-5"</span>,</span>
 <span>  ocr_provider <span class="op">=</span> <span class="st">"mistral"</span>,</span>
 <span>  ocr_timeout <span class="op">=</span> <span class="fl">300</span>,</span>
 <span>  force_reprocess_ocr <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force_reprocess_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force_reprocess_extraction <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  run_metadata <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  run_extraction <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  run_refinement <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_similarity <span class="op">=</span> <span class="fl">0.9</span>,</span>
@@ -74,13 +77,16 @@
 
 <dl><dt id="arg-pdf-path">pdf_path<a class="anchor" aria-label="anchor" href="#arg-pdf-path"></a></dt>
 <dd><p>Path to a single PDF file, a character vector of PDF paths, or a directory
-of PDFs. Mutually exclusive with <code>document_id</code>.</p></dd>
+of PDFs. Mutually exclusive with <code>document_id</code>. If neither <code>pdf_path</code> nor
+<code>document_id</code> is given, all documents in <code>db_conn</code> are processed.</p></dd>
 
 
 <dt id="arg-document-id">document_id<a class="anchor" aria-label="anchor" href="#arg-document-id"></a></dt>
 <dd><p>Integer vector of document IDs from the database to reprocess.
 For each ID, the stored file path is looked up; if the file exists on disk it is used,
-otherwise the stored OCR content is used directly. Mutually exclusive with <code>pdf_path</code>.</p></dd>
+otherwise the stored OCR content is used directly. Mutually exclusive with <code>pdf_path</code>.
+If neither <code>pdf_path</code> nor <code>document_id</code> is given, all documents in <code>db_conn</code>
+are processed.</p></dd>
 
 
 <dt id="arg-db-conn">db_conn<a class="anchor" aria-label="anchor" href="#arg-db-conn"></a></dt>
@@ -101,13 +107,24 @@ If a connection is provided, tables must already exist (use <code><a href="init_
 <dd><p>Optional custom refinement prompt</p></dd>
 
 
+<dt id="arg-metadata-schema-file">metadata_schema_file<a class="anchor" aria-label="anchor" href="#arg-metadata-schema-file"></a></dt>
+<dd><p>Optional custom metadata schema. Defaults to
+<code>ecoextract/metadata_schema.json</code> if present, otherwise the package's
+bibliographic schema.</p></dd>
+
+
+<dt id="arg-metadata-prompt-file">metadata_prompt_file<a class="anchor" aria-label="anchor" href="#arg-metadata-prompt-file"></a></dt>
+<dd><p>Optional custom metadata prompt. Defaults to
+<code>ecoextract/metadata_prompt.md</code> if present, otherwise the package prompt.</p></dd>
+
+
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
 <dd><p>LLM model(s) to use for metadata extraction, record extraction, and refinement.
 Can be a single model name (character string) or a vector of models for tiered fallback.
 When a vector is provided, models are tried sequentially until one succeeds.
-Default: "anthropic/claude-sonnet-4-5".
+Default: "anthropic/claude-sonnet-5".
 Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
-c("anthropic/claude-sonnet-4-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")</p></dd>
+c("anthropic/claude-sonnet-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")</p></dd>
 
 
 <dt id="arg-ocr-provider">ocr_provider<a class="anchor" aria-label="anchor" href="#arg-ocr-provider"></a></dt>
@@ -133,6 +150,12 @@ TRUE forces all documents, or an integer vector of document_ids to force specifi
 <dt id="arg-force-reprocess-extraction">force_reprocess_extraction<a class="anchor" aria-label="anchor" href="#arg-force-reprocess-extraction"></a></dt>
 <dd><p>Controls extraction reprocessing. NULL (default) uses normal skip logic,
 TRUE forces all documents, or an integer vector of document_ids to force specific documents.</p></dd>
+
+
+<dt id="arg-run-metadata">run_metadata<a class="anchor" aria-label="anchor" href="#arg-run-metadata"></a></dt>
+<dd><p>If TRUE, run metadata step. Default TRUE. Set FALSE for corpora
+with no useful document metadata (e.g. when record IDs come from <code>document_id</code>
+or <code>file_name</code>) to skip one LLM call per document.</p></dd>
 
 
 <dt id="arg-run-extraction">run_extraction<a class="anchor" aria-label="anchor" href="#arg-run-extraction"></a></dt>
@@ -236,6 +259,14 @@ Ignored for sequential processing. Useful for troubleshooting errors.</p></dd>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Skip extraction, refinement only on existing records</span></span></span>
 <span class="r-in"><span><span class="fu">process_documents</span><span class="op">(</span><span class="st">"pdfs/"</span>, run_extraction <span class="op">=</span> <span class="cn">FALSE</span>, run_refinement <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Custom metadata schema and prompt for a non-literature corpus</span></span></span>
+<span class="r-in"><span><span class="fu">process_documents</span><span class="op">(</span><span class="st">"pdfs/"</span>,</span></span>
+<span class="r-in"><span>                  metadata_schema_file <span class="op">=</span> <span class="st">"config/metadata_schema.json"</span>,</span></span>
+<span class="r-in"><span>                  metadata_prompt_file <span class="op">=</span> <span class="st">"config/metadata_prompt.md"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Skip the metadata step (e.g. record IDs built from document_id)</span></span></span>
+<span class="r-in"><span><span class="fu">process_documents</span><span class="op">(</span><span class="st">"pdfs/"</span>, run_metadata <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Search for PDFs in all subdirectories</span></span></span>
 <span class="r-in"><span><span class="fu">process_documents</span><span class="op">(</span><span class="st">"research_papers/"</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>

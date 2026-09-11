@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.20</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.21</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,7 +48,8 @@
 <span>  <span class="va">interactions_df</span>,</span>
 <span>  metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  schema_list <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  mode <span class="op">=</span> <span class="st">"insert"</span></span>
+<span>  mode <span class="op">=</span> <span class="st">"insert"</span>,</span>
+<span>  metadata_schema_file <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -74,6 +75,11 @@
 
 <dt id="arg-schema-list">schema_list<a class="anchor" aria-label="anchor" href="#arg-schema-list"></a></dt>
 <dd><p>Optional parsed JSON schema for array normalization</p></dd>
+
+
+<dt id="arg-metadata-schema-file">metadata_schema_file<a class="anchor" aria-label="anchor" href="#arg-metadata-schema-file"></a></dt>
+<dd><p>Optional path to metadata JSON schema file
+(its x-record-id-fields determine record IDs)</p></dd>
 
 </dl></div>
     <div class="section level2">

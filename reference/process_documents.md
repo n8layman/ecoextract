@@ -13,12 +13,15 @@ process_documents(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  model = "anthropic/claude-sonnet-4-5",
+  metadata_schema_file = NULL,
+  metadata_prompt_file = NULL,
+  model = "anthropic/claude-sonnet-5",
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
+  run_metadata = TRUE,
   run_extraction = TRUE,
   run_refinement = NULL,
   min_similarity = 0.9,
@@ -37,14 +40,17 @@ process_documents(
 - pdf_path:
 
   Path to a single PDF file, a character vector of PDF paths, or a
-  directory of PDFs. Mutually exclusive with `document_id`.
+  directory of PDFs. Mutually exclusive with `document_id`. If neither
+  `pdf_path` nor `document_id` is given, all documents in `db_conn` are
+  processed.
 
 - document_id:
 
   Integer vector of document IDs from the database to reprocess. For
   each ID, the stored file path is looked up; if the file exists on disk
   it is used, otherwise the stored OCR content is used directly.
-  Mutually exclusive with `pdf_path`.
+  Mutually exclusive with `pdf_path`. If neither `pdf_path` nor
+  `document_id` is given, all documents in `db_conn` are processed.
 
 - db_conn:
 
@@ -66,14 +72,26 @@ process_documents(
 
   Optional custom refinement prompt
 
+- metadata_schema_file:
+
+  Optional custom metadata schema. Defaults to
+  `ecoextract/metadata_schema.json` if present, otherwise the package's
+  bibliographic schema.
+
+- metadata_prompt_file:
+
+  Optional custom metadata prompt. Defaults to
+  `ecoextract/metadata_prompt.md` if present, otherwise the package
+  prompt.
+
 - model:
 
   LLM model(s) to use for metadata extraction, record extraction, and
   refinement. Can be a single model name (character string) or a vector
   of models for tiered fallback. When a vector is provided, models are
   tried sequentially until one succeeds. Default:
-  "anthropic/claude-sonnet-4-5". Examples: "openai/gpt-4.1",
-  "google_gemini/gemini-2.5-flash", c("anthropic/claude-sonnet-4-5",
+  "anthropic/claude-sonnet-5". Examples: "openai/gpt-4.1",
+  "google_gemini/gemini-2.5-flash", c("anthropic/claude-sonnet-5",
   "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")
 
 - ocr_provider:
@@ -104,6 +122,12 @@ process_documents(
   Controls extraction reprocessing. NULL (default) uses normal skip
   logic, TRUE forces all documents, or an integer vector of document_ids
   to force specific documents.
+
+- run_metadata:
+
+  If TRUE, run metadata step. Default TRUE. Set FALSE for corpora with
+  no useful document metadata (e.g. when record IDs come from
+  `document_id` or `file_name`) to skip one LLM call per document.
 
 - run_extraction:
 
@@ -211,6 +235,14 @@ process_documents("pdfs/", run_refinement = c(5L, 12L))
 
 # Skip extraction, refinement only on existing records
 process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
+
+# Custom metadata schema and prompt for a non-literature corpus
+process_documents("pdfs/",
+                  metadata_schema_file = "config/metadata_schema.json",
+                  metadata_prompt_file = "config/metadata_prompt.md")
+
+# Skip the metadata step (e.g. record IDs built from document_id)
+process_documents("pdfs/", run_metadata = FALSE)
 
 # Search for PDFs in all subdirectories
 process_documents("research_papers/", recursive = TRUE)

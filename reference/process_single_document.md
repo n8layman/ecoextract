@@ -11,12 +11,15 @@ process_single_document(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  model = "anthropic/claude-sonnet-4-5",
+  metadata_schema_file = NULL,
+  metadata_prompt_file = NULL,
+  model = "anthropic/claude-sonnet-5",
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
+  run_metadata = TRUE,
   run_extraction = TRUE,
   run_refinement = NULL,
   min_similarity = 0.9,
@@ -50,11 +53,19 @@ process_single_document(
 
   Optional custom refinement prompt
 
+- metadata_schema_file:
+
+  Optional custom metadata schema
+
+- metadata_prompt_file:
+
+  Optional custom metadata prompt
+
 - model:
 
   LLM model(s) to use for metadata extraction, record extraction, and
   refinement. Can be a single model name or a vector of models for
-  tiered fallback. Default: "anthropic/claude-sonnet-4-5"
+  tiered fallback. Default: "anthropic/claude-sonnet-5"
 
 - ocr_provider:
 
@@ -78,6 +89,10 @@ process_single_document(
 - force_reprocess_extraction:
 
   NULL, TRUE, or integer vector of document_ids to force extraction
+
+- run_metadata:
+
+  If TRUE, run metadata step (default: TRUE)
 
 - run_extraction:
 

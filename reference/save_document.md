@@ -12,6 +12,7 @@ save_document(
   records_df,
   original_df = NULL,
   db_conn = "ecoextract_records.db",
+  metadata_schema_file = NULL,
   ...
 )
 ```
@@ -34,6 +35,12 @@ save_document(
 - db_conn:
 
   Database connection or path to SQLite database file
+
+- metadata_schema_file:
+
+  Optional path to a metadata JSON schema file. Its `x-record-id-fields`
+  determine IDs for records added during review. Defaults to
+  `ecoextract/metadata_schema.json` or the package default.
 
 - ...:
 
