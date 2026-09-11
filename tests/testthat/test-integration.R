@@ -750,7 +750,7 @@ test_that("llm method: detects semantic duplicates", {
     existing_records = existing_records,
     schema_list = schema_list,
     similarity_method = "llm",
-    model = "anthropic/claude-sonnet-4-5"
+    model = "anthropic/claude-sonnet-5"
   )
 
   # First record should be detected as duplicate (semantic match)
@@ -779,7 +779,7 @@ test_that("llm_deduplicate standalone function works", {
     new_records = new_records,
     existing_records = existing_records,
     key_fields = key_fields,
-    model = "anthropic/claude-sonnet-4-5"
+    model = "anthropic/claude-sonnet-5"
   )
 
   # First record should be detected as duplicate (J. Smith/NYC = John Smith/New York)
@@ -810,7 +810,7 @@ test_that("llm_deduplicate accepts a model cascade vector (#118)", {
     key_fields = c("name", "city"),
     model = c(
       "anthropic/claude-haiku-4-5-20251001",
-      "anthropic/claude-sonnet-4-5"
+      "anthropic/claude-sonnet-5"
     )
   )
 

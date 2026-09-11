@@ -2,13 +2,15 @@
 % Please edit documentation in R/metadata.R
 \name{extract_metadata}
 \alias{extract_metadata}
-\title{Extract Publication Metadata}
+\title{Extract Document Metadata}
 \usage{
 extract_metadata(
   document_id,
   db_conn,
   force_reprocess = TRUE,
-  model = "anthropic/claude-sonnet-4-5"
+  model = "anthropic/claude-sonnet-5",
+  metadata_schema_file = NULL,
+  metadata_prompt_file = NULL
 )
 }
 \arguments{
@@ -18,19 +20,21 @@ extract_metadata(
 
 \item{force_reprocess}{Ignored (kept for backward compatibility). Skip logic handled by workflow.}
 
-\item{model}{LLM model for metadata extraction (default: "anthropic/claude-sonnet-4-5")}
+\item{model}{LLM model for metadata extraction (default: "anthropic/claude-sonnet-5")}
+
+\item{metadata_schema_file}{Path to custom metadata schema JSON file (optional)}
+
+\item{metadata_prompt_file}{Path to custom metadata prompt file (optional)}
 }
 \value{
 List with status ("completed"/<error message>) and document_id
 }
 \description{
-Extracts publication metadata from OCR-processed scientific documents:
-- Title, authors, publication year, DOI, journal
-- Saves results to documents table
-}
-\details{
-This is a schema-agnostic step that extracts universal publication metadata
-regardless of the domain-specific extraction schema used in later steps.
+Extracts document-level metadata from OCR-processed documents and saves it
+to the documents table. The fields come from the metadata schema, loaded
+with the usual config priority (explicit file, then
+\code{ecoextract/metadata_schema.json}, then the package default of
+bibliographic fields for journal articles).
 Skip logic is handled by the workflow - this function always runs when called.
 }
 \keyword{internal}

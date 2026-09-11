@@ -16,7 +16,7 @@ try_models_with_fallback(
 )
 }
 \arguments{
-\item{models}{Character vector of model names (e.g., c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest"))}
+\item{models}{Character vector of model names (e.g., c("anthropic/claude-sonnet-5", "mistral/mistral-large-latest"))}
 
 \item{system_prompt}{System prompt for the LLM}
 

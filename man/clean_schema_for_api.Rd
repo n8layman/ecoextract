@@ -9,12 +9,14 @@ clean_schema_for_api(schema, gemini = FALSE)
 \arguments{
 \item{schema}{An ellmer TypeJsonSchema object}
 
-\item{gemini}{Logical. If TRUE, also convert nullable type arrays.}
+\item{gemini}{Logical. If TRUE, apply Gemini's schema format.}
 }
 \value{
 A new TypeJsonSchema with properties cleaned
 }
 \description{
-Strips non-standard properties. For Gemini, also converts nullable types.
+Strips non-standard properties. For Gemini, also converts nullable types;
+for all other providers, sets \code{additionalProperties: false} on every
+object.
 }
 \keyword{internal}

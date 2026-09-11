@@ -10,12 +10,15 @@ process_single_document(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  model = "anthropic/claude-sonnet-4-5",
+  metadata_schema_file = NULL,
+  metadata_prompt_file = NULL,
+  model = "anthropic/claude-sonnet-5",
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
+  run_metadata = TRUE,
   run_extraction = TRUE,
   run_refinement = NULL,
   min_similarity = 0.9,
@@ -37,8 +40,12 @@ process_single_document(
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
+\item{metadata_schema_file}{Optional custom metadata schema}
+
+\item{metadata_prompt_file}{Optional custom metadata prompt}
+
 \item{model}{LLM model(s) to use for metadata extraction, record extraction, and refinement.
-Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-4-5"}
+Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-5"}
 
 \item{ocr_provider}{OCR provider(s) to use (default: "mistral"). Accepts a character
 vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first
@@ -51,6 +58,8 @@ and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"
 \item{force_reprocess_metadata}{NULL, TRUE, or integer vector of document_ids to force metadata}
 
 \item{force_reprocess_extraction}{NULL, TRUE, or integer vector of document_ids to force extraction}
+
+\item{run_metadata}{If TRUE, run metadata step (default: TRUE)}
 
 \item{run_extraction}{If TRUE, run extraction step (default: TRUE)}
 

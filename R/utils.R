@@ -54,25 +54,6 @@ generate_uuid <- function() {
          paste(h[11:16], collapse = ""))
 }
 
-#' Create record IDs for a batch of records (internal)
-#' @param interactions Dataframe of records
-#' @param author_lastname Author lastname for ID generation
-#' @param publication_year Publication year for ID generation
-#' @return Dataframe with record_id column added
-#' @keywords internal
-add_record_ids <- function(interactions, author_lastname, publication_year, offset = 0L) {
-  if (nrow(interactions) == 0) {
-    return(interactions)
-  }
-
-  # Generate sequential record IDs, starting after offset to avoid collisions
-  interactions$record_id <- sapply(1:nrow(interactions), function(i) {
-    generate_record_id(author_lastname, publication_year, offset + i)
-  })
-
-  return(interactions)
-}
-
 #' Simple logging function
 #' @param message Message to log
 #' @param level Log level (INFO, WARNING, ERROR)
@@ -187,6 +168,8 @@ build_existing_records_context <- function(existing_records, document_id = NULL,
 #'
 #' Removes properties that waste tokens and some providers reject:
 #' additionalProperties, $schema, _comment, and x-* extensions.
+#' \code{clean_schema_for_api()} sets additionalProperties back to false
+#' for providers that require it.
 #'
 #' @param x List representing a JSON schema
 #' @return List with non-standard properties removed
@@ -199,6 +182,24 @@ strip_non_standard_schema_properties <- function(x) {
     x_names <- grep("^x-", names(x), value = TRUE)
     for (nm in x_names) x[[nm]] <- NULL
     x <- lapply(x, strip_non_standard_schema_properties)
+  }
+  x
+}
+
+#' Set additionalProperties to false on every object in a JSON schema
+#'
+#' Anthropic and OpenAI structured outputs expect
+#' \code{"additionalProperties": false} on every object, and some models
+#' (e.g. Claude Sonnet 4.6) reject schemas without it. Gemini rejects the
+#' keyword, so this is not applied there.
+#'
+#' @param x List representing a JSON schema
+#' @return List with additionalProperties set to false on every object
+#' @keywords internal
+set_additional_properties_false <- function(x) {
+  if (is.list(x)) {
+    if ("object" %in% x[["type"]]) x[["additionalProperties"]] <- FALSE
+    x <- lapply(x, set_additional_properties_false)
   }
   x
 }
@@ -229,19 +230,21 @@ convert_nullable_for_gemini <- function(x) {
 
 #' Clean a TypeJsonSchema for API use
 #'
-#' Strips non-standard properties. For Gemini, also converts nullable types.
+#' Strips non-standard properties. For Gemini, also converts nullable types;
+#' for all other providers, sets \code{additionalProperties: false} on every
+#' object.
 #'
 #' @param schema An ellmer TypeJsonSchema object
-#' @param gemini Logical. If TRUE, also convert nullable type arrays.
+#' @param gemini Logical. If TRUE, apply Gemini's schema format.
 #' @return A new TypeJsonSchema with properties cleaned
 #' @keywords internal
 clean_schema_for_api <- function(schema, gemini = FALSE) {
-  # Only process TypeJsonSchema (extraction/refinement schemas).
-  # Native TypeObject (metadata) is handled directly by ellmer.
+  # Only process TypeJsonSchema (metadata/extraction/refinement schemas).
+  # Native TypeObject (deduplication) is handled directly by ellmer.
   json <- tryCatch(schema@json, error = function(e) NULL)
   if (is.null(json)) return(schema)
   json <- strip_non_standard_schema_properties(json)
-  if (gemini) json <- convert_nullable_for_gemini(json)
+  json <- if (gemini) convert_nullable_for_gemini(json) else set_additional_properties_false(json)
   ellmer::TypeJsonSchema(description = schema@description, json = json)
 }
 
@@ -391,7 +394,7 @@ check_api_keys_for_models <- function(models) {
 #' the same chat object so turn 1 reasoning is in context for turn 2.
 #' On any failure, both turns are retried together with the next model.
 #'
-#' @param models Character vector of model names (e.g., c("anthropic/claude-sonnet-4-5", "mistral/mistral-large-latest"))
+#' @param models Character vector of model names (e.g., c("anthropic/claude-sonnet-5", "mistral/mistral-large-latest"))
 #' @param system_prompt System prompt for the LLM
 #' @param context User context/input for the LLM (turn 1 message)
 #' @param schema ellmer type schema for structured output (turn 2 in two-turn mode)
@@ -445,7 +448,7 @@ try_models_with_fallback <- function(
       # Strip non-standard JSON Schema properties ($schema, x-*, _comment,
       # additionalProperties) that waste tokens and some providers reject.
       # For Gemini, also convert nullable type arrays to nullable format.
-      # Native TypeObject (metadata) passes through unchanged.
+      # Native TypeObject (deduplication) passes through unchanged.
       model_schema <- clean_schema_for_api(schema, gemini = is_gemini)
 
       if (!is.null(reasoning_prompt)) {
@@ -619,6 +622,7 @@ try_models_with_fallback <- function(
   error_summary <- paste(
     sprintf("All models failed for %s:", step_name),
     paste(error_messages, collapse = "\n"),
+    "See https://github.com/n8layman/ecoextract#troubleshooting for common causes.",
     sep = "\n"
   )
 

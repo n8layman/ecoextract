@@ -1,3 +1,50 @@
+# ecoextract 0.1.21
+
+## New features
+
+* Projects can supply their own metadata schema and prompt, via
+  `ecoextract/metadata_schema.json` and `ecoextract/metadata_prompt.md` or the
+  new `metadata_schema_file` and `metadata_prompt_file` arguments to
+  `process_documents()`. Fields not already in the `documents` table are added
+  as columns (#138).
+* New `run_metadata` argument to `process_documents()` skips the metadata step
+  (#138).
+* Record IDs are built from the fields named in the metadata schema's
+  `x-record-id-fields` (metadata fields, `document_id`, or `file_name`) instead
+  of hardcoded author and year. The default schema keeps
+  `first_author_lastname` and `publication_year`, so default IDs are unchanged
+  (`Smith_2020_1_r1`) (#138).
+
+## Breaking changes
+
+* The default model is now `anthropic/claude-sonnet-5` (was
+  `anthropic/claude-sonnet-4-5`) for all steps (#142).
+* A document's metadata now counts as present if any metadata schema field is
+  populated. Previously title, first author, and year were all required, so
+  documents missing one re-ran metadata on every pass.
+* Missing record ID values become `Unknown` (previously a missing year became
+  the current year).
+
+## Bug fixes
+
+* Schemas sent to Anthropic and OpenAI now have `"additionalProperties": false`
+  on every object instead of having it stripped, which Claude Sonnet 4.6
+  rejected with HTTP 400. Gemini schemas still have it removed (#140).
+* The default metadata schema lists every field in `required` (with nullable
+  types), so it stays within the structured-output limits of older models such
+  as Claude Sonnet 4.6 and Haiku 4.5 (#142).
+* When every model fails, the error message links to the README's new
+  Troubleshooting section (#142).
+* Refinement now declares `record_id` in the schema it sends, so models return
+  it for each refined record. It was previously an undeclared extra field,
+  which `"additionalProperties": false` disallows (#145).
+
+## Documentation
+
+* README and configuration guide cover custom metadata schemas and
+  troubleshooting unexplained schema errors, including measured model limits
+  (#142).
+
 # ecoextract 0.1.20
 
 ## Minor improvements

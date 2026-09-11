@@ -12,14 +12,17 @@ utils::globalVariables(c("record_id", "id"))
 #' @param refinement_prompt_file Path to custom refinement prompt file (optional, uses generic if not provided)
 #' @param refinement_context_file Path to custom refinement context template file (optional)
 #' @param schema_file Path to custom schema JSON file (optional)
-#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-4-5")
+#' @param metadata_schema_file Path to custom metadata schema JSON file (optional;
+#'   its x-record-id-fields determine record IDs)
+#' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-5")
 #' @return List with refinement results
 #' @keywords internal
 refine_records <- function(db_conn = NULL, document_id,
                                 extraction_prompt_file = NULL, refinement_prompt_file = NULL,
                                 refinement_context_file = NULL,
                                 schema_file = NULL,
-                                model = "anthropic/claude-sonnet-4-5") {
+                                metadata_schema_file = NULL,
+                                model = "anthropic/claude-sonnet-5") {
 
   status <- "skipped"
   records_count <- 0
@@ -86,10 +89,11 @@ refine_records <- function(db_conn = NULL, document_id,
     schema_json <- paste(readLines(schema_path, warn = FALSE), collapse = "\n")
     schema_list <- jsonlite::fromJSON(schema_json, simplifyVector = FALSE)
 
-    # Step 3: Convert to ellmer type schema
+    # Step 3: Convert to ellmer type schema, declaring record_id so the model
+    # returns it for each refined record
     schema <- ellmer::TypeJsonSchema(
       description = rlang::`%||%`(schema_list$description, "Interaction schema"),
-      json = schema_list
+      json = add_record_id_to_schema(schema_list)
     )
 
     # Load extraction prompt (provides domain context for refinement)
@@ -267,7 +271,8 @@ refine_records <- function(db_conn = NULL, document_id,
           prompt_hash = prompt_hash
         ),
         schema_list = schema_list,  # Pass schema for array normalization
-        mode = "update"  # Refinement only updates existing records
+        mode = "update",  # Refinement only updates existing records
+        metadata_schema_file = metadata_schema_file
       )
 
       status <- "completed"
@@ -361,6 +366,30 @@ merge_refinements <- function(original_records, refined_records) {
   }
 
   return(updated_records)
+}
+
+#' Declare record_id in a records schema for refinement (internal)
+#'
+#' Refinement must return each record's \code{record_id} so edits map back to
+#' existing rows. \code{record_id} is a system field and not part of project
+#' schemas, and with \code{additionalProperties: false} the model cannot add
+#' undeclared fields, so it is added here as a required string.
+#'
+#' @param schema_list Parsed records JSON schema
+#' @return Schema list with record_id added to the record properties and required fields
+#' @keywords internal
+add_record_id_to_schema <- function(schema_list) {
+  items <- schema_list$properties$records$items
+  items$properties <- c(
+    list(record_id = list(
+      type = "string",
+      description = "record_id of the existing record being refined, copied exactly"
+    )),
+    items$properties
+  )
+  items$required <- c(list("record_id"), items$required)
+  schema_list$properties$records$items <- items
+  schema_list
 }
 
 #' Restore id and record_id from existing records after LLM refinement

@@ -10,7 +10,8 @@ save_records_to_db(
   interactions_df,
   metadata = list(),
   schema_list = NULL,
-  mode = "insert"
+  mode = "insert",
+  metadata_schema_file = NULL
 )
 }
 \arguments{
@@ -23,6 +24,9 @@ save_records_to_db(
 \item{metadata}{Processing metadata}
 
 \item{schema_list}{Optional parsed JSON schema for array normalization}
+
+\item{metadata_schema_file}{Optional path to metadata JSON schema file
+(its x-record-id-fields determine record IDs)}
 }
 \value{
 TRUE if successful

@@ -8,7 +8,7 @@ llm_deduplicate(
   new_records,
   existing_records,
   key_fields,
-  model = "anthropic/claude-sonnet-4-5"
+  model = "anthropic/claude-sonnet-5"
 )
 }
 \arguments{
@@ -18,7 +18,7 @@ llm_deduplicate(
 
 \item{key_fields}{Character vector of column names to compare}
 
-\item{model}{LLM model (default: "anthropic/claude-sonnet-4-5")}
+\item{model}{LLM model (default: "anthropic/claude-sonnet-5")}
 }
 \value{
 Integer vector of 1-based indices of unique new records

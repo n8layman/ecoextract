@@ -10,7 +10,7 @@ The schema defines what data fields will be extracted from documents and stored 
 
 ### record_id
 
-- **Format**: `AuthorYear-oN` (e.g., `Smith2020-o1`, `Jones2023-o15`)
+- **Format**: `{id fields}_{replicate}_r{N}` (e.g., `Smith_2020_1_r1`, `Jones_2023_1_r15`), built from the metadata fields named in the metadata schema's `x-record-id-fields`
 - **Purpose**: Unique identifier for each record within a document
 - **Generated**: Automatically by the system when records are saved
 - **Do NOT include in your schema** - this is a system field

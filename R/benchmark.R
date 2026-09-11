@@ -100,14 +100,16 @@ scrub_pipeline_stages <- function(db_path, through) {
   withr::defer(DBI::dbDisconnect(con))
 
   if (through == "ocr") {
-    DBI::dbExecute(con, "
-      UPDATE documents SET
-        title = NULL, first_author_lastname = NULL, authors = NULL,
-        publication_year = NULL, doi = NULL, journal = NULL,
-        volume = NULL, issue = NULL, pages = NULL, issn = NULL,
-        publisher = NULL, bibliography = NULL, language = NULL,
-        metadata_status = NULL, metadata_llm_model = NULL, metadata_log = NULL
-    ")
+    metadata_cols <- intersect(
+      names(get_metadata_fields(load_metadata_schema())),
+      DBI::dbListFields(con, "documents")
+    )
+    set_clause <- paste0(
+      c(DBI::dbQuoteIdentifier(con, metadata_cols),
+        "metadata_status", "metadata_llm_model", "metadata_log"),
+      " = NULL", collapse = ", "
+    )
+    DBI::dbExecute(con, paste("UPDATE documents SET", set_clause))
   }
 
   if (through %in% c("ocr", "metadata")) {

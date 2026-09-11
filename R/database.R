@@ -132,9 +132,12 @@ normalize_array_fields <- function(df, schema_list) {
 #' Initialize EcoExtract database
 #' @param db_conn Database connection (any DBI backend) or path to SQLite database file
 #' @param schema_file Optional path to JSON schema file (determines record columns)
+#' @param metadata_schema_file Optional path to metadata JSON schema file
+#'   (adds documents columns for custom metadata fields)
 #' @return NULL (creates database with required tables)
 #' @export
-init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", schema_file = NULL) {
+init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", schema_file = NULL,
+                                     metadata_schema_file = NULL) {
   # Accept either a connection object or a path string
   if (inherits(db_conn, "DBIConnection")) {
     con <- db_conn
@@ -190,26 +193,29 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         bibliography TEXT,          -- JSON array of bibliography citations
         language TEXT,              -- ISO 639-1 two-letter language code (e.g., 'en', 'es', 'fr')
         metadata_status TEXT,       -- NULL | 'completed' | 'skipped' | 'Metadata extraction failed: <msg>'
-        metadata_llm_model TEXT,    -- Model used for metadata extraction (e.g., 'anthropic/claude-sonnet-4-5')
+        metadata_llm_model TEXT,    -- Model used for metadata extraction (e.g., 'anthropic/claude-sonnet-5')
         metadata_log TEXT,          -- JSON array of all model attempts with errors/refusals (audit trail)
 
         -- Extraction step
         extraction_reasoning TEXT,  -- Reasoning from extraction step
         records_extracted INTEGER DEFAULT NULL,  -- Total number of records extracted from this document
         extraction_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Extraction failed: <msg>'
-        extraction_llm_model TEXT,  -- Model used for extraction (e.g., 'anthropic/claude-sonnet-4-5', 'openai/gpt-4o')
+        extraction_llm_model TEXT,  -- Model used for extraction (e.g., 'anthropic/claude-sonnet-5', 'openai/gpt-4o')
         extraction_log TEXT,        -- JSON array of all model attempts with errors/refusals (audit trail)
 
         -- Refinement step
         refinement_reasoning TEXT,  -- Reasoning from refinement step
         refinement_status TEXT,     -- NULL | 'completed' | 'skipped' | 'Refinement failed: <msg>'
-        refinement_llm_model TEXT,  -- Model used for refinement (e.g., 'anthropic/claude-sonnet-4-5', 'openai/gpt-4o')
+        refinement_llm_model TEXT,  -- Model used for refinement (e.g., 'anthropic/claude-sonnet-5', 'openai/gpt-4o')
         refinement_log TEXT,        -- JSON array of all model attempts with errors/refusals (audit trail)
 
         -- Human review tracking
         reviewed_at TEXT            -- Timestamp when document was human-reviewed (NULL = not reviewed)
       )
     ")
+
+    # Add columns for fields in a custom metadata schema
+    add_metadata_columns(con, load_metadata_schema(metadata_schema_file))
 
     # Load schema using priority order (explicit > project ecoextract/ > wd > package)
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
@@ -603,15 +609,9 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), metadat
       DBI::dbExecute(con, "DELETE FROM documents WHERE document_id = ?", params = list(document_id))
     }
 
-  # Define all possible metadata columns
-  meta_keys <- c(
-    "title", "first_author_lastname", "authors", "publication_year",
-    "doi", "journal", "volume", "issue", "pages", "issn", "publisher", "bibliography",
-    "language"
-  )
-
-  # Fill missing keys with NA
-  metadata_complete <- unname(sapply(meta_keys, function(k) metadata[[k]] %||NA% NA))
+  # Metadata columns are the fields passed in (defined by the metadata schema)
+  meta_keys <- DBI::dbQuoteIdentifier(con, names(metadata))
+  metadata_complete <- unname(purrr::map(metadata, function(value) value %||NA% NA))
 
   # Add metadata_llm_model and metadata_log to the update
   params <- c(metadata_complete, metadata_llm_model %||NA% NA, metadata_log %||NA% NA, document_id)
@@ -662,9 +662,12 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), metadat
 #' @param interactions_df Dataframe of records
 #' @param metadata Processing metadata
 #' @param schema_list Optional parsed JSON schema for array normalization
+#' @param metadata_schema_file Optional path to metadata JSON schema file
+#'   (its x-record-id-fields determine record IDs)
 #' @return TRUE if successful
 #' @keywords internal
-save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list(), schema_list = NULL, mode = "insert") {
+save_records_to_db <- function(db_path, document_id, interactions_df, metadata = list(), schema_list = NULL,
+                               mode = "insert", metadata_schema_file = NULL) {
   if (nrow(interactions_df) == 0) return(invisible(NULL))
 
   # Validate mode parameter
@@ -691,101 +694,32 @@ save_records_to_db <- function(db_path, document_id, interactions_df, metadata =
     on.exit(DBI::dbDisconnect(con), add = TRUE)
   }
 
-  # Handle record IDs - mix of existing (valid) and new (null/invalid) records
-  # Valid IDs: Match pattern "Author_2023_1_r1" format (from refinement preserving existing records)
-  # Invalid IDs: Don't match pattern, are NA, or are null (from extraction or refinement's new records)
+  # Handle record IDs - records that carry an ID already belonging to this
+  # document (refinement) keep it; all others get a new ID numbered after the
+  # highest existing sequence number for the document.
+  existing_ids <- DBI::dbGetQuery(con,
+    "SELECT record_id FROM records WHERE document_id = ?",
+    params = list(document_id))$record_id
 
-  if ("record_id" %in% names(interactions_df) && nrow(interactions_df) > 0) {
-    # Check each ID for validity
-    valid_pattern <- "^[A-Za-z]+_[0-9]+_[0-9]+_r[0-9]+$"
-    is_valid <- !is.na(interactions_df$record_id) &
-                grepl(valid_pattern, interactions_df$record_id)
+  if (!"record_id" %in% names(interactions_df)) {
+    interactions_df$record_id <- NA_character_
+  }
+  needs_id <- !interactions_df$record_id %in% existing_ids
 
-    valid_count <- sum(is_valid)
-    invalid_count <- sum(!is_valid)
-
-    if (valid_count > 0 && invalid_count > 0) {
-      message(glue::glue("Mixed IDs: {valid_count} existing (preserved), {invalid_count} new (generating)"))
-    } else if (valid_count > 0) {
-      message(glue::glue("Preserving existing record IDs for {valid_count} records"))
+  if (any(!needs_id)) {
+    message(glue::glue("Preserving existing record IDs for {sum(!needs_id)} records"))
+  }
+  if (any(needs_id)) {
+    max_seq <- if (length(existing_ids) > 0) {
+      max(as.integer(sub(".*_r([0-9]+)$", "\\1", existing_ids)), na.rm = TRUE)
     } else {
-      message(glue::glue("Generating record IDs for {invalid_count} new records"))
+      0L
     }
-
-    # Only generate IDs for records with invalid/missing IDs
-    if (invalid_count > 0) {
-      # Get publication metadata
-      doc_meta <- DBI::dbGetQuery(con,
-        "SELECT first_author_lastname, publication_year FROM documents WHERE document_id = ?",
-        params = list(document_id))
-
-      author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
-        doc_meta$first_author_lastname[1]
-      } else if ("first_author_lastname" %in% names(interactions_df) && !is.na(interactions_df$first_author_lastname[1])) {
-        interactions_df$first_author_lastname[1]
-      } else {
-        "Unknown"
-      }
-
-      publication_year <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$publication_year[1])) {
-        doc_meta$publication_year[1]
-      } else if ("publication_year" %in% names(interactions_df) && !is.na(interactions_df$publication_year[1])) {
-        interactions_df$publication_year[1]
-      } else {
-        as.integer(format(Sys.Date(), "%Y"))
-      }
-
-      # Generate IDs only for records that need them
-      # Get existing max sequence number to avoid conflicts
-      existing_ids <- DBI::dbGetQuery(con,
-        "SELECT record_id FROM records WHERE document_id = ?",
-        params = list(document_id))$record_id
-
-      max_seq <- 0
-      if (length(existing_ids) > 0) {
-        # Extract sequence numbers from existing IDs (format: Author_Year_Paper_rN)
-        seqs <- as.integer(sub(".*_r([0-9]+)$", "\\1", existing_ids))
-        max_seq <- max(seqs, na.rm = TRUE)
-      }
-
-      # Generate new IDs starting after max existing
-      new_id_count <- 0
-      for (i in which(!is_valid)) {
-        new_id_count <- new_id_count + 1
-        interactions_df$record_id[i] <- paste0(author_lastname, "_", publication_year, "_1_r", max_seq + new_id_count)
-      }
-    }
-  } else {
-    # No record_id column or empty dataframe - generate all IDs
-    doc_meta <- DBI::dbGetQuery(con,
-      "SELECT first_author_lastname, publication_year FROM documents WHERE document_id = ?",
-      params = list(document_id))
-
-    author_lastname <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$first_author_lastname[1])) {
-      doc_meta$first_author_lastname[1]
-    } else {
-      "Unknown"
-    }
-
-    publication_year <- if (nrow(doc_meta) > 0 && !is.na(doc_meta$publication_year[1])) {
-      doc_meta$publication_year[1]
-    } else {
-      as.integer(format(Sys.Date(), "%Y"))
-    }
-
-    # Get existing max sequence number to avoid conflicts on reprocess
-    existing_ids <- DBI::dbGetQuery(con,
-      "SELECT record_id FROM records WHERE document_id = ?",
-      params = list(document_id))$record_id
-
-    max_seq <- 0L
-    if (length(existing_ids) > 0) {
-      seqs <- as.integer(sub(".*_r([0-9]+)$", "\\1", existing_ids))
-      max_seq <- max(seqs, na.rm = TRUE)
-    }
-
-    interactions_df <- add_record_ids(interactions_df, author_lastname, publication_year, offset = max_seq)
-    message(glue::glue("Generated record IDs for {nrow(interactions_df)} records"))
+    interactions_df$record_id[needs_id] <- generate_record_id(
+      get_record_id_prefix(con, document_id, metadata_schema_file),
+      max_seq + seq_len(sum(needs_id))
+    )
+    message(glue::glue("Generated record IDs for {sum(needs_id)} new records"))
   }
 
   # Add required metadata columns
@@ -1351,37 +1285,68 @@ extract_fields_from_json_schema <- function(schema_json_list) {
   for (field_name in names(record_props)) {
     field_spec <- record_props[[field_name]]
 
-    # Handle type - may be string or array (e.g., ["string", "null"])
-    field_type <- field_spec$type
-    if (is.null(field_type)) {
-      field_type <- "string"
-    } else if (length(field_type) > 1) {
-      # For nullable types like ["string", "null"], take first non-null type
-      field_type <- setdiff(field_type, "null")[1]
-    }
-
-    # Map JSON schema types to SQL types
-    sql_type <- switch(field_type,
-      "string" = "TEXT",
-      "integer" = "INTEGER",
-      "number" = "REAL",
-      "boolean" = "BOOLEAN",
-      "array" = "TEXT",  # Store as JSON
-      "object" = "TEXT", # Store as JSON
-      "TEXT" # Default fallback
-    )
-
     # A field is nullable if its type includes "null" (e.g., ["string", "null"])
     is_nullable <- length(field_spec$type) > 1 && "null" %in% field_spec$type
 
     fields[[field_name]] <- list(
-      sql_type = sql_type,
+      sql_type = json_type_to_sql(json_property_type(field_spec)),
       required = field_name %in% required_fields && !is_nullable,
       description = rlang::`%||%`(field_spec$description, "")
     )
   }
 
   return(fields)
+}
+
+#' Get the JSON type of a schema property (internal)
+#'
+#' For nullable types like \code{["string", "null"]}, returns the first
+#' non-null type. Properties without a type are treated as strings.
+#'
+#' @param field_spec Property definition from a parsed JSON schema
+#' @return JSON type name
+#' @keywords internal
+json_property_type <- function(field_spec) {
+  rlang::`%||%`(setdiff(unlist(field_spec$type), "null")[1], "string")
+}
+
+#' Map a JSON type to an SQLite column type (internal)
+#'
+#' Arrays and objects are stored as JSON text.
+#'
+#' @param json_type JSON type name
+#' @return SQL type string
+#' @keywords internal
+json_type_to_sql <- function(json_type) {
+  switch(json_type,
+    "integer" = "INTEGER",
+    "number" = "REAL",
+    "boolean" = "BOOLEAN",
+    "TEXT"
+  )
+}
+
+#' Add documents table columns for metadata schema fields (internal)
+#'
+#' Adds a column for each metadata field not already in the documents table.
+#' The default bibliographic fields already exist, so this only changes the
+#' table when a custom metadata schema is in use.
+#'
+#' @param con Database connection
+#' @param schema_list Parsed metadata JSON schema
+#' @return NULL (invisibly)
+#' @keywords internal
+add_metadata_columns <- function(con, schema_list) {
+  fields <- get_metadata_fields(schema_list)
+  new_fields <- fields[setdiff(names(fields), DBI::dbListFields(con, "documents"))]
+  purrr::iwalk(new_fields, function(field_spec, field) {
+    DBI::dbExecute(con, paste(
+      "ALTER TABLE documents ADD COLUMN",
+      DBI::dbQuoteIdentifier(con, field),
+      json_type_to_sql(json_property_type(field_spec))
+    ))
+  })
+  invisible(NULL)
 }
 
 #' Validate schema compatibility with database (internal)

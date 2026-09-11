@@ -2,21 +2,19 @@
 % Please edit documentation in R/extraction.R
 \name{generate_record_id}
 \alias{generate_record_id}
-\title{Generate record ID for a record (internal)}
+\title{Generate record IDs (internal)}
 \usage{
-generate_record_id(author_lastname, publication_year, sequence_number = 1)
+generate_record_id(prefix, sequence_number = 1)
 }
 \arguments{
-\item{author_lastname}{Author surname}
+\item{prefix}{Record ID prefix for the document, from \code{build_record_id_prefix()}}
 
-\item{publication_year}{Publication year}
-
-\item{sequence_number}{Sequence number for this record}
+\item{sequence_number}{Sequence number(s) of records within the document}
 }
 \value{
-Character record ID
+Character vector of record IDs
 }
 \description{
-Generate record ID for a record (internal)
+Generate record IDs (internal)
 }
 \keyword{internal}

@@ -11,12 +11,15 @@ process_documents(
   schema_file = NULL,
   extraction_prompt_file = NULL,
   refinement_prompt_file = NULL,
-  model = "anthropic/claude-sonnet-4-5",
+  metadata_schema_file = NULL,
+  metadata_prompt_file = NULL,
+  model = "anthropic/claude-sonnet-5",
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
   force_reprocess_metadata = NULL,
   force_reprocess_extraction = NULL,
+  run_metadata = TRUE,
   run_extraction = TRUE,
   run_refinement = NULL,
   min_similarity = 0.9,
@@ -31,11 +34,14 @@ process_documents(
 }
 \arguments{
 \item{pdf_path}{Path to a single PDF file, a character vector of PDF paths, or a directory
-of PDFs. Mutually exclusive with \code{document_id}.}
+of PDFs. Mutually exclusive with \code{document_id}. If neither \code{pdf_path} nor
+\code{document_id} is given, all documents in \code{db_conn} are processed.}
 
 \item{document_id}{Integer vector of document IDs from the database to reprocess.
 For each ID, the stored file path is looked up; if the file exists on disk it is used,
-otherwise the stored OCR content is used directly. Mutually exclusive with \code{pdf_path}.}
+otherwise the stored OCR content is used directly. Mutually exclusive with \code{pdf_path}.
+If neither \code{pdf_path} nor \code{document_id} is given, all documents in \code{db_conn}
+are processed.}
 
 \item{db_conn}{Database connection (any DBI backend) or path to SQLite database file.
 If a path is provided, creates SQLite database if it doesn't exist.
@@ -47,12 +53,19 @@ If a connection is provided, tables must already exist (use \code{init_ecoextrac
 
 \item{refinement_prompt_file}{Optional custom refinement prompt}
 
+\item{metadata_schema_file}{Optional custom metadata schema. Defaults to
+\code{ecoextract/metadata_schema.json} if present, otherwise the package's
+bibliographic schema.}
+
+\item{metadata_prompt_file}{Optional custom metadata prompt. Defaults to
+\code{ecoextract/metadata_prompt.md} if present, otherwise the package prompt.}
+
 \item{model}{LLM model(s) to use for metadata extraction, record extraction, and refinement.
 Can be a single model name (character string) or a vector of models for tiered fallback.
 When a vector is provided, models are tried sequentially until one succeeds.
-Default: "anthropic/claude-sonnet-4-5".
+Default: "anthropic/claude-sonnet-5".
 Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
-c("anthropic/claude-sonnet-4-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")}
+c("anthropic/claude-sonnet-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")}
 
 \item{ocr_provider}{OCR provider(s) to use (default: "mistral"). Accepts a character
 vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first
@@ -68,6 +81,10 @@ TRUE forces all documents, or an integer vector of document_ids to force specifi
 
 \item{force_reprocess_extraction}{Controls extraction reprocessing. NULL (default) uses normal skip logic,
 TRUE forces all documents, or an integer vector of document_ids to force specific documents.}
+
+\item{run_metadata}{If TRUE, run metadata step. Default TRUE. Set FALSE for corpora
+with no useful document metadata (e.g. when record IDs come from \code{document_id}
+or \code{file_name}) to skip one LLM call per document.}
 
 \item{run_extraction}{If TRUE, run extraction step to find new records. Default TRUE.}
 
@@ -150,6 +167,14 @@ process_documents("pdfs/", run_refinement = c(5L, 12L))
 
 # Skip extraction, refinement only on existing records
 process_documents("pdfs/", run_extraction = FALSE, run_refinement = TRUE)
+
+# Custom metadata schema and prompt for a non-literature corpus
+process_documents("pdfs/",
+                  metadata_schema_file = "config/metadata_schema.json",
+                  metadata_prompt_file = "config/metadata_prompt.md")
+
+# Skip the metadata step (e.g. record IDs built from document_id)
+process_documents("pdfs/", run_metadata = FALSE)
 
 # Search for PDFs in all subdirectories
 process_documents("research_papers/", recursive = TRUE)

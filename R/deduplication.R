@@ -116,11 +116,11 @@ jaccard_similarity <- function(str1, str2, n = 3) {
 #' @param new_records Dataframe of new records
 #' @param existing_records Dataframe of existing records
 #' @param key_fields Character vector of column names to compare
-#' @param model LLM model (default: "anthropic/claude-sonnet-4-5")
+#' @param model LLM model (default: "anthropic/claude-sonnet-5")
 #' @return Integer vector of 1-based indices of unique new records
 #' @keywords internal
 llm_deduplicate <- function(new_records, existing_records, key_fields,
-                            model = "anthropic/claude-sonnet-4-5") {
+                            model = "anthropic/claude-sonnet-5") {
   # Format as JSON (only key fields)
   new_json <- jsonlite::toJSON(new_records[, key_fields, drop = FALSE], auto_unbox = TRUE)
   existing_json <- jsonlite::toJSON(existing_records[, key_fields, drop = FALSE], auto_unbox = TRUE)
@@ -175,7 +175,7 @@ New records:
 #' @param min_similarity Minimum cosine similarity to consider a duplicate (default: 0.9)
 #' @param embedding_provider Provider for embeddings (default: "mistral")
 #' @param similarity_method Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "llm")
-#' @param model LLM model for llm method (default: "anthropic/claude-sonnet-4-5")
+#' @param model LLM model for llm method (default: "anthropic/claude-sonnet-5")
 #' @return List with deduplicated records and metadata
 #' @keywords internal
 deduplicate_records <- function(new_records,
@@ -184,7 +184,7 @@ deduplicate_records <- function(new_records,
                                 min_similarity = 0.9,
                                 embedding_provider = "mistral",
                                 similarity_method = "llm",
-                                model = "anthropic/claude-sonnet-4-5") {
+                                model = "anthropic/claude-sonnet-5") {
 
   # Extract unique fields from schema for deduplication
   # Navigate to the record items schema (schema_list is the full schema)

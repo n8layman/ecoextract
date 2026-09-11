@@ -9,6 +9,7 @@ save_document(
   records_df,
   original_df = NULL,
   db_conn = "ecoextract_records.db",
+  metadata_schema_file = NULL,
   ...
 )
 }
@@ -21,6 +22,10 @@ save_document(
 only updates reviewed_at timestamp without modifying records.}
 
 \item{db_conn}{Database connection or path to SQLite database file}
+
+\item{metadata_schema_file}{Optional path to a metadata JSON schema file. Its
+\code{x-record-id-fields} determine IDs for records added during review.
+Defaults to \code{ecoextract/metadata_schema.json} or the package default.}
 
 \item{...}{Additional metadata fields to update on the document}
 }

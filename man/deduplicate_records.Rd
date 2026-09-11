@@ -11,7 +11,7 @@ deduplicate_records(
   min_similarity = 0.9,
   embedding_provider = "mistral",
   similarity_method = "llm",
-  model = "anthropic/claude-sonnet-4-5"
+  model = "anthropic/claude-sonnet-5"
 )
 }
 \arguments{
@@ -27,7 +27,7 @@ deduplicate_records(
 
 \item{similarity_method}{Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "llm")}
 
-\item{model}{LLM model for llm method (default: "anthropic/claude-sonnet-4-5")}
+\item{model}{LLM model for llm method (default: "anthropic/claude-sonnet-5")}
 }
 \value{
 List with deduplicated records and metadata
