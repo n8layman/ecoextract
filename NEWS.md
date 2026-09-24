@@ -1,3 +1,10 @@
+# ecoextract 0.1.27
+
+## Documentation
+
+* `get_ocr_pages()` is listed in the pkgdown reference index, which the site
+  build requires for every exported function.
+
 # ecoextract 0.1.26
 
 ## New features
