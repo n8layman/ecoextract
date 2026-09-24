@@ -28,7 +28,8 @@ try_models_with_fallback(
 \item{max_tokens}{Maximum tokens for response (default 64000)}
 
 \item{max_retries}{Maximum retry attempts per model for stochastic failures
-(empty reasoning or unparseable JSON) (default 2)}
+(empty reasoning, unparseable JSON, or an HTTP 500-504 server error)
+(default 2)}
 
 \item{step_name}{Name of the step for logging (default "LLM call")}
 

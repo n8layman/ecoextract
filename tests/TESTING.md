@@ -56,6 +56,7 @@ These run entirely offline and execute in under a second.
 - **test-database.R** - Database initialization, schema validation, save/retrieve records, array field handling
 - **test-review.R** - Human review workflow (`save_document`), edit tracking, accuracy metrics
 - **test-utils.R** - Record ID generation, token estimation
+- **test-ocr.R** - Reading OCR pages and embedding stored OCR images
 - **test-deduplication.R** - Canonicalization, similarity functions, Jaccard-based deduplication
 - **test-bibtex.R** - BibTeX export and citation extraction
 
@@ -182,6 +183,7 @@ All test files are in `tests/testthat/` and follow these conventions:
 - **test-database.R** - Database initialization, schema validation, save/retrieve records
 - **test-review.R** - Human review workflow, edit tracking, accuracy metrics
 - **test-utils.R** - Record ID generation, token estimation
+- **test-ocr.R** - Reading OCR pages and embedding stored OCR images
 - **test-deduplication.R** - Deduplication logic (local, no API calls)
 - **test-bibtex.R** - BibTeX export functionality
 - **test-integration.R** - All API-requiring tests (full pipeline, schema-agnostic, deduplication methods)
