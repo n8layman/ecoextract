@@ -1,5 +1,13 @@
 # Changelog
 
+## ecoextract 0.1.27
+
+### Documentation
+
+- [`get_ocr_pages()`](https://n8layman.github.io/ecoextract/reference/get_ocr_pages.md)
+  is listed in the pkgdown reference index, which the site build
+  requires for every exported function.
+
 ## ecoextract 0.1.26
 
 ### New features
