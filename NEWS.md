@@ -1,4 +1,4 @@
-# ecoextract (development version)
+# ecoextract 0.1.23
 
 ## Bug fixes
 
