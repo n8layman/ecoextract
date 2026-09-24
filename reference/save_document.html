@@ -9,7 +9,7 @@ tracking edits in the record_edits audit table. Designed for Shiny app review wo
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.24</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.25</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -83,7 +83,9 @@ Defaults to <code>ecoextract/metadata_schema.json</code> or the package default.
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional metadata fields to update on the document</p></dd>
+<dd><p>Additional metadata fields to update on the document. Fields
+whose value changes are logged in the <code>document_edits</code> table, and
+later metadata runs leave them unchanged.</p></dd>
 
 </dl></div>
     <div class="section level2">

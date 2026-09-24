@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.24</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.25</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,20 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.25" id="ecoextract-0125">ecoextract 0.1.25<a class="anchor" aria-label="anchor" href="#ecoextract-0125"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-1-25">New features<a class="anchor" aria-label="anchor" href="#new-features-0-1-25"></a></h3>
+<ul><li>New <code>coalesce_metadata</code> argument to <code><a href="../reference/process_documents.html">process_documents()</a></code> and <code><a href="../reference/process_single_document.html">process_single_document()</a></code> sets how metadata results are saved. NULL (default) replaces the stored metadata on a forced re-run (<code>force_reprocess_metadata</code>), including clearing fields the new result leaves empty, and otherwise only fills fields that are still empty. TRUE or FALSE overrides this in either direction (<a href="https://github.com/n8layman/ecoextract/issues/156" class="external-link">#156</a>).</li>
+<li>Reviewer edits to document metadata are protected. <code><a href="../reference/save_document.html">save_document()</a></code> logs each metadata field whose value changes in a new <code>document_edits</code> table, and later metadata runs never overwrite those fields, whatever <code>coalesce_metadata</code> says. Existing databases gain the table on their next run (<a href="https://github.com/n8layman/ecoextract/issues/156" class="external-link">#156</a>).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-25">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-25"></a></h3>
+<ul><li>A forced metadata re-run now clears fields whose new result is empty. Previously every field was saved as <code>COALESCE(new, old)</code>, so an empty result kept the old value, and a clean re-run could keep an old <code>metadata_log</code> (<a href="https://github.com/n8layman/ecoextract/issues/155" class="external-link">#155</a>).</li>
+<li>
+<code><a href="../reference/save_metadata_to_db.html">save_metadata_to_db()</a></code> no longer has an <code>overwrite</code> mode that deleted the document and its records before updating them (<a href="https://github.com/n8layman/ecoextract/issues/155" class="external-link">#155</a>).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.24" id="ecoextract-0124">ecoextract 0.1.24<a class="anchor" aria-label="anchor" href="#ecoextract-0124"></a></h2>
 <div class="section level3">

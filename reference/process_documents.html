@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.24</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.25</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,6 +53,7 @@
 <span>  metadata_prompt_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  model <span class="op">=</span> <span class="st">"anthropic/claude-sonnet-5"</span>,</span>
 <span>  reasoning_effort <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  coalesce_metadata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ocr_provider <span class="op">=</span> <span class="st">"mistral"</span>,</span>
 <span>  ocr_timeout <span class="op">=</span> <span class="fl">300</span>,</span>
 <span>  force_reprocess_ocr <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -135,6 +136,15 @@ turns thinking off for Claude and Gemini, which is faster and cheaper;
 other providers use their model default. Set an effort level such as
 "low", "medium", or "high" to turn thinking on. Thinking tokens are billed
 as output and are counted in the <code>&lt;step&gt;_output_tokens</code> columns.</p></dd>
+
+
+<dt id="arg-coalesce-metadata">coalesce_metadata<a class="anchor" aria-label="anchor" href="#arg-coalesce-metadata"></a></dt>
+<dd><p>How metadata results are saved. NULL (default)
+replaces the stored metadata on a forced re-run
+(<code>force_reprocess_metadata</code>), writing empty results as empty, and
+otherwise only fills fields that are still empty. TRUE always fills only
+empty fields; FALSE always replaces. Fields a reviewer edited through
+<code><a href="save_document.html">save_document()</a></code> are never overwritten by a model run.</p></dd>
 
 
 <dt id="arg-ocr-provider">ocr_provider<a class="anchor" aria-label="anchor" href="#arg-ocr-provider"></a></dt>

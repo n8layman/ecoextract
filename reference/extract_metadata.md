@@ -16,6 +16,7 @@ extract_metadata(
   force_reprocess = TRUE,
   model = "anthropic/claude-sonnet-5",
   reasoning_effort = NULL,
+  coalesce_metadata = TRUE,
   metadata_schema_file = NULL,
   metadata_prompt_file = NULL
 )
@@ -46,6 +47,12 @@ extract_metadata(
   Thinking effort (e.g. "low", "high"), or NULL (default) for thinking
   off. See
   [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md).
+
+- coalesce_metadata:
+
+  Logical. TRUE (default) fills only empty fields and keeps existing
+  values; FALSE writes the result as returned, so an empty result clears
+  the field. Reviewer-edited fields are kept either way.
 
 - metadata_schema_file:
 

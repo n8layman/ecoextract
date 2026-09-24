@@ -1,8 +1,11 @@
-# Save publication metadata to EcoExtract database (internal)
+# Save document metadata to EcoExtract database (internal)
 
-Updates existing document metadata fields that are currently
-NULL/NA/empty. Optionally overwrites all metadata if \`overwrite =
-TRUE\`.
+Writes a metadata extraction result to the document's row. With
+`coalesce = TRUE`, only fields that are currently empty are filled and
+existing values are kept. With `coalesce = FALSE`, every field is
+written exactly as given, NULLs included, so an empty result clears the
+field. Fields a reviewer edited (listed in `document_edits`) are never
+written, whichever mode is used.
 
 ## Usage
 
@@ -13,7 +16,7 @@ save_metadata_to_db(
   metadata = list(),
   metadata_llm_model = NULL,
   metadata_log = NULL,
-  overwrite = FALSE
+  coalesce = TRUE
 )
 ```
 
@@ -31,9 +34,18 @@ save_metadata_to_db(
 
   Named list with metadata fields
 
-- overwrite:
+- metadata_llm_model:
 
-  Logical, if TRUE will overwrite all existing fields
+  Model that produced the metadata
+
+- metadata_log:
+
+  JSON audit log of failed attempts
+
+- coalesce:
+
+  Logical. TRUE (default) fills empty fields and keeps existing values;
+  FALSE replaces every field, including with NULL.
 
 ## Value
 

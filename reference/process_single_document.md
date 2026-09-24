@@ -15,6 +15,7 @@ process_single_document(
   metadata_prompt_file = NULL,
   model = "anthropic/claude-sonnet-5",
   reasoning_effort = NULL,
+  coalesce_metadata = NULL,
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
@@ -72,6 +73,11 @@ process_single_document(
 
   Thinking effort for every LLM step, or NULL (default) for thinking
   off. See
+  [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md).
+
+- coalesce_metadata:
+
+  How metadata results are saved: NULL (default), TRUE, or FALSE. See
   [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md).
 
 - ocr_provider:

@@ -11,6 +11,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/authors.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/index.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/news/index.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/add_document_edits_table.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/add_metadata_columns.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/add_record_id_to_schema.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/add_usage.html</loc></url>
@@ -38,6 +39,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/extract_fields_from_json_schema.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/extract_metadata.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/extract_records.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/field_value_text.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/find_project_root.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/from_project_relative_path.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/generate_columns_from_json_schema.html</loc></url>

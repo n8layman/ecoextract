@@ -17,6 +17,7 @@ process_documents(
   metadata_prompt_file = NULL,
   model = "anthropic/claude-sonnet-5",
   reasoning_effort = NULL,
+  coalesce_metadata = NULL,
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
@@ -104,6 +105,16 @@ process_documents(
   "low", "medium", or "high" to turn thinking on. Thinking tokens are
   billed as output and are counted in the `<step>_output_tokens`
   columns.
+
+- coalesce_metadata:
+
+  How metadata results are saved. NULL (default) replaces the stored
+  metadata on a forced re-run (`force_reprocess_metadata`), writing
+  empty results as empty, and otherwise only fills fields that are still
+  empty. TRUE always fills only empty fields; FALSE always replaces.
+  Fields a reviewer edited through
+  [`save_document()`](https://n8layman.github.io/ecoextract/reference/save_document.md)
+  are never overwritten by a model run.
 
 - ocr_provider:
 

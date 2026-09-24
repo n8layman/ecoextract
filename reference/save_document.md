@@ -44,7 +44,9 @@ save_document(
 
 - ...:
 
-  Additional metadata fields to update on the document
+  Additional metadata fields to update on the document. Fields whose
+  value changes are logged in the `document_edits` table, and later
+  metadata runs leave them unchanged.
 
 ## Value
 

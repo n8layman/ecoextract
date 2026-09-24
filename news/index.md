@@ -1,5 +1,38 @@
 # Changelog
 
+## ecoextract 0.1.25
+
+### New features
+
+- New `coalesce_metadata` argument to
+  [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md)
+  and
+  [`process_single_document()`](https://n8layman.github.io/ecoextract/reference/process_single_document.md)
+  sets how metadata results are saved. NULL (default) replaces the
+  stored metadata on a forced re-run (`force_reprocess_metadata`),
+  including clearing fields the new result leaves empty, and otherwise
+  only fills fields that are still empty. TRUE or FALSE overrides this
+  in either direction
+  ([\#156](https://github.com/n8layman/ecoextract/issues/156)).
+- Reviewer edits to document metadata are protected.
+  [`save_document()`](https://n8layman.github.io/ecoextract/reference/save_document.md)
+  logs each metadata field whose value changes in a new `document_edits`
+  table, and later metadata runs never overwrite those fields, whatever
+  `coalesce_metadata` says. Existing databases gain the table on their
+  next run ([\#156](https://github.com/n8layman/ecoextract/issues/156)).
+
+### Bug fixes
+
+- A forced metadata re-run now clears fields whose new result is empty.
+  Previously every field was saved as `COALESCE(new, old)`, so an empty
+  result kept the old value, and a clean re-run could keep an old
+  `metadata_log`
+  ([\#155](https://github.com/n8layman/ecoextract/issues/155)).
+- [`save_metadata_to_db()`](https://n8layman.github.io/ecoextract/reference/save_metadata_to_db.md)
+  no longer has an `overwrite` mode that deleted the document and its
+  records before updating them
+  ([\#155](https://github.com/n8layman/ecoextract/issues/155)).
+
 ## ecoextract 0.1.24
 
 ### New features
