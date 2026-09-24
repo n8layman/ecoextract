@@ -57,7 +57,7 @@
                         <h4 data-toc-skip class="author">EcoExtract
 Team</h4>
             
-            <h4 data-toc-skip class="date">2026-09-11</h4>
+            <h4 data-toc-skip class="date">2026-09-24</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/n8layman/ecoextract/blob/main/vignettes/configuration.Rmd" class="external-link"><code>vignettes/configuration.Rmd</code></a></small>
       <div class="d-none name"><code>configuration.Rmd</code></div>
@@ -569,15 +569,19 @@ document. Pair it with a metadata schema whose
 <code>x-record-id-fields</code> is <code>["document_id"]</code> or
 <code>["file_name"]</code>, so record IDs don’t depend on metadata
 values.</p>
-<p>The metadata schema wraps its fields in a
-<code>publication_metadata</code> object and names the fields that form
-record IDs in <code>x-record-id-fields</code>:</p>
+<p>The metadata schema wraps its fields in a single object under
+<code>properties</code> and names the fields that form record IDs in
+<code>x-record-id-fields</code>. The object can have any name; the
+package default calls it <code>publication_metadata</code>, and the
+example below uses <code>shipment_metadata</code>. The model sees this
+name in the structured output schema, so pick one that describes your
+documents:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="dt">"$schema"</span><span class="fu">:</span> <span class="st">"http://json-schema.org/draft-07/schema#"</span><span class="fu">,</span></span>
 <span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
 <span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
 <span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>    <span class="dt">"publication_metadata"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>    <span class="dt">"shipment_metadata"</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
 <span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>      <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Shipment declaration metadata"</span><span class="fu">,</span></span>
 <span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>      <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
@@ -599,13 +603,15 @@ record IDs in <code>x-record-id-fields</code>:</p>
 <span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a>      <span class="fu">}</span></span>
 <span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a>    <span class="fu">}</span></span>
 <span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"publication_metadata"</span><span class="ot">]</span></span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"shipment_metadata"</span><span class="ot">]</span></span>
 <span id="cb9-29"><a href="#cb9-29" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p>Fields that are not already <code>documents</code> columns are added
-to the table automatically. Array and object fields are stored as JSON
-text. The default bibliographic columns stay in the table (empty for
-these documents), so <code><a href="../reference/export_bibtex.html">export_bibtex()</a></code> still works on
-journal-article databases.</p>
+<p>The <code>documents</code> table gets one column per metadata field,
+created automatically. Array and object fields are stored as JSON text.
+Only the fields in the schema in use become columns: a database created
+with a custom metadata schema has no bibliographic columns (title,
+authors, journal, and so on), and <code><a href="../reference/export_db.html">export_db()</a></code> exports the
+schema’s fields. <code><a href="../reference/export_bibtex.html">export_bibtex()</a></code> needs the bibliographic
+fields, so it only works with the default metadata schema.</p>
 <p><code>x-record-id-fields</code> can name metadata fields,
 <code>document_id</code>, or <code>file_name</code> (used without its
 extension). With the schema above, records get IDs like

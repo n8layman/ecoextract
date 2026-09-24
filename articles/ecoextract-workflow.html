@@ -747,10 +747,10 @@ status:</p>
 <li>
 <code>document_id</code>, <code>file_name</code>,
 <code>file_path</code> – Identity</li>
-<li>
-<code>title</code>, <code>authors</code>,
-<code>publication_year</code>, <code>journal</code>, <code>doi</code> –
-Publication metadata</li>
+<li>One column per metadata schema field – Document metadata (with the
+default schema: <code>title</code>, <code>authors</code>,
+<code>publication_year</code>, <code>journal</code>, <code>doi</code>,
+and other bibliographic fields)</li>
 <li>
 <code>document_content</code> – OCR markdown text</li>
 <li>
@@ -767,7 +767,16 @@ step</li>
 <li>
 <code>ocr_log</code>, <code>metadata_log</code>,
 <code>extraction_log</code>, <code>refinement_log</code> – Audit trail
-of failed attempts with error messages and timestamps (JSON)</li>
+of failed attempts with error messages, token usage, and timestamps
+(JSON)</li>
+<li>
+<code>metadata_input_tokens</code>,
+<code>metadata_output_tokens</code>,
+<code>metadata_cached_input_tokens</code> (and the same for
+<code>extraction_</code> and <code>refinement_</code>) – Tokens used by
+each LLM step, including retries and failed attempts. Input tokens
+include tokens written to the prompt cache; cached input tokens are
+tokens read from it</li>
 <li>
 <code>records_extracted</code> – Count of records extracted</li>
 </ul>

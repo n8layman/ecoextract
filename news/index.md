@@ -1,5 +1,58 @@
 # Changelog
 
+## ecoextract (development version)
+
+### New features
+
+- Token usage is recorded for every LLM call, read from the API reply
+  through ellmer. The `documents` table gains `<step>_input_tokens`,
+  `<step>_output_tokens`, and `<step>_cached_input_tokens` columns for
+  the metadata, extraction, and refinement steps. Totals include
+  retries, failed attempts, extraction reps, and LLM deduplication. Each
+  attempt in the `*_log` audit trail carries its own usage. Existing
+  databases gain the columns on their next run; earlier rows stay NULL
+  ([\#147](https://github.com/n8layman/ecoextract/issues/147)).
+- The metadata schema’s metadata object can have any name, not just
+  `publication_metadata`
+  ([\#148](https://github.com/n8layman/ecoextract/issues/148)).
+
+### Breaking changes
+
+- Metadata columns in the `documents` table come only from the metadata
+  schema in use. A database created with a custom metadata schema no
+  longer gets the thirteen bibliographic columns (`title`, `authors`,
+  `journal`, …). The default schema still creates them, and existing
+  databases keep their columns
+  ([\#148](https://github.com/n8layman/ecoextract/issues/148)).
+- [`export_db()`](https://n8layman.github.io/ecoextract/reference/export_db.md)
+  exports the metadata schema’s fields as document columns (the default
+  schema adds `language`), and `simple = TRUE` keeps `document_id`,
+  `file_name`, and the schema’s `x-record-id-fields`. It gains a
+  `metadata_schema_file` argument
+  ([\#148](https://github.com/n8layman/ecoextract/issues/148)).
+
+### Bug fixes
+
+- [`export_db()`](https://n8layman.github.io/ecoextract/reference/export_db.md)
+  keeps documents with no records, as one row with empty record columns.
+  It previously used an inner join, so documents where extraction found
+  nothing were missing from the export
+  ([\#149](https://github.com/n8layman/ecoextract/issues/149)).
+
+- LLM calls whose structured output cannot be parsed (for example, stray
+  markup after the JSON object) are retried on the same model before
+  falling back to the next one. Content refusals are still not retried.
+
+- `process_documents(document_id = ...)` finds documents from any
+  subdirectory of the project. Stored file paths are relative to the
+  project root but were resolved against the working directory, so
+  reprocessing by ID from elsewhere reported “file not found”.
+
+- [`refine_records()`](https://n8layman.github.io/ecoextract/reference/refine_records.md)
+  no longer reports “Refinement failed: object ‘error_log’ not found”
+  when every record in a document is human-edited or deleted. The step
+  is now marked `skipped`.
+
 ## ecoextract 0.1.21
 
 ### New features

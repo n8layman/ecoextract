@@ -36,6 +36,27 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="ecoextract-development-version">ecoextract (development version)<a class="anchor" aria-label="anchor" href="#ecoextract-development-version"></a></h2>
+<div class="section level3">
+<h3 id="new-features-development-version">New features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h3>
+<ul><li>Token usage is recorded for every LLM call, read from the API reply through ellmer. The <code>documents</code> table gains <code>&lt;step&gt;_input_tokens</code>, <code>&lt;step&gt;_output_tokens</code>, and <code>&lt;step&gt;_cached_input_tokens</code> columns for the metadata, extraction, and refinement steps. Totals include retries, failed attempts, extraction reps, and LLM deduplication. Each attempt in the <code>*_log</code> audit trail carries its own usage. Existing databases gain the columns on their next run; earlier rows stay NULL (<a href="https://github.com/n8layman/ecoextract/issues/147" class="external-link">#147</a>).</li>
+<li>The metadata schema’s metadata object can have any name, not just <code>publication_metadata</code> (<a href="https://github.com/n8layman/ecoextract/issues/148" class="external-link">#148</a>).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-changes-development-version">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-development-version"></a></h3>
+<ul><li>Metadata columns in the <code>documents</code> table come only from the metadata schema in use. A database created with a custom metadata schema no longer gets the thirteen bibliographic columns (<code>title</code>, <code>authors</code>, <code>journal</code>, …). The default schema still creates them, and existing databases keep their columns (<a href="https://github.com/n8layman/ecoextract/issues/148" class="external-link">#148</a>).</li>
+<li>
+<code><a href="../reference/export_db.html">export_db()</a></code> exports the metadata schema’s fields as document columns (the default schema adds <code>language</code>), and <code>simple = TRUE</code> keeps <code>document_id</code>, <code>file_name</code>, and the schema’s <code>x-record-id-fields</code>. It gains a <code>metadata_schema_file</code> argument (<a href="https://github.com/n8layman/ecoextract/issues/148" class="external-link">#148</a>).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<ul><li><p><code><a href="../reference/export_db.html">export_db()</a></code> keeps documents with no records, as one row with empty record columns. It previously used an inner join, so documents where extraction found nothing were missing from the export (<a href="https://github.com/n8layman/ecoextract/issues/149" class="external-link">#149</a>).</p></li>
+<li><p>LLM calls whose structured output cannot be parsed (for example, stray markup after the JSON object) are retried on the same model before falling back to the next one. Content refusals are still not retried.</p></li>
+<li><p><code>process_documents(document_id = ...)</code> finds documents from any subdirectory of the project. Stored file paths are relative to the project root but were resolved against the working directory, so reprocessing by ID from elsewhere reported “file not found”.</p></li>
+<li><p><code><a href="../reference/refine_records.html">refine_records()</a></code> no longer reports “Refinement failed: object ‘error_log’ not found” when every record in a document is human-edited or deleted. The step is now marked <code>skipped</code>.</p></li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.21" id="ecoextract-0121">ecoextract 0.1.21<a class="anchor" aria-label="anchor" href="#ecoextract-0121"></a></h2>
 <div class="section level3">
 <h3 id="new-features-0-1-21">New features<a class="anchor" aria-label="anchor" href="#new-features-0-1-21"></a></h3>

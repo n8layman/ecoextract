@@ -13,11 +13,14 @@
 <url><loc>https://n8layman.github.io/ecoextract/news/index.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/add_metadata_columns.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/add_record_id_to_schema.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/add_usage.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/add_usage_columns.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/build_existing_records_context.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/build_record_id_prefix.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/calculate_accuracy.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/calculate_fields_changed.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/canonicalize.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/chat_usage.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/check_api_keys_for_models.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/clean_schema_for_api.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/configure_sqlite_connection.html</loc></url>
@@ -36,6 +39,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/extract_metadata.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/extract_records.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/find_project_root.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/from_project_relative_path.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/generate_columns_from_json_schema.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/generate_record_id.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/generate_uuid.html</loc></url>
@@ -48,6 +52,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_extraction_prompt.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_metadata_context.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_metadata_fields.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/get_metadata_key.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_metadata_prompt.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_ocr_html_preview.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_ocr_markdown.html</loc></url>
@@ -92,12 +97,14 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/save_metadata_to_db.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/save_reasoning_to_db.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/save_records_to_db.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/save_usage_to_db.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/scrub_pipeline_stages.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/set_additional_properties_false.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/should_run_step.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/strip_non_standard_schema_properties.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/to_project_relative_path.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/try_models_with_fallback.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/usage_columns.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/validate_force_param.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/validate_schema_with_db.html</loc></url>
 </urlset>

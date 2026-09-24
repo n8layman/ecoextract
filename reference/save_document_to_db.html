@@ -75,29 +75,20 @@ and the new row preserves the old `document_id`.</p>
 
 
 <dt id="arg-metadata">metadata<a class="anchor" aria-label="anchor" href="#arg-metadata"></a></dt>
-<dd><p>A named list of document metadata. Recognized keys include:</p><dl><dt>title</dt>
-<dd><p>Document title.</p></dd>
-
-  <dt>first_author_lastname</dt>
-<dd><p>Last name of first author.</p></dd>
-
-  <dt>publication_year</dt>
-<dd><p>Year of publication.</p></dd>
-
-  <dt>doi</dt>
-<dd><p>DOI of the document.</p></dd>
-
-  <dt>journal</dt>
-<dd><p>Journal name.</p></dd>
-
-  <dt>document_content</dt>
+<dd><p>A named list of OCR results. Recognized keys:</p><dl><dt>document_content</dt>
 <dd><p>OCR or processed content.</p></dd>
 
   <dt>ocr_images</dt>
 <dd><p>OCR images (as JSON array or similar).</p></dd>
 
+  <dt>ocr_provider</dt>
+<dd><p>OCR provider that succeeded.</p></dd>
 
-</dl></dd>
+  <dt>ocr_log</dt>
+<dd><p>JSON audit trail of failed OCR attempts.</p></dd>
+
+
+</dl><p>Metadata schema fields are saved separately by <code><a href="save_metadata_to_db.html">save_metadata_to_db()</a></code>.</p></dd>
 
 
 <dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
@@ -113,7 +104,8 @@ and the new row preserves the old `document_id`.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="va">db</span> <span class="op">&lt;-</span> <span class="st">"ecoextract_results.sqlite"</span></span></span>
-<span class="r-in"><span><span class="fu">save_document_to_db</span><span class="op">(</span><span class="va">db</span>, <span class="st">"example.pdf"</span>, metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"My Paper"</span><span class="op">)</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">save_document_to_db</span><span class="op">(</span><span class="va">db</span>, <span class="st">"example.pdf"</span>,</span></span>
+<span class="r-in"><span>                    metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>document_content <span class="op">=</span> <span class="st">"OCR text"</span><span class="op">)</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

@@ -1,6 +1,9 @@
 # Export Database
 
-Export records joined with document metadata
+Export records joined with document metadata. Every document is
+included: a document with no records appears as one row with empty
+record columns, and its `extraction_status` and `records_extracted` show
+whether it was processed.
 
 ## Usage
 
@@ -10,7 +13,8 @@ export_db(
   db_conn = "ecoextract_records.db",
   include_ocr = FALSE,
   simple = FALSE,
-  filename = NULL
+  filename = NULL,
+  metadata_schema_file = NULL
 )
 ```
 
@@ -32,13 +36,18 @@ export_db(
 - simple:
 
   If TRUE, return only minimal document columns (document_id, file_name,
-  first_author_lastname, publication_year) plus schema-defined record
-  fields, excluding record metadata like id, extraction_timestamp, and
-  prompt_hash (default: FALSE)
+  and the metadata schema's `x-record-id-fields`) plus schema-defined
+  record fields, excluding record metadata like id,
+  extraction_timestamp, and prompt_hash (default: FALSE)
 
 - filename:
 
   Optional path to save as CSV file (if NULL, returns tibble only)
+
+- metadata_schema_file:
+
+  Path to custom metadata schema JSON file (optional). Its fields are
+  the document metadata columns in the export.
 
 ## Value
 

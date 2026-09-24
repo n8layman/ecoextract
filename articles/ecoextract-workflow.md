@@ -625,8 +625,9 @@ The SQLite database has two main tables:
 **documents** – Stores document metadata and processing status:
 
 - `document_id`, `file_name`, `file_path` – Identity
-- `title`, `authors`, `publication_year`, `journal`, `doi` – Publication
-  metadata
+- One column per metadata schema field – Document metadata (with the
+  default schema: `title`, `authors`, `publication_year`, `journal`,
+  `doi`, and other bibliographic fields)
 - `document_content` – OCR markdown text
 - `ocr_status`, `metadata_status`, `extraction_status`,
   `refinement_status` – Processing status for each workflow step
@@ -635,7 +636,13 @@ The SQLite database has two main tables:
 - `metadata_llm_model`, `extraction_llm_model`, `refinement_llm_model` –
   Which model succeeded for each LLM step
 - `ocr_log`, `metadata_log`, `extraction_log`, `refinement_log` – Audit
-  trail of failed attempts with error messages and timestamps (JSON)
+  trail of failed attempts with error messages, token usage, and
+  timestamps (JSON)
+- `metadata_input_tokens`, `metadata_output_tokens`,
+  `metadata_cached_input_tokens` (and the same for `extraction_` and
+  `refinement_`) – Tokens used by each LLM step, including retries and
+  failed attempts. Input tokens include tokens written to the prompt
+  cache; cached input tokens are tokens read from it
 - `records_extracted` – Count of records extracted
 
 **records** – Stores extracted data records:

@@ -82,7 +82,8 @@ If a model refuses (stop_reason == "refusal") or errors, tries the next model.</
 
 
 <dt id="arg-max-retries">max_retries<a class="anchor" aria-label="anchor" href="#arg-max-retries"></a></dt>
-<dd><p>Maximum retry attempts per model for stochastic failures (default 2)</p></dd>
+<dd><p>Maximum retry attempts per model for stochastic failures
+(empty reasoning or unparseable JSON) (default 2)</p></dd>
 
 
 <dt id="arg-step-name">step_name<a class="anchor" aria-label="anchor" href="#arg-step-name"></a></dt>
@@ -98,7 +99,11 @@ a single list returned as <code>result</code>.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)</p>
+    <p>List with result (structured output), model_used (which model
+  succeeded), error_log (JSON string of failed attempts, each with its
+  token usage), and usage (token totals across every attempt, including
+  failed ones). When all models fail, the error condition carries
+  <code>error_log</code> and <code>usage</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

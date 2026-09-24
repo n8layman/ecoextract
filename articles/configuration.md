@@ -421,8 +421,12 @@ it with a metadata schema whose `x-record-id-fields` is
 `["document_id"]` or `["file_name"]`, so record IDs don’t depend on
 metadata values.
 
-The metadata schema wraps its fields in a `publication_metadata` object
-and names the fields that form record IDs in `x-record-id-fields`:
+The metadata schema wraps its fields in a single object under
+`properties` and names the fields that form record IDs in
+`x-record-id-fields`. The object can have any name; the package default
+calls it `publication_metadata`, and the example below uses
+`shipment_metadata`. The model sees this name in the structured output
+schema, so pick one that describes your documents:
 
 ``` json
 {
@@ -430,7 +434,7 @@ and names the fields that form record IDs in `x-record-id-fields`:
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "publication_metadata": {
+    "shipment_metadata": {
       "type": "object",
       "description": "Shipment declaration metadata",
       "additionalProperties": false,
@@ -452,16 +456,20 @@ and names the fields that form record IDs in `x-record-id-fields`:
       }
     }
   },
-  "required": ["publication_metadata"]
+  "required": ["shipment_metadata"]
 }
 ```
 
-Fields that are not already `documents` columns are added to the table
-automatically. Array and object fields are stored as JSON text. The
-default bibliographic columns stay in the table (empty for these
-documents), so
+The `documents` table gets one column per metadata field, created
+automatically. Array and object fields are stored as JSON text. Only the
+fields in the schema in use become columns: a database created with a
+custom metadata schema has no bibliographic columns (title, authors,
+journal, and so on), and
+[`export_db()`](https://n8layman.github.io/ecoextract/reference/export_db.md)
+exports the schema’s fields.
 [`export_bibtex()`](https://n8layman.github.io/ecoextract/reference/export_bibtex.md)
-still works on journal-article databases.
+needs the bibliographic fields, so it only works with the default
+metadata schema.
 
 `x-record-id-fields` can name metadata fields, `document_id`, or
 `file_name` (used without its extension). With the schema above, records

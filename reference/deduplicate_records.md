@@ -51,4 +51,5 @@ deduplicate_records(
 
 ## Value
 
-List with deduplicated records and metadata
+List with deduplicated records and metadata. `usage` holds the token
+usage of the LLM call, or NULL when no LLM call was made.

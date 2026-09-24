@@ -1,8 +1,9 @@
 # Add documents table columns for metadata schema fields (internal)
 
 Adds a column for each metadata field not already in the documents
-table. The default bibliographic fields already exist, so this only
-changes the table when a custom metadata schema is in use.
+table. Metadata columns come only from the metadata schema in use; the
+package default schema gives the bibliographic fields for journal
+articles.
 
 ## Usage
 

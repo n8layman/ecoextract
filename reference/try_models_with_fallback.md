@@ -44,7 +44,8 @@ try_models_with_fallback(
 
 - max_retries:
 
-  Maximum retry attempts per model for stochastic failures (default 2)
+  Maximum retry attempts per model for stochastic failures (empty
+  reasoning or unparseable JSON) (default 2)
 
 - step_name:
 
@@ -60,7 +61,10 @@ try_models_with_fallback(
 ## Value
 
 List with result (structured output), model_used (which model
-succeeded), and error_log (JSON string of failed attempts)
+succeeded), error_log (JSON string of failed attempts, each with its
+token usage), and usage (token totals across every attempt, including
+failed ones). When all models fail, the error condition carries
+`error_log` and `usage`.
 
 ## Details
 

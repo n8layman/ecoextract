@@ -50,4 +50,5 @@ extract_metadata(
 
 ## Value
 
-List with status ("completed"/\<error message\>) and document_id
+List with status ("completed"/\<error message\>), document_id, and usage
+(token usage across all attempts, NULL if no LLM call was made)

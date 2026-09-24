@@ -36,27 +36,7 @@ save_document_to_db(
 
 - metadata:
 
-  A named list of document metadata. Recognized keys include:
-
-  title
-
-  :   Document title.
-
-  first_author_lastname
-
-  :   Last name of first author.
-
-  publication_year
-
-  :   Year of publication.
-
-  doi
-
-  :   DOI of the document.
-
-  journal
-
-  :   Journal name.
+  A named list of OCR results. Recognized keys:
 
   document_content
 
@@ -65,6 +45,17 @@ save_document_to_db(
   ocr_images
 
   :   OCR images (as JSON array or similar).
+
+  ocr_provider
+
+  :   OCR provider that succeeded.
+
+  ocr_log
+
+  :   JSON audit trail of failed OCR attempts.
+
+  Metadata schema fields are saved separately by
+  [`save_metadata_to_db()`](https://n8layman.github.io/ecoextract/reference/save_metadata_to_db.md).
 
 - overwrite:
 
@@ -81,6 +72,7 @@ insertion fails.
 ``` r
 if (FALSE) { # \dontrun{
 db <- "ecoextract_results.sqlite"
-save_document_to_db(db, "example.pdf", metadata = list(title = "My Paper"), overwrite = TRUE)
+save_document_to_db(db, "example.pdf",
+                    metadata = list(document_content = "OCR text"), overwrite = TRUE)
 } # }
 ```
