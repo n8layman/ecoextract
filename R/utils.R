@@ -429,6 +429,45 @@ add_usage <- function(x, y) {
   purrr::map2(x, y, `+`)
 }
 
+#' Build ellmer params for an LLM call (internal)
+#'
+#' With \code{reasoning_effort} set, thinking runs at that effort. Without it,
+#' thinking is turned off where ellmer's params can express that: Gemini gets
+#' \code{reasoning_tokens = 0}. Claude's thinking is turned off through
+#' \code{llm_api_args()} instead, because ellmer has no param for it.
+#'
+#' @param model Model name in "provider/model" form
+#' @param max_tokens Maximum tokens for the response
+#' @param reasoning_effort Thinking effort, or NULL for thinking off
+#' @return ellmer params list
+#' @keywords internal
+llm_params <- function(model, max_tokens, reasoning_effort = NULL) {
+  if (!is.null(reasoning_effort)) {
+    return(ellmer::params(max_tokens = max_tokens, reasoning_effort = reasoning_effort))
+  }
+  if (startsWith(model, "google_gemini/")) {
+    return(ellmer::params(max_tokens = max_tokens, reasoning_tokens = 0))
+  }
+  ellmer::params(max_tokens = max_tokens)
+}
+
+#' Provider API arguments for an LLM call (internal)
+#'
+#' Claude runs adaptive thinking when the request doesn't say otherwise, and
+#' ellmer's params cannot turn it off, so thinking is disabled in the request
+#' body unless \code{reasoning_effort} is set.
+#'
+#' @param model Model name in "provider/model" form
+#' @param reasoning_effort Thinking effort, or NULL for thinking off
+#' @return List of extra request body fields, passed as \code{api_args}
+#' @keywords internal
+llm_api_args <- function(model, reasoning_effort = NULL) {
+  if (is.null(reasoning_effort) && startsWith(model, "anthropic/")) {
+    return(list(thinking = list(type = "disabled")))
+  }
+  list()
+}
+
 #' Try multiple LLM models with fallback on refusal
 #'
 #' Attempts to get structured output from LLMs in sequential order.
@@ -448,6 +487,10 @@ add_usage <- function(x, y) {
 #' @param max_retries Maximum retry attempts per model for stochastic failures
 #'   (empty reasoning or unparseable JSON) (default 2)
 #' @param step_name Name of the step for logging (default "LLM call")
+#' @param reasoning_effort Thinking effort passed to \code{ellmer::params()}
+#'   (e.g. "low", "medium", "high"). NULL (default) turns thinking off: Claude
+#'   gets \code{thinking: disabled} and Gemini gets \code{reasoning_tokens = 0}.
+#'   Other providers use the model's default.
 #' @param reasoning_prompt When non-NULL, enables two-turn mode. This string is
 #'   the turn 2 user message instructing the model to extract after reasoning.
 #'   The turn 1 result (reasoning) and turn 2 result (records) are combined into
@@ -466,7 +509,8 @@ try_models_with_fallback <- function(
   max_tokens = 64000,
   max_retries = 2,
   step_name = "LLM call",
-  reasoning_prompt = NULL
+  reasoning_prompt = NULL,
+  reasoning_effort = NULL
 ) {
   # Ensure models is a character vector
   if (!is.character(models) || length(models) == 0) {
@@ -490,12 +534,8 @@ try_models_with_fallback <- function(
         name = model,
         system_prompt = system_prompt,
         echo = "none",
-        params = if (is_gemini) {
-          # Disable Gemini thinking to avoid truncating structured output.
-          ellmer::params(max_tokens = max_tokens, reasoning_tokens = 0)
-        } else {
-          list(max_tokens = max_tokens)
-        }
+        params = llm_params(model, max_tokens, reasoning_effort),
+        api_args = llm_api_args(model, reasoning_effort)
       )
 
       # Strip non-standard JSON Schema properties ($schema, x-*, _comment,

@@ -11,6 +11,8 @@
 #' @param db_conn Database connection
 #' @param force_reprocess Ignored (kept for backward compatibility). Skip logic handled by workflow.
 #' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-5")
+#' @param reasoning_effort Thinking effort (e.g. "low", "high"), or NULL
+#'   (default) for thinking off. See \code{process_documents()}.
 #' @param metadata_schema_file Path to custom metadata schema JSON file (optional)
 #' @param metadata_prompt_file Path to custom metadata prompt file (optional)
 #' @return List with status ("completed"/<error message>), document_id, and
@@ -18,6 +20,7 @@
 #' @keywords internal
 extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
                              model = "anthropic/claude-sonnet-5",
+                             reasoning_effort = NULL,
                              metadata_schema_file = NULL,
                              metadata_prompt_file = NULL) {
 
@@ -73,7 +76,8 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
       context = context,
       schema = schema,
       max_tokens = 64000,
-      step_name = "Metadata extraction"
+      step_name = "Metadata extraction",
+      reasoning_effort = reasoning_effort
     )
 
     metadata_result <- llm_result$result

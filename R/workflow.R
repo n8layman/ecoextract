@@ -73,6 +73,12 @@ validate_force_param <- function(param, param_name) {
 #'   Default: "anthropic/claude-sonnet-5".
 #'   Examples: "openai/gpt-4.1", "google_gemini/gemini-2.5-flash",
 #'   c("anthropic/claude-sonnet-5", "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")
+#' @param reasoning_effort How much the model thinks before answering, for every
+#'   LLM step (metadata, extraction, refinement, deduplication). NULL (default)
+#'   turns thinking off for Claude and Gemini, which is faster and cheaper;
+#'   other providers use their model default. Set an effort level such as
+#'   "low", "medium", or "high" to turn thinking on. Thinking tokens are billed
+#'   as output and are counted in the \code{<step>_output_tokens} columns.
 #' @param force_reprocess_ocr Controls OCR reprocessing. NULL (default) uses normal skip logic,
 #'   TRUE forces all documents, or an integer vector of document_ids to force specific documents.
 #' @param force_reprocess_metadata Controls metadata reprocessing. NULL (default) uses normal skip logic,
@@ -187,6 +193,7 @@ process_documents <- function(pdf_path = NULL,
                              metadata_schema_file = NULL,
                              metadata_prompt_file = NULL,
                              model = "anthropic/claude-sonnet-5",
+                             reasoning_effort = NULL,
                              ocr_provider = "mistral",
                              ocr_timeout = 300,
                              force_reprocess_ocr = NULL,
@@ -472,6 +479,7 @@ process_documents <- function(pdf_path = NULL,
                     metadata_schema_file = metadata_schema_file,
                     metadata_prompt_file = metadata_prompt_file,
                     model = model,
+                    reasoning_effort = reasoning_effort,
                     ocr_provider = ocr_provider,
                     ocr_timeout = ocr_timeout,
                     force_reprocess_ocr = force_reprocess_ocr,
@@ -506,6 +514,7 @@ process_documents <- function(pdf_path = NULL,
                 metadata_schema_file = metadata_schema_file,
                 metadata_prompt_file = metadata_prompt_file,
                 model = model,
+                reasoning_effort = reasoning_effort,
                 ocr_provider = ocr_provider,
                 ocr_timeout = ocr_timeout,
                 force_reprocess_ocr = force_reprocess_ocr,
@@ -532,6 +541,7 @@ process_documents <- function(pdf_path = NULL,
           metadata_schema_file = metadata_schema_src$path,
           metadata_prompt_file = metadata_prompt_file,
           model = model,
+          reasoning_effort = reasoning_effort,
           ocr_provider = ocr_provider,
           ocr_timeout = ocr_timeout,
           force_reprocess_ocr = force_reprocess_ocr,
@@ -677,6 +687,7 @@ process_documents <- function(pdf_path = NULL,
         metadata_schema_file = metadata_schema_src$path,
         metadata_prompt_file = metadata_prompt_file,
         model = model,
+        reasoning_effort = reasoning_effort,
         ocr_provider = ocr_provider,
         ocr_timeout = ocr_timeout,
         force_reprocess_ocr = force_reprocess_ocr,
@@ -771,6 +782,8 @@ process_documents <- function(pdf_path = NULL,
 #' @param metadata_prompt_file Optional custom metadata prompt
 #' @param model LLM model(s) to use for metadata extraction, record extraction, and refinement.
 #'   Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-5"
+#' @param reasoning_effort Thinking effort for every LLM step, or NULL (default)
+#'   for thinking off. See \code{process_documents()}.
 #' @param ocr_provider OCR provider(s) to use (default: "mistral"). Accepts a character
 #'   vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first
 #'   and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"
@@ -803,6 +816,7 @@ process_single_document <- function(pdf_file,
                                     metadata_schema_file = NULL,
                                     metadata_prompt_file = NULL,
                                     model = "anthropic/claude-sonnet-5",
+                                    reasoning_effort = NULL,
                                     ocr_provider = "mistral",
                                     ocr_timeout = 300,
                                     force_reprocess_ocr = NULL,
@@ -1016,6 +1030,7 @@ process_single_document <- function(pdf_file,
         document_id = doc_id,
         db_conn = db_conn,
         model = model,
+        reasoning_effort = reasoning_effort,
         metadata_schema_file = metadata_schema_file,
         metadata_prompt_file = metadata_prompt_file
       )
@@ -1066,6 +1081,7 @@ process_single_document <- function(pdf_file,
         metadata_schema_file = metadata_schema_file,
         extraction_prompt_file = extraction_prompt_file,
         model = model,
+        reasoning_effort = reasoning_effort,
         min_similarity = min_similarity,
         embedding_provider = embedding_provider,
         similarity_method = similarity_method,
@@ -1124,7 +1140,8 @@ process_single_document <- function(pdf_file,
         schema_file = schema_file,
         metadata_schema_file = metadata_schema_file,
         refinement_prompt_file = refinement_prompt_file,
-        model = model
+        model = model,
+        reasoning_effort = reasoning_effort
       )
       status_tracking$refinement_status <- refinement_result$status
     } else {

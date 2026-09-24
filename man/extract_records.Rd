@@ -13,6 +13,7 @@ extract_records(
   schema_file = NULL,
   metadata_schema_file = NULL,
   model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL,
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
@@ -37,6 +38,9 @@ extract_records(
 its x-record-id-fields determine record IDs)}
 
 \item{model}{Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-5")}
+
+\item{reasoning_effort}{Thinking effort (e.g. "low", "high"), or NULL
+(default) for thinking off. See \code{process_documents()}.}
 
 \item{min_similarity}{Minimum similarity for deduplication (default: 0.9)}
 

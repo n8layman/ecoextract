@@ -11,7 +11,8 @@ deduplicate_records(
   min_similarity = 0.9,
   embedding_provider = "mistral",
   similarity_method = "llm",
-  model = "anthropic/claude-sonnet-5"
+  model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL
 )
 }
 \arguments{
@@ -28,6 +29,9 @@ deduplicate_records(
 \item{similarity_method}{Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "llm")}
 
 \item{model}{LLM model for llm method (default: "anthropic/claude-sonnet-5")}
+
+\item{reasoning_effort}{Thinking effort for llm method, or NULL (default)
+for thinking off}
 }
 \value{
 List with deduplicated records and metadata. \code{usage} holds the

@@ -16,6 +16,8 @@
 #' @param metadata_schema_file Path to custom metadata schema JSON file (optional;
 #'   its x-record-id-fields determine record IDs)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-5")
+#' @param reasoning_effort Thinking effort (e.g. "low", "high"), or NULL
+#'   (default) for thinking off. See \code{process_documents()}.
 #' @param min_similarity Minimum similarity for deduplication (default: 0.9)
 #' @param embedding_provider Provider for embeddings when using embedding method (default: "mistral")
 #' @param similarity_method Method for deduplication similarity: "embedding", "jaccard", or "llm" (default: "llm")
@@ -32,6 +34,7 @@ extract_records <- function(document_id = NA,
                                  schema_file = NULL,
                                  metadata_schema_file = NULL,
                                  model = "anthropic/claude-sonnet-5",
+                                 reasoning_effort = NULL,
                                  min_similarity = 0.9,
                                  embedding_provider = "openai",
                                  similarity_method = "llm",
@@ -98,7 +101,8 @@ extract_records <- function(document_id = NA,
           schema = schema,
           max_tokens = 64000,
           step_name = "Extraction",
-          reasoning_prompt = "Based on your analysis above, extract the structured records now."
+          reasoning_prompt = "Based on your analysis above, extract the structured records now.",
+          reasoning_effort = reasoning_effort
         )
 
         extract_result <- llm_result$result
@@ -156,7 +160,8 @@ extract_records <- function(document_id = NA,
               min_similarity = min_similarity,
               embedding_provider = embedding_provider,
               similarity_method = similarity_method,
-              model = model
+              model = model,
+              reasoning_effort = reasoning_effort
             )
 
             track$usage <- add_usage(track$usage, dedup_result$usage)
