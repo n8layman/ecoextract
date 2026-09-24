@@ -13,7 +13,8 @@
 #' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-5")
 #' @param metadata_schema_file Path to custom metadata schema JSON file (optional)
 #' @param metadata_prompt_file Path to custom metadata prompt file (optional)
-#' @return List with status ("completed"/<error message>) and document_id
+#' @return List with status ("completed"/<error message>), document_id, and
+#'   usage (token usage across all attempts, NULL if no LLM call was made)
 #' @keywords internal
 extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
                              model = "anthropic/claude-sonnet-5",
@@ -38,6 +39,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
     params = list(document_id))
 
   # Run metadata extraction
+  usage <- NULL
   status <- tryCatch({
     # Read document content from database
     document_content <- doc$document_content
@@ -77,6 +79,7 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
     metadata_result <- llm_result$result
     model_used <- llm_result$model_used
     error_log <- llm_result$error_log
+    usage <- llm_result$usage
 
     # Extract results
     if (!is.list(metadata_result)) {
@@ -84,12 +87,13 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
     }
 
     # Validate required fields exist
-    if (!"publication_metadata" %in% names(metadata_result)) {
-      stop("Missing 'publication_metadata' in result. Available fields: ",
+    metadata_key <- get_metadata_key(schema_list)
+    if (!metadata_key %in% names(metadata_result)) {
+      stop("Missing '", metadata_key, "' in result. Available fields: ",
            paste(names(metadata_result), collapse = ", "))
     }
 
-    doc_metadata <- metadata_result$publication_metadata
+    doc_metadata <- metadata_result[[metadata_key]]
 
     # Serialize array and object fields to JSON strings for storage
     metadata <- purrr::imap(metadata_fields, function(field_spec, field) {
@@ -127,10 +131,11 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
       "completed"
     }
   }, error = function(e) {
+    usage <<- e$usage %||% usage
     paste("Metadata extraction failed:", e$message)
   })
 
-  return(list(status = status, document_id = document_id))
+  return(list(status = status, document_id = document_id, usage = usage))
 }
 
 #' Load the metadata JSON schema (internal)
@@ -147,34 +152,55 @@ load_metadata_schema <- function(schema_file = NULL) {
   jsonlite::fromJSON(schema_path, simplifyVector = FALSE)
 }
 
+#' Get the name of a metadata schema's metadata object (internal)
+#'
+#' The metadata schema wraps its fields in a single object under
+#' \code{properties}. The package default calls it
+#' \code{publication_metadata}; custom schemas can use any name.
+#'
+#' @param schema_list Parsed metadata JSON schema
+#' @return Character name of the metadata object
+#' @keywords internal
+get_metadata_key <- function(schema_list) {
+  key <- names(schema_list$properties)
+  if (length(key) != 1) {
+    stop("Metadata schema must contain exactly one object under 'properties' ",
+         "(e.g. 'publication_metadata'), found: ",
+         if (length(key) == 0) "none" else paste(key, collapse = ", "))
+  }
+  key
+}
+
 #' Get field definitions from a metadata schema (internal)
 #' @param schema_list Parsed metadata JSON schema
 #' @return Named list of field definitions
 #' @keywords internal
 get_metadata_fields <- function(schema_list) {
-  fields <- schema_list$properties$publication_metadata$properties
+  key <- get_metadata_key(schema_list)
+  fields <- schema_list$properties[[key]]$properties
   if (is.null(fields)) {
-    stop("Metadata schema must contain 'properties.publication_metadata.properties'")
+    stop("Metadata schema must contain 'properties.", key, ".properties'")
   }
   fields
 }
 
 #' Get the metadata fields that form record IDs (internal)
 #'
-#' Reads \code{x-record-id-fields} from the metadata schema's
-#' \code{publication_metadata} object. Each entry must be a metadata field,
+#' Reads \code{x-record-id-fields} from the metadata schema's metadata
+#' object (see \code{get_metadata_key()}). Each entry must be a metadata field,
 #' \code{document_id}, or \code{file_name}.
 #'
 #' @param schema_list Parsed metadata JSON schema
 #' @return Character vector of field names
 #' @keywords internal
 get_record_id_fields <- function(schema_list) {
-  id_fields <- unlist(schema_list$properties$publication_metadata[["x-record-id-fields"]])
+  key <- get_metadata_key(schema_list)
+  id_fields <- unlist(schema_list$properties[[key]][["x-record-id-fields"]])
   if (length(id_fields) == 0) {
     stop(
       "Metadata schema is missing 'x-record-id-fields' array.\n",
       "This field names the metadata fields that form record IDs.\n",
-      "Add to your metadata schema at properties > publication_metadata:\n\n",
+      "Add to your metadata schema at properties > ", key, ":\n\n",
       '  "x-record-id-fields": ["field1", "field2"]'
     )
   }

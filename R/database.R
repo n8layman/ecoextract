@@ -178,20 +178,8 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
         ocr_provider TEXT,          -- Which OCR provider succeeded (tensorlake, mistral, claude)
         ocr_log TEXT,               -- JSON array of failed OCR attempts (audit trail)
 
-        -- Metadata extraction step
-        title TEXT,
-        first_author_lastname TEXT,
-        authors TEXT,               -- JSON array of author names
-        publication_year INTEGER,
-        doi TEXT,
-        journal TEXT,
-        volume TEXT,
-        issue TEXT,
-        pages TEXT,
-        issn TEXT,
-        publisher TEXT,
-        bibliography TEXT,          -- JSON array of bibliography citations
-        language TEXT,              -- ISO 639-1 two-letter language code (e.g., 'en', 'es', 'fr')
+        -- Metadata extraction step (metadata field columns are added from
+        -- the metadata schema by add_metadata_columns())
         metadata_status TEXT,       -- NULL | 'completed' | 'skipped' | 'Metadata extraction failed: <msg>'
         metadata_llm_model TEXT,    -- Model used for metadata extraction (e.g., 'anthropic/claude-sonnet-5')
         metadata_log TEXT,          -- JSON array of all model attempts with errors/refusals (audit trail)
@@ -214,8 +202,9 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
       )
     ")
 
-    # Add columns for fields in a custom metadata schema
+    # Add a column for each metadata schema field
     add_metadata_columns(con, load_metadata_schema(metadata_schema_file))
+    add_usage_columns(con)
 
     # Load schema using priority order (explicit > project ecoextract/ > wd > package)
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
@@ -474,16 +463,14 @@ get_record_columns_sql <- function(schema_json_list) {
 #' @param db_conn A DBI connection object or a path to an SQLite database file.
 #' @param file_path Path to the PDF or document file to store.
 #' @param file_hash Optional precomputed file hash (MD5). If `NULL`, it is computed automatically from the file.
-#' @param metadata A named list of document metadata. Recognized keys include:
+#' @param metadata A named list of OCR results. Recognized keys:
 #'   \describe{
-#'     \item{title}{Document title.}
-#'     \item{first_author_lastname}{Last name of first author.}
-#'     \item{publication_year}{Year of publication.}
-#'     \item{doi}{DOI of the document.}
-#'     \item{journal}{Journal name.}
 #'     \item{document_content}{OCR or processed content.}
 #'     \item{ocr_images}{OCR images (as JSON array or similar).}
+#'     \item{ocr_provider}{OCR provider that succeeded.}
+#'     \item{ocr_log}{JSON audit trail of failed OCR attempts.}
 #'   }
+#'   Metadata schema fields are saved separately by \code{save_metadata_to_db()}.
 #' @param overwrite Logical; if `TRUE`, any existing row with the same file hash is deleted and the new row preserves the old `document_id`.
 #'
 #' @return The `document_id` of the inserted or replaced row, or `NULL` if insertion fails.
@@ -491,7 +478,8 @@ get_record_columns_sql <- function(schema_json_list) {
 #' @examples
 #' \dontrun{
 #' db <- "ecoextract_results.sqlite"
-#' save_document_to_db(db, "example.pdf", metadata = list(title = "My Paper"), overwrite = TRUE)
+#' save_document_to_db(db, "example.pdf",
+#'                     metadata = list(document_content = "OCR text"), overwrite = TRUE)
 #' }
 save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata = list(), overwrite = FALSE, document_id = NULL) {
   
@@ -541,8 +529,7 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
     }
 
     # Prepare metadata in correct order
-    meta_keys <- c("title", "first_author_lastname", "publication_year",
-                   "doi", "journal", "document_content", "ocr_images", "ocr_provider", "ocr_log")
+    meta_keys <- c("document_content", "ocr_images", "ocr_provider", "ocr_log")
     metadata_complete <- lapply(meta_keys, function(k) rlang::`%||%`(metadata[[k]], NA))
 
     # Combine with file info
@@ -552,9 +539,8 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
     DBI::dbExecute(db_conn, "
       INSERT INTO documents (
         file_name, file_path, file_hash, file_size, upload_timestamp,
-        title, first_author_lastname, publication_year, doi, journal,
         document_content, ocr_images, ocr_provider, ocr_log
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ", params = params)
 
     # Get the rowid of the inserted row
@@ -1329,8 +1315,8 @@ json_type_to_sql <- function(json_type) {
 #' Add documents table columns for metadata schema fields (internal)
 #'
 #' Adds a column for each metadata field not already in the documents table.
-#' The default bibliographic fields already exist, so this only changes the
-#' table when a custom metadata schema is in use.
+#' Metadata columns come only from the metadata schema in use; the package
+#' default schema gives the bibliographic fields for journal articles.
 #'
 #' @param con Database connection
 #' @param schema_list Parsed metadata JSON schema
@@ -1345,6 +1331,55 @@ add_metadata_columns <- function(con, schema_list) {
       DBI::dbQuoteIdentifier(con, field),
       json_type_to_sql(json_property_type(field_spec))
     ))
+  })
+  invisible(NULL)
+}
+
+#' Token usage column names for a pipeline step (internal)
+#'
+#' @param step LLM step name ("metadata", "extraction", or "refinement")
+#' @return Character vector of documents table column names, in the order of
+#'   the fields returned by \code{chat_usage()}
+#' @keywords internal
+usage_columns <- function(step) {
+  paste0(step, c("_input_tokens", "_output_tokens", "_cached_input_tokens"))
+}
+
+#' Add token usage columns to the documents table (internal)
+#'
+#' Adds the per-step token usage columns that are not already in the documents
+#' table, so databases created before token tracking gain them. Rows processed
+#' before then keep NULL.
+#'
+#' @param con Database connection
+#' @return NULL (invisibly)
+#' @keywords internal
+add_usage_columns <- function(con) {
+  columns <- purrr::map(c("metadata", "extraction", "refinement"), usage_columns) |>
+    purrr::list_c()
+  new_columns <- setdiff(columns, DBI::dbListFields(con, "documents"))
+  purrr::walk(new_columns, function(column) {
+    DBI::dbExecute(con, paste("ALTER TABLE documents ADD COLUMN", column, "INTEGER"))
+  })
+  invisible(NULL)
+}
+
+#' Save a step's token usage to the documents table (internal)
+#'
+#' @param con Database connection
+#' @param document_id Document ID
+#' @param step LLM step name ("metadata", "extraction", or "refinement")
+#' @param usage Usage list from \code{chat_usage()}, or NULL when no LLM call
+#'   was made (stored as NULL)
+#' @return NULL (invisibly)
+#' @keywords internal
+save_usage_to_db <- function(con, document_id, step, usage) {
+  set_clause <- paste(usage_columns(step), "= ?", collapse = ", ")
+  values <- if (is.null(usage)) list(NA, NA, NA) else unname(usage)
+  retry_db_operation({
+    DBI::dbExecute(con,
+      paste("UPDATE documents SET", set_clause, "WHERE document_id = ?"),
+      params = c(values, list(document_id)))
   })
   invisible(NULL)
 }

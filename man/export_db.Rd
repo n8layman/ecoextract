@@ -9,7 +9,8 @@ export_db(
   db_conn = "ecoextract_records.db",
   include_ocr = FALSE,
   simple = FALSE,
-  filename = NULL
+  filename = NULL,
+  metadata_schema_file = NULL
 )
 }
 \arguments{
@@ -21,17 +22,23 @@ database file. Defaults to "ecoextract_records.db"}
 \item{include_ocr}{If TRUE, include OCR content in export (default: FALSE)}
 
 \item{simple}{If TRUE, return only minimal document columns (document_id,
-file_name, first_author_lastname, publication_year) plus schema-defined
-record fields, excluding record metadata like id, extraction_timestamp,
-and prompt_hash (default: FALSE)}
+file_name, and the metadata schema's \code{x-record-id-fields}) plus
+schema-defined record fields, excluding record metadata like id,
+extraction_timestamp, and prompt_hash (default: FALSE)}
 
 \item{filename}{Optional path to save as CSV file (if NULL, returns tibble only)}
+
+\item{metadata_schema_file}{Path to custom metadata schema JSON file
+(optional). Its fields are the document metadata columns in the export.}
 }
 \value{
 Tibble with records joined to document metadata, or invisibly if saved to file
 }
 \description{
-Export records joined with document metadata
+Export records joined with document metadata. Every document is included:
+a document with no records appears as one row with empty record columns,
+and its \code{extraction_status} and \code{records_extracted} show whether
+it was processed.
 }
 \examples{
 \dontrun{

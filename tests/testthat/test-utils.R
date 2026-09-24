@@ -102,3 +102,98 @@ test_that("estimate_tokens handles various inputs", {
   expect_type(tokens, "double")
   expect_true(tokens > 0)
 })
+
+test_that("chat_usage sums tokens across assistant turns", {
+  chat <- ellmer::chat_anthropic(credentials = function() "unused")
+  chat$set_turns(list(
+    ellmer::UserTurn(list(ellmer::ContentText("first"))),
+    ellmer::AssistantTurn(list(ellmer::ContentText("reply")), tokens = c(100, 20, 5)),
+    ellmer::UserTurn(list(ellmer::ContentText("second"))),
+    ellmer::AssistantTurn(list(ellmer::ContentText("reply")), tokens = c(150, 30, 0))
+  ))
+
+  expect_equal(
+    chat_usage(chat),
+    list(input_tokens = 250, output_tokens = 50, cached_input_tokens = 5)
+  )
+})
+
+test_that("chat_usage returns zeros for a chat with no turns", {
+  chat <- ellmer::chat_anthropic(credentials = function() "unused")
+  expect_equal(
+    chat_usage(chat),
+    list(input_tokens = 0, output_tokens = 0, cached_input_tokens = 0)
+  )
+})
+
+test_that("add_usage sums element-wise and treats NULL as no call", {
+  x <- list(input_tokens = 10, output_tokens = 2, cached_input_tokens = 1)
+  y <- list(input_tokens = 5, output_tokens = 3, cached_input_tokens = 0)
+
+  expect_equal(
+    add_usage(x, y),
+    list(input_tokens = 15, output_tokens = 5, cached_input_tokens = 1)
+  )
+  expect_equal(add_usage(NULL, y), y)
+  expect_equal(add_usage(x, NULL), x)
+  expect_null(add_usage(NULL, NULL))
+})
+
+test_that("from_project_relative_path resolves stored paths from a subdirectory", {
+  project <- withr::local_tempdir()
+  file.create(file.path(project, "DESCRIPTION"))
+  dir.create(file.path(project, "pdfs"))
+  dir.create(file.path(project, "analysis"))
+  pdf <- file.path(project, "pdfs", "paper.pdf")
+  file.create(pdf)
+
+  stored <- to_project_relative_path(pdf)
+  expect_equal(stored, "pdfs/paper.pdf")
+
+  withr::local_dir(file.path(project, "analysis"))
+  expect_true(file.exists(from_project_relative_path(stored)))
+  expect_equal(from_project_relative_path("/abs/paper.pdf"), "/abs/paper.pdf")
+})
+
+test_that("try_models_with_fallback retries the same model after a parse error", {
+  withr::local_envvar(ANTHROPIC_API_KEY = "unused")
+  calls <- 0
+  local_mocked_bindings(
+    chat = function(...) {
+      fake <- new.env()
+      fake$turns <- list()
+      fake$chat_structured <- function(...) {
+        calls <<- calls + 1
+        if (calls == 1) stop("parse error: trailing garbage")
+        fake$turns <- list(
+          ellmer::UserTurn(list(ellmer::ContentText("input"))),
+          ellmer::AssistantTurn(list(ellmer::ContentText("{}")), tokens = c(10, 5, 0))
+        )
+        list(answer = "ok")
+      }
+      fake$get_turns <- function() fake$turns
+      fake$get_tokens <- function() {
+        chat <- ellmer::chat_anthropic(credentials = function() "unused")
+        chat$set_turns(fake$turns)
+        chat$get_tokens()
+      }
+      fake
+    },
+    .package = "ellmer"
+  )
+  schema <- ellmer::TypeJsonSchema(
+    description = "Test schema",
+    json = list(type = "object", properties = list(answer = list(type = "string")))
+  )
+
+  result <- try_models_with_fallback(
+    models = "anthropic/claude-sonnet-5",
+    system_prompt = "system",
+    context = "input",
+    schema = schema
+  )
+
+  expect_equal(calls, 2)
+  expect_equal(result$result$answer, "ok")
+  expect_match(result$error_log, "parse error")
+})

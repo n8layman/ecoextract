@@ -13,8 +13,8 @@ get_record_id_fields(schema_list)
 Character vector of field names
 }
 \description{
-Reads \code{x-record-id-fields} from the metadata schema's
-\code{publication_metadata} object. Each entry must be a metadata field,
+Reads \code{x-record-id-fields} from the metadata schema's metadata
+object (see \code{get_metadata_key()}). Each entry must be a metadata field,
 \code{document_id}, or \code{file_name}.
 }
 \keyword{internal}

@@ -26,7 +26,8 @@ try_models_with_fallback(
 
 \item{max_tokens}{Maximum tokens for response (default 64000)}
 
-\item{max_retries}{Maximum retry attempts per model for stochastic failures (default 2)}
+\item{max_retries}{Maximum retry attempts per model for stochastic failures
+(empty reasoning or unparseable JSON) (default 2)}
 
 \item{step_name}{Name of the step for logging (default "LLM call")}
 
@@ -36,7 +37,11 @@ The turn 1 result (reasoning) and turn 2 result (records) are combined into
 a single list returned as \code{result}.}
 }
 \value{
-List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)
+List with result (structured output), model_used (which model
+  succeeded), error_log (JSON string of failed attempts, each with its
+  token usage), and usage (token totals across every attempt, including
+  failed ones). When all models fail, the error condition carries
+  \code{error_log} and \code{usage}.
 }
 \description{
 Attempts to get structured output from LLMs in sequential order.

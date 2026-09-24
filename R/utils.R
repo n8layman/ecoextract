@@ -37,6 +37,23 @@ to_project_relative_path <- function(file_path) {
   substring(abs_path, nchar(root_prefix) + 1)
 }
 
+#' Resolve a stored file path against the project root
+#'
+#' Inverse of \code{to_project_relative_path()}: a project-relative path from
+#' the database is joined to the project root found by walking up from the
+#' working directory, so documents resolve from any subdirectory of the
+#' project. Absolute paths, and paths when no project root is found, are
+#' returned unchanged.
+#' @param file_path Stored file path
+#' @return File path usable from the working directory
+#' @keywords internal
+from_project_relative_path <- function(file_path) {
+  root <- find_project_root(getwd())
+  is_absolute <- grepl("^(/|[A-Za-z]:)", file_path)
+  if (is.null(root)) return(file_path)
+  ifelse(is_absolute, file_path, file.path(root, file_path))
+}
+
 #' Generate a UUID v4 identifier
 #'
 #' Produces a standards-compliant UUID v4 using base R only (no extra dependency).
@@ -383,6 +400,35 @@ check_api_keys_for_models <- function(models) {
   }
 }
 
+#' Token usage of a chat (internal)
+#'
+#' Sums the token counts ellmer records for each completed assistant turn.
+#' \code{input_tokens} includes tokens written to the prompt cache;
+#' \code{cached_input_tokens} are tokens read from it.
+#'
+#' @param chat An ellmer Chat object
+#' @return Named list with input_tokens, output_tokens, and cached_input_tokens
+#' @keywords internal
+chat_usage <- function(chat) {
+  tokens <- chat$get_tokens()
+  list(
+    input_tokens = sum(tokens$input),
+    output_tokens = sum(tokens$output),
+    cached_input_tokens = sum(tokens$cached_input)
+  )
+}
+
+#' Add two token usage lists (internal)
+#'
+#' @param x,y Usage lists from \code{chat_usage()}, or NULL when no call was made
+#' @return Element-wise sum, or NULL if both are NULL
+#' @keywords internal
+add_usage <- function(x, y) {
+  if (is.null(x)) return(y)
+  if (is.null(y)) return(x)
+  purrr::map2(x, y, `+`)
+}
+
 #' Try multiple LLM models with fallback on refusal
 #'
 #' Attempts to get structured output from LLMs in sequential order.
@@ -399,13 +445,18 @@ check_api_keys_for_models <- function(models) {
 #' @param context User context/input for the LLM (turn 1 message)
 #' @param schema ellmer type schema for structured output (turn 2 in two-turn mode)
 #' @param max_tokens Maximum tokens for response (default 64000)
-#' @param max_retries Maximum retry attempts per model for stochastic failures (default 2)
+#' @param max_retries Maximum retry attempts per model for stochastic failures
+#'   (empty reasoning or unparseable JSON) (default 2)
 #' @param step_name Name of the step for logging (default "LLM call")
 #' @param reasoning_prompt When non-NULL, enables two-turn mode. This string is
 #'   the turn 2 user message instructing the model to extract after reasoning.
 #'   The turn 1 result (reasoning) and turn 2 result (records) are combined into
 #'   a single list returned as \code{result}.
-#' @return List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)
+#' @return List with result (structured output), model_used (which model
+#'   succeeded), error_log (JSON string of failed attempts, each with its
+#'   token usage), and usage (token totals across every attempt, including
+#'   failed ones). When all models fail, the error condition carries
+#'   \code{error_log} and \code{usage}.
 #' @keywords internal
 try_models_with_fallback <- function(
   models,
@@ -426,9 +477,11 @@ try_models_with_fallback <- function(
   check_api_keys_for_models(models)
 
   errors <- list()
+  usage <- NULL
 
   for (model in models) {
     for (attempt in seq_len(max_retries)) {
+    chat <- NULL
     tryCatch({
       if (attempt > 1) message(sprintf("  Retry %d/%d for %s", attempt, max_retries, model))
       # Create chat instance
@@ -552,6 +605,7 @@ try_models_with_fallback <- function(
 
       # Success - return immediately with error log
       message(sprintf("%s completed successfully using %s", step_name, model))
+      usage <- add_usage(usage, chat_usage(chat))
 
       # Convert error log to JSON (NULL if no errors)
       error_log_json <- if (length(errors) > 0) {
@@ -563,10 +617,15 @@ try_models_with_fallback <- function(
       return(list(
         result = result,
         model_used = model,
-        error_log = error_log_json
+        error_log = error_log_json,
+        usage = usage
       ))
 
     }, error = function(e) {
+      # Failed attempts are billed for any turns the model completed
+      attempt_usage <- if (is.null(chat)) NULL else chat_usage(chat)
+      usage <<- add_usage(usage, attempt_usage)
+
       # Capture raw response from model
       raw_content <- NULL
       stop_reason <- NULL
@@ -600,13 +659,17 @@ try_models_with_fallback <- function(
         stop_reason = stop_reason,
         refusal = is_refusal,
         attempt = attempt,
+        usage = attempt_usage,
         timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       )
     })
     # If last attempt succeeded, function already returned.
-    # If error was stored, check if retryable (empty reasoning = stochastic).
+    # If error was stored, check if retryable. Empty reasoning and malformed
+    # JSON (e.g. stray markup after the object) are stochastic; content
+    # refusals can also surface as parse errors and are not retried.
     if (!is.null(errors[[model]]) && attempt < max_retries) {
-      is_retryable <- grepl("empty/missing reasoning", errors[[model]]$error)
+      is_retryable <- grepl("empty/missing reasoning|parse error", errors[[model]]$error) &&
+        !errors[[model]]$refusal
       if (is_retryable) next
     }
     break  # Hard failure or max retries reached — move to next model
@@ -630,5 +693,6 @@ try_models_with_fallback <- function(
 
   cnd <- simpleError(error_summary)
   cnd$error_log <- error_log_json
+  cnd$usage <- usage
   stop(cnd)
 }

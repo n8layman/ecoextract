@@ -30,7 +30,8 @@ deduplicate_records(
 \item{model}{LLM model for llm method (default: "anthropic/claude-sonnet-5")}
 }
 \value{
-List with deduplicated records and metadata
+List with deduplicated records and metadata. \code{usage} holds the
+  token usage of the LLM call, or NULL when no LLM call was made.
 }
 \description{
 Compares new records against existing records using embeddings

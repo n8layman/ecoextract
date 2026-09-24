@@ -117,7 +117,8 @@ jaccard_similarity <- function(str1, str2, n = 3) {
 #' @param existing_records Dataframe of existing records
 #' @param key_fields Character vector of column names to compare
 #' @param model LLM model (default: "anthropic/claude-sonnet-5")
-#' @return Integer vector of 1-based indices of unique new records
+#' @return List with unique_indices (integer vector of 1-based indices of
+#'   unique new records) and usage (token usage of the LLM call)
 #' @keywords internal
 llm_deduplicate <- function(new_records, existing_records, key_fields,
                             model = "anthropic/claude-sonnet-5") {
@@ -158,9 +159,9 @@ New records:
   # Return indices (default to all if empty)
   indices <- result$unique_indices
   if (is.null(indices) || length(indices) == 0) {
-    return(seq_len(nrow(new_records)))
+    indices <- seq_len(nrow(new_records))
   }
-  as.integer(indices)
+  list(unique_indices = as.integer(indices), usage = llm_result$usage)
 }
 
 #' Deduplicate records using semantic similarity
@@ -176,7 +177,8 @@ New records:
 #' @param embedding_provider Provider for embeddings (default: "mistral")
 #' @param similarity_method Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "llm")
 #' @param model LLM model for llm method (default: "anthropic/claude-sonnet-5")
-#' @return List with deduplicated records and metadata
+#' @return List with deduplicated records and metadata. \code{usage} holds the
+#'   token usage of the LLM call, or NULL when no LLM call was made.
 #' @keywords internal
 deduplicate_records <- function(new_records,
                                 existing_records,
@@ -222,7 +224,8 @@ deduplicate_records <- function(new_records,
     return(list(
       unique_records = new_records,
       duplicates_found = 0,
-      new_records_count = nrow(new_records)
+      new_records_count = nrow(new_records),
+      usage = NULL
     ))
   }
 
@@ -231,7 +234,8 @@ deduplicate_records <- function(new_records,
     return(list(
       unique_records = tibble::tibble(),
       duplicates_found = 0,
-      new_records_count = 0
+      new_records_count = 0,
+      usage = NULL
     ))
   }
 
@@ -241,8 +245,11 @@ deduplicate_records <- function(new_records,
 
   # LLM method: single API call for all comparisons
 
+  usage <- NULL
   if (similarity_method == "llm") {
-    unique_indices <- llm_deduplicate(new_records, existing_records, key_fields, model)
+    llm_dedup <- llm_deduplicate(new_records, existing_records, key_fields, model)
+    unique_indices <- llm_dedup$unique_indices
+    usage <- llm_dedup$usage
     duplicates_found <- nrow(new_records) - length(unique_indices)
 
     # Log results
@@ -350,6 +357,7 @@ deduplicate_records <- function(new_records,
   list(
     unique_records = unique_records,
     duplicates_found = duplicates_found,
-    new_records_count = nrow(unique_records)
+    new_records_count = nrow(unique_records),
+    usage = usage
   )
 }

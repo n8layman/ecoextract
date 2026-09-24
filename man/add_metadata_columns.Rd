@@ -16,7 +16,7 @@ NULL (invisibly)
 }
 \description{
 Adds a column for each metadata field not already in the documents table.
-The default bibliographic fields already exist, so this only changes the
-table when a custom metadata schema is in use.
+Metadata columns come only from the metadata schema in use; the package
+default schema gives the bibliographic fields for journal articles.
 }
 \keyword{internal}

@@ -20,16 +20,14 @@ save_document_to_db(
 
 \item{file_hash}{Optional precomputed file hash (MD5). If `NULL`, it is computed automatically from the file.}
 
-\item{metadata}{A named list of document metadata. Recognized keys include:
+\item{metadata}{A named list of OCR results. Recognized keys:
 \describe{
-  \item{title}{Document title.}
-  \item{first_author_lastname}{Last name of first author.}
-  \item{publication_year}{Year of publication.}
-  \item{doi}{DOI of the document.}
-  \item{journal}{Journal name.}
   \item{document_content}{OCR or processed content.}
   \item{ocr_images}{OCR images (as JSON array or similar).}
-}}
+  \item{ocr_provider}{OCR provider that succeeded.}
+  \item{ocr_log}{JSON audit trail of failed OCR attempts.}
+}
+Metadata schema fields are saved separately by \code{save_metadata_to_db()}.}
 
 \item{overwrite}{Logical; if `TRUE`, any existing row with the same file hash is deleted and the new row preserves the old `document_id`.}
 }
@@ -44,7 +42,8 @@ and the new row preserves the old `document_id`.
 \examples{
 \dontrun{
 db <- "ecoextract_results.sqlite"
-save_document_to_db(db, "example.pdf", metadata = list(title = "My Paper"), overwrite = TRUE)
+save_document_to_db(db, "example.pdf",
+                    metadata = list(document_content = "OCR text"), overwrite = TRUE)
 }
 }
 \keyword{internal}

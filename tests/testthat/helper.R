@@ -21,9 +21,11 @@ local_test_db <- function(env = parent.frame()) {
 #' integer, one array) and changes into the project directory for the calling
 #' test. Both are undone automatically.
 #' @param id_fields Value for x-record-id-fields (NULL omits it)
+#' @param key Name of the metadata object under properties
 #' @param env Environment for cleanup (default: parent.frame())
 #' @return Path to the temporary project directory
 local_custom_metadata_schema <- function(id_fields = list("doc_code", "doc_number"),
+                                         key = "publication_metadata",
                                          env = parent.frame()) {
   project_dir <- withr::local_tempdir(.local_envir = env)
   dir.create(file.path(project_dir, "ecoextract"))
@@ -45,8 +47,8 @@ local_custom_metadata_schema <- function(id_fields = list("doc_code", "doc_numbe
 
   schema <- list(
     type = "object",
-    properties = list(publication_metadata = doc_metadata),
-    required = list("publication_metadata")
+    properties = rlang::set_names(list(doc_metadata), key),
+    required = list(key)
   )
   jsonlite::write_json(
     schema,
@@ -154,3 +156,29 @@ Author et al. (2020). Test Journal.
 "
 }
 
+
+#' Mock OCR with saved OCR output for the calling test
+#'
+#' Pipeline tests that are not about OCR start from the OCR result saved in
+#' fixtures/<pdf name>_ocr.json instead of calling an OCR provider. Only the
+#' full pipeline test runs real OCR.
+#' @param env Environment for cleanup (default: parent.frame())
+local_mock_ocr <- function(env = parent.frame()) {
+  testthat::local_mocked_bindings(
+    perform_ocr = function(pdf_file, ...) {
+      fixture <- testthat::test_path(
+        "fixtures", paste0(tools::file_path_sans_ext(basename(pdf_file)), "_ocr.json")
+      )
+      json_content <- paste(readLines(fixture, warn = FALSE), collapse = "\n")
+      list(
+        json_content = json_content,
+        ocr_images = NA_character_,
+        pages = jsonlite::fromJSON(json_content, simplifyVector = FALSE),
+        raw = NULL,
+        provider_used = "fixture",
+        error_log = NA_character_
+      )
+    },
+    .env = env
+  )
+}

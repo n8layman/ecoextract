@@ -1,0 +1,511 @@
+[
+  {
+    "index": 0,
+    "markdown": "# FAKE TEST PAPER - NOT A REAL SCIENTIFIC PUBLICATION\n\nThis is a synthetic document created for testing the ecoextract package. All data, citations, and findings are fictional.\n\n## Co-roosting Behavior and Interspecific Interactions Among Myotis Species in Temperate Forests\n\n**FICTIONAL AUTHORS:** Smith, J.A., Johnson, M.B., & Williams, R.C.\n\n**FICTIONAL INSTITUTION:** Department of Ecology, Test University\n\n**FICTIONAL PUBLICATION:** Journal of Bat Ecology, Vol. 45, No. 3, pp. 234-248 (2023)\n\n**FICTIONAL DOI:** 10.1234/fake.2023.12345\n\n### Abstract\n\n#### DISCLAIMER: THIS IS FAKE DATA FOR TESTING PURPOSES ONLY\n\nWe investigated co-roosting behavior among three sympatric Myotis species in temperate forests of the Pacific Northwest. Our study documented numerous interspecific interactions and shared roosting sites. This is entirely fictional data used for software testing.\n\n### Introduction\n\nCo-roosting among bat species has been observed in various ecosystems (Fake et al. 2020). In temperate forests, cavity-roosting bats often share limited roosting resources. **Note: All citations and data in this paper are fabricated for testing purposes.**",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": {},
+    "footer": "---^{}[] 1",
+    "dimensions": {
+      "dpi": 93,
+      "height": 1023,
+      "width": 791
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 169,
+        "top_left_y": 157,
+        "bottom_right_x": 618,
+        "bottom_right_y": 200,
+        "content": "# FAKE TEST PAPER - NOT A REAL SCIENTIFIC PUBLICATION",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 220,
+        "bottom_right_x": 618,
+        "bottom_right_y": 252,
+        "content": "This is a synthetic document created for testing the ecoextract package. All data, citations, and findings are fictional.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 312,
+        "bottom_right_x": 618,
+        "bottom_right_y": 379,
+        "content": "## Co-roosting Behavior and Interspecific Interactions Among Myotis Species in Temperate Forests",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 398,
+        "bottom_right_x": 607,
+        "bottom_right_y": 415,
+        "content": "**FICTIONAL AUTHORS:** Smith, J.A., Johnson, M.B., & Williams, R.C.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 421,
+        "bottom_right_x": 598,
+        "bottom_right_y": 437,
+        "content": "**FICTIONAL INSTITUTION:** Department of Ecology, Test University",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 443,
+        "bottom_right_x": 618,
+        "bottom_right_y": 476,
+        "content": "**FICTIONAL PUBLICATION:** Journal of Bat Ecology, Vol. 45, No. 3, pp. 234-248 (2023)",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 481,
+        "bottom_right_x": 437,
+        "bottom_right_y": 498,
+        "content": "**FICTIONAL DOI:** 10.1234/fake.2023.12345",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 555,
+        "bottom_right_x": 241,
+        "bottom_right_y": 571,
+        "content": "### Abstract",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 587,
+        "bottom_right_x": 618,
+        "bottom_right_y": 619,
+        "content": "#### DISCLAIMER: THIS IS FAKE DATA FOR TESTING PURPOSES ONLY",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 625,
+        "bottom_right_x": 620,
+        "bottom_right_y": 687,
+        "content": "We investigated co-roosting behavior among three sympatric Myotis species in temperate forests of the Pacific Northwest. Our study documented numerous interspecific interactions and shared roosting sites. This is entirely fictional data used for software testing.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 745,
+        "bottom_right_x": 271,
+        "bottom_right_y": 762,
+        "content": "### Introduction",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 778,
+        "bottom_right_x": 620,
+        "bottom_right_y": 841,
+        "content": "Co-roosting among bat species has been observed in various ecosystems (Fake et al. 2020). In temperate forests, cavity-roosting bats often share limited roosting resources. **Note: All citations and data in this paper are fabricated for testing purposes.**",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 388,
+        "top_left_y": 897,
+        "bottom_right_x": 400,
+        "bottom_right_y": 910,
+        "content": "---^{}[] 1",
+        "confidence_scores": {},
+        "type": "footer"
+      }
+    ]
+  },
+  {
+    "index": 1,
+    "markdown": "## Methods\n\n### Study Site\n\nOur fictional study was conducted in a made-up forest in Washington State between May-August 2022. We monitored 50 artificial roost boxes and 30 natural tree cavities.\n\n### Data Collection\n\nWe conducted nightly emergence counts and radio-telemetry tracking of 45 individual bats (completely fictional).\n\n## Results\n\n### Co-roosting Observations\n\nObservation 1 (Fake Data): On June 15, 2022, at Roosevelt Grove (fictional location), we observed Myotis lucifugus and Myotis yumanensis co-roosting in a Douglas-fir snag. The roost contained 23 M. lucifugus and 8 M. yumanensis individuals. This represents a clear example of interspecific roosting association between these two species.\n\nObservation 2 (Fake Data): At Cascade Valley site (fictional), July 3, 2022, we documented Myotis volans and Myotis evotis sharing a large western red cedar cavity. The colony consisted of 15 M. volans and 12 M. evotis. Temperature monitoring showed the roost maintained stable conditions at 18-22°C.\n\nObservation 3 (Fake Data): A mixed-species maternity colony was discovered on July 20, 2022 in the fictional Olympic Mountains region. The colony contained Myotis lucifugus (35 individuals), Myotis yumanensis (18 individuals), and Myotis californicus (7 individuals). This three-species assemblage persisted for the entire lactation period.\n\nObservation 4 (Fake Data): Single males of Myotis volans and Myotis thysanodes were found co-roosting under loose bark of a Ponderosa pine on August 5, 2022 at the made-up Eastside Forest site. This interaction occurred during the post-reproductive period.\n\nObservation 5 (Fake Data - NEW): On August 12, 2022, at the fictional Snoqualmie Ridge site, we documented a mixed colony of Myotis lucifugus and Myotis septentrionalis sharing a large red alder cavity. The roost contained 19 M. lucifugus and 11 M. septentrionalis individuals. This represents the first documented co-roosting event between these species in our fictional study area.",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": {},
+    "footer": "2",
+    "dimensions": {
+      "dpi": 93,
+      "height": 1023,
+      "width": 791
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 169,
+        "top_left_y": 160,
+        "bottom_right_x": 240,
+        "bottom_right_y": 176,
+        "content": "## Methods",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 193,
+        "bottom_right_x": 242,
+        "bottom_right_y": 210,
+        "content": "### Study Site",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 225,
+        "bottom_right_x": 618,
+        "bottom_right_y": 271,
+        "content": "Our fictional study was conducted in a made-up forest in Washington State between May-August 2022. We monitored 50 artificial roost boxes and 30 natural tree cavities.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 297,
+        "bottom_right_x": 275,
+        "bottom_right_y": 312,
+        "content": "### Data Collection",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 328,
+        "bottom_right_x": 618,
+        "bottom_right_y": 359,
+        "content": "We conducted nightly emergence counts and radio-telemetry tracking of 45 individual bats (completely fictional).",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 422,
+        "bottom_right_x": 230,
+        "bottom_right_y": 437,
+        "content": "## Results",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 456,
+        "bottom_right_x": 337,
+        "bottom_right_y": 471,
+        "content": "### Co-roosting Observations",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 486,
+        "bottom_right_x": 619,
+        "bottom_right_y": 564,
+        "content": "Observation 1 (Fake Data): On June 15, 2022, at Roosevelt Grove (fictional location), we observed Myotis lucifugus and Myotis yumanensis co-roosting in a Douglas-fir snag. The roost contained 23 M. lucifugus and 8 M. yumanensis individuals. This represents a clear example of interspecific roosting association between these two species.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 570,
+        "bottom_right_x": 619,
+        "bottom_right_y": 634,
+        "content": "Observation 2 (Fake Data): At Cascade Valley site (fictional), July 3, 2022, we documented Myotis volans and Myotis evotis sharing a large western red cedar cavity. The colony consisted of 15 M. volans and 12 M. evotis. Temperature monitoring showed the roost maintained stable conditions at 18-22°C.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 641,
+        "bottom_right_x": 619,
+        "bottom_right_y": 719,
+        "content": "Observation 3 (Fake Data): A mixed-species maternity colony was discovered on July 20, 2022 in the fictional Olympic Mountains region. The colony contained Myotis lucifugus (35 individuals), Myotis yumanensis (18 individuals), and Myotis californicus (7 individuals). This three-species assemblage persisted for the entire lactation period.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 726,
+        "bottom_right_x": 619,
+        "bottom_right_y": 787,
+        "content": "Observation 4 (Fake Data): Single males of Myotis volans and Myotis thysanodes were found co-roosting under loose bark of a Ponderosa pine on August 5, 2022 at the made-up Eastside Forest site. This interaction occurred during the post-reproductive period.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 795,
+        "bottom_right_x": 619,
+        "bottom_right_y": 873,
+        "content": "Observation 5 (Fake Data - NEW): On August 12, 2022, at the fictional Snoqualmie Ridge site, we documented a mixed colony of Myotis lucifugus and Myotis septentrionalis sharing a large red alder cavity. The roost contained 19 M. lucifugus and 11 M. septentrionalis individuals. This represents the first documented co-roosting event between these species in our fictional study area.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 390,
+        "top_left_y": 897,
+        "bottom_right_x": 398,
+        "bottom_right_y": 908,
+        "content": "2",
+        "confidence_scores": {},
+        "type": "footer"
+      }
+    ]
+  },
+  {
+    "index": 2,
+    "markdown": "# Roosting Substrate Preferences\n\nFake Finding: All observed co-roosting events occurred in cavities >15cm diameter or under bark with >3cm gap depth (fabricated measurement).\n\n# Temporal Patterns\n\nFictional Result: Mixed-species roosts were most common during lactation (June-July), with 78% of co-roosting events occurring during this period (fake percentage).\n\n# Discussion\n\n# Interspecific Roosting Associations\n\nOur fictional findings suggest that Myotis lucifugus and Myotis yumanensis have strong roosting associations, co-occurring in 12 of 15 observed roosts. This fake pattern may reflect similar thermal requirements or social facilitation behaviors.\n\nThe co-roosting between Myotis volans and Myotis evotis (fictional observation) suggests these species may share microhabitat preferences for larger cavity volumes.\n\nREMINDER: All data, species interactions, and conclusions in this paper are completely fabricated for software testing purposes.\n\n# Conservation Implications (Fictional)\n\nOur made-up results suggest that maintaining large-diameter snags benefits multiple Myotis species. Forest management should preserve these fictional roosting resources.\n\n# Acknowledgments\n\nThis is a fake paper. The authors, institutions, locations, and all data are fictional and created solely for testing the ecoextract R package.",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": {},
+    "footer": "3",
+    "dimensions": {
+      "dpi": 93,
+      "height": 1023,
+      "width": 791
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 169,
+        "top_left_y": 162,
+        "bottom_right_x": 378,
+        "bottom_right_y": 177,
+        "content": "# Roosting Substrate Preferences",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 193,
+        "bottom_right_x": 618,
+        "bottom_right_y": 225,
+        "content": "Fake Finding: All observed co-roosting events occurred in cavities >15cm diameter or under bark with >3cm gap depth (fabricated measurement).",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 249,
+        "bottom_right_x": 295,
+        "bottom_right_y": 264,
+        "content": "# Temporal Patterns",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 282,
+        "bottom_right_x": 618,
+        "bottom_right_y": 329,
+        "content": "Fictional Result: Mixed-species roosts were most common during lactation (June-July), with 78% of co-roosting events occurring during this period (fake percentage).",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 390,
+        "bottom_right_x": 253,
+        "bottom_right_y": 406,
+        "content": "# Discussion",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 423,
+        "bottom_right_x": 400,
+        "bottom_right_y": 440,
+        "content": "# Interspecific Roosting Associations",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 456,
+        "bottom_right_x": 618,
+        "bottom_right_y": 502,
+        "content": "Our fictional findings suggest that Myotis lucifugus and Myotis yumanensis have strong roosting associations, co-occurring in 12 of 15 observed roosts. This fake pattern may reflect similar thermal requirements or social facilitation behaviors.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 509,
+        "bottom_right_x": 618,
+        "bottom_right_y": 554,
+        "content": "The co-roosting between Myotis volans and Myotis evotis (fictional observation) suggests these species may share microhabitat preferences for larger cavity volumes.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 562,
+        "bottom_right_x": 618,
+        "bottom_right_y": 596,
+        "content": "REMINDER: All data, species interactions, and conclusions in this paper are completely fabricated for software testing purposes.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 620,
+        "bottom_right_x": 415,
+        "bottom_right_y": 636,
+        "content": "# Conservation Implications (Fictional)",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 651,
+        "bottom_right_x": 618,
+        "bottom_right_y": 697,
+        "content": "Our made-up results suggest that maintaining large-diameter snags benefits multiple Myotis species. Forest management should preserve these fictional roosting resources.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 761,
+        "bottom_right_x": 310,
+        "bottom_right_y": 778,
+        "content": "# Acknowledgments",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 794,
+        "bottom_right_x": 618,
+        "bottom_right_y": 825,
+        "content": "This is a fake paper. The authors, institutions, locations, and all data are fictional and created solely for testing the ecoextract R package.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 390,
+        "top_left_y": 897,
+        "bottom_right_x": 398,
+        "bottom_right_y": 908,
+        "content": "3",
+        "confidence_scores": {},
+        "type": "footer"
+      }
+    ]
+  },
+  {
+    "index": 3,
+    "markdown": "# References (All Fictional)\n\nFake, A.B., Test, C.D., & Example, E.F. (2020). Imaginary patterns of bat roosting. Journal of Made-Up Ecology, 12(3), 45-67.\n\nDemo, G.H. & Sample, I.J. (2019). Synthetic observations of Myotis behavior. Fictional Mammal Review, 8(2), 123-145.\n\n# END OF FAKE TEST PAPER\n\nWARNING: This document contains no real scientific data. It was created exclusively for testing software functionality. Do not cite, reference, or use for any scientific purpose.\n\n# Expected Interactions to Extract (for testing validation):\n\n1. Myotis lucifugus + Myotis yumanensis (co-roosting, Roosevelt Grove, June 15 2022)\n2. Myotis volans + Myotis evotis (co-roosting, Cascade Valley, July 3 2022)\n3. Myotis lucifugus + Myotis yumanensis + Myotis californicus (co-roosting, Olympic Mountains, July 20 2022)\n4. Myotis volans + Myotis thysanodes (co-roosting, Eastside Forest, August 5 2022)\n5. Myotis lucifugus + Myotis septentrionalis (co-roosting, Snoqualmie Ridge, August 12 2022)\n\nTotal expected extractions: 5 interaction events (or 7 if counting pairwise interactions in the 3-species roost)",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": {},
+    "footer": "4",
+    "dimensions": {
+      "dpi": 93,
+      "height": 1023,
+      "width": 791
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 169,
+        "top_left_y": 160,
+        "bottom_right_x": 367,
+        "bottom_right_y": 177,
+        "content": "# References (All Fictional)",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 193,
+        "bottom_right_x": 618,
+        "bottom_right_y": 225,
+        "content": "Fake, A.B., Test, C.D., & Example, E.F. (2020). Imaginary patterns of bat roosting. Journal of Made-Up Ecology, 12(3), 45-67.",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 231,
+        "bottom_right_x": 618,
+        "bottom_right_y": 263,
+        "content": "Demo, G.H. & Sample, I.J. (2019). Synthetic observations of Myotis behavior. Fictional Mammal Review, 8(2), 123-145.",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 319,
+        "bottom_right_x": 376,
+        "bottom_right_y": 334,
+        "content": "# END OF FAKE TEST PAPER",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 168,
+        "top_left_y": 343,
+        "bottom_right_x": 618,
+        "bottom_right_y": 390,
+        "content": "WARNING: This document contains no real scientific data. It was created exclusively for testing software functionality. Do not cite, reference, or use for any scientific purpose.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 451,
+        "bottom_right_x": 607,
+        "bottom_right_y": 469,
+        "content": "# Expected Interactions to Extract (for testing validation):",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 184,
+        "top_left_y": 484,
+        "bottom_right_x": 618,
+        "bottom_right_y": 624,
+        "content": "1. Myotis lucifugus + Myotis yumanensis (co-roosting, Roosevelt Grove, June 15 2022)\n2. Myotis volans + Myotis evotis (co-roosting, Cascade Valley, July 3 2022)\n3. Myotis lucifugus + Myotis yumanensis + Myotis californicus (co-roosting, Olympic Mountains, July 20 2022)\n4. Myotis volans + Myotis thysanodes (co-roosting, Eastside Forest, August 5 2022)\n5. Myotis lucifugus + Myotis septentrionalis (co-roosting, Snoqualmie Ridge, August 12 2022)",
+        "confidence_scores": {},
+        "type": "list"
+      },
+      {
+        "top_left_x": 169,
+        "top_left_y": 644,
+        "bottom_right_x": 618,
+        "bottom_right_y": 676,
+        "content": "Total expected extractions: 5 interaction events (or 7 if counting pairwise interactions in the 3-species roost)",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 390,
+        "top_left_y": 897,
+        "bottom_right_x": 398,
+        "bottom_right_y": 908,
+        "content": "4",
+        "confidence_scores": {},
+        "type": "footer"
+      }
+    ]
+  }
+]
