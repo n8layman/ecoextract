@@ -254,6 +254,28 @@ test_that("process_single_document passes metadata schema and prompt files to ex
   expect_equal(captured$prompt, prompt_path)
 })
 
+test_that("process_single_document passes reasoning_effort to the LLM steps", {
+  db_path <- local_test_db()
+  test_file <- local_ocr_document(db_path)
+
+  captured <- new.env()
+  local_mocked_bindings(
+    extract_metadata = function(document_id, reasoning_effort, ...) {
+      captured$metadata <- reasoning_effort
+      list(status = "completed", document_id = document_id)
+    },
+    extract_records = function(document_id, reasoning_effort, ...) {
+      captured$extraction <- reasoning_effort
+      list(status = "completed", records_extracted = 0, document_id = document_id)
+    }
+  )
+
+  process_single_document(test_file, db_path, reasoning_effort = "low")
+
+  expect_equal(captured$metadata, "low")
+  expect_equal(captured$extraction, "low")
+})
+
 # Record IDs -------------------------------------------------------------------
 
 test_that("save_records_to_db builds record IDs from x-record-id-fields", {

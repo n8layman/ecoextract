@@ -12,7 +12,8 @@ try_models_with_fallback(
   max_tokens = 64000,
   max_retries = 2,
   step_name = "LLM call",
-  reasoning_prompt = NULL
+  reasoning_prompt = NULL,
+  reasoning_effort = NULL
 )
 }
 \arguments{
@@ -35,6 +36,11 @@ try_models_with_fallback(
 the turn 2 user message instructing the model to extract after reasoning.
 The turn 1 result (reasoning) and turn 2 result (records) are combined into
 a single list returned as \code{result}.}
+
+\item{reasoning_effort}{Thinking effort passed to \code{ellmer::params()}
+(e.g. "low", "medium", "high"). NULL (default) turns thinking off: Claude
+gets \code{thinking: disabled} and Gemini gets \code{reasoning_tokens = 0}.
+Other providers use the model's default.}
 }
 \value{
 List with result (structured output), model_used (which model

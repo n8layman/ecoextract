@@ -212,3 +212,55 @@ test_that("try_models_with_fallback retries the same model after malformed JSON"
     expect_match(result$error_log, strsplit(first_error, ":")[[1]][1])
   }
 })
+
+test_that("llm_params and llm_api_args turn thinking off unless an effort is set", {
+  claude <- "anthropic/claude-sonnet-5"
+  gemini <- "google_gemini/gemini-2.5-flash"
+  openai <- "openai/gpt-4.1"
+
+  # Thinking off by default: Claude through the request body, Gemini through params
+  expect_equal(llm_api_args(claude), list(thinking = list(type = "disabled")))
+  expect_null(llm_params(claude, 1000)$reasoning_effort)
+  expect_equal(llm_params(gemini, 1000)$reasoning_tokens, 0)
+  expect_equal(llm_api_args(gemini), list())
+  expect_equal(llm_api_args(openai), list())
+
+  # An effort level turns thinking on for every provider
+  for (model in c(claude, gemini, openai)) {
+    expect_equal(llm_params(model, 1000, "low")$reasoning_effort, "low")
+    expect_null(llm_params(model, 1000, "low")$reasoning_tokens)
+    expect_equal(llm_api_args(model, "low"), list())
+  }
+  expect_equal(llm_params(claude, 1000)$max_tokens, 1000)
+})
+
+test_that("try_models_with_fallback passes thinking settings to ellmer::chat", {
+  withr::local_envvar(ANTHROPIC_API_KEY = "unused")
+  captured <- new.env()
+  local_mocked_bindings(
+    chat = function(name, ..., params = NULL, api_args = NULL) {
+      captured$params <- params
+      captured$api_args <- api_args
+      fake <- new.env()
+      fake$chat_structured <- function(...) list(answer = "ok")
+      fake$get_turns <- function() list()
+      fake$get_tokens <- function() {
+        ellmer::chat_anthropic(credentials = function() "unused")$get_tokens()
+      }
+      fake
+    },
+    .package = "ellmer"
+  )
+  schema <- ellmer::TypeJsonSchema(
+    description = "Test schema",
+    json = list(type = "object", properties = list(answer = list(type = "string")))
+  )
+
+  try_models_with_fallback("anthropic/claude-sonnet-5", "system", "input", schema)
+  expect_equal(captured$api_args, list(thinking = list(type = "disabled")))
+
+  try_models_with_fallback("anthropic/claude-sonnet-5", "system", "input", schema,
+                           reasoning_effort = "high")
+  expect_equal(captured$params$reasoning_effort, "high")
+  expect_equal(captured$api_args, list())
+})

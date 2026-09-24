@@ -9,6 +9,7 @@ extract_metadata(
   db_conn,
   force_reprocess = TRUE,
   model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL,
   metadata_schema_file = NULL,
   metadata_prompt_file = NULL
 )
@@ -21,6 +22,9 @@ extract_metadata(
 \item{force_reprocess}{Ignored (kept for backward compatibility). Skip logic handled by workflow.}
 
 \item{model}{LLM model for metadata extraction (default: "anthropic/claude-sonnet-5")}
+
+\item{reasoning_effort}{Thinking effort (e.g. "low", "high"), or NULL
+(default) for thinking off. See \code{process_documents()}.}
 
 \item{metadata_schema_file}{Path to custom metadata schema JSON file (optional)}
 

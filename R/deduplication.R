@@ -117,11 +117,14 @@ jaccard_similarity <- function(str1, str2, n = 3) {
 #' @param existing_records Dataframe of existing records
 #' @param key_fields Character vector of column names to compare
 #' @param model LLM model (default: "anthropic/claude-sonnet-5")
+#' @param reasoning_effort Thinking effort (e.g. "low", "high"), or NULL
+#'   (default) for thinking off
 #' @return List with unique_indices (integer vector of 1-based indices of
 #'   unique new records) and usage (token usage of the LLM call)
 #' @keywords internal
 llm_deduplicate <- function(new_records, existing_records, key_fields,
-                            model = "anthropic/claude-sonnet-5") {
+                            model = "anthropic/claude-sonnet-5",
+                            reasoning_effort = NULL) {
   # Format as JSON (only key fields)
   new_json <- jsonlite::toJSON(new_records[, key_fields, drop = FALSE], auto_unbox = TRUE)
   existing_json <- jsonlite::toJSON(existing_records[, key_fields, drop = FALSE], auto_unbox = TRUE)
@@ -152,7 +155,8 @@ New records:
     system_prompt = prompt,
     context = context,
     schema = schema,
-    step_name = "LLM deduplication"
+    step_name = "LLM deduplication",
+    reasoning_effort = reasoning_effort
   )
   result <- llm_result$result
 
@@ -177,6 +181,8 @@ New records:
 #' @param embedding_provider Provider for embeddings (default: "mistral")
 #' @param similarity_method Method for similarity calculation: "embedding", "jaccard", or "llm" (default: "llm")
 #' @param model LLM model for llm method (default: "anthropic/claude-sonnet-5")
+#' @param reasoning_effort Thinking effort for llm method, or NULL (default)
+#'   for thinking off
 #' @return List with deduplicated records and metadata. \code{usage} holds the
 #'   token usage of the LLM call, or NULL when no LLM call was made.
 #' @keywords internal
@@ -186,7 +192,8 @@ deduplicate_records <- function(new_records,
                                 min_similarity = 0.9,
                                 embedding_provider = "mistral",
                                 similarity_method = "llm",
-                                model = "anthropic/claude-sonnet-5") {
+                                model = "anthropic/claude-sonnet-5",
+                                reasoning_effort = NULL) {
 
   # Extract unique fields from schema for deduplication
   # Navigate to the record items schema (schema_list is the full schema)
@@ -247,7 +254,8 @@ deduplicate_records <- function(new_records,
 
   usage <- NULL
   if (similarity_method == "llm") {
-    llm_dedup <- llm_deduplicate(new_records, existing_records, key_fields, model)
+    llm_dedup <- llm_deduplicate(new_records, existing_records, key_fields, model,
+                                 reasoning_effort = reasoning_effort)
     unique_indices <- llm_dedup$unique_indices
     usage <- llm_dedup$usage
     duplicates_found <- nrow(new_records) - length(unique_indices)

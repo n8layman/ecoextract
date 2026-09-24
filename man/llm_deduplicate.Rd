@@ -8,7 +8,8 @@ llm_deduplicate(
   new_records,
   existing_records,
   key_fields,
-  model = "anthropic/claude-sonnet-5"
+  model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL
 )
 }
 \arguments{
@@ -19,6 +20,9 @@ llm_deduplicate(
 \item{key_fields}{Character vector of column names to compare}
 
 \item{model}{LLM model (default: "anthropic/claude-sonnet-5")}
+
+\item{reasoning_effort}{Thinking effort (e.g. "low", "high"), or NULL
+(default) for thinking off}
 }
 \value{
 List with unique_indices (integer vector of 1-based indices of

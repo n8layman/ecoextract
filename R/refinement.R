@@ -15,6 +15,8 @@ utils::globalVariables(c("record_id", "id"))
 #' @param metadata_schema_file Path to custom metadata schema JSON file (optional;
 #'   its x-record-id-fields determine record IDs)
 #' @param model Provider and model in format "provider/model" (default: "anthropic/claude-sonnet-5")
+#' @param reasoning_effort Thinking effort (e.g. "low", "high"), or NULL
+#'   (default) for thinking off. See \code{process_documents()}.
 #' @return List with refinement results
 #' @keywords internal
 refine_records <- function(db_conn = NULL, document_id,
@@ -22,7 +24,8 @@ refine_records <- function(db_conn = NULL, document_id,
                                 refinement_context_file = NULL,
                                 schema_file = NULL,
                                 metadata_schema_file = NULL,
-                                model = "anthropic/claude-sonnet-5") {
+                                model = "anthropic/claude-sonnet-5",
+                                reasoning_effort = NULL) {
 
   status <- "skipped"
   records_count <- 0
@@ -136,7 +139,8 @@ refine_records <- function(db_conn = NULL, document_id,
       context = refinement_context,
       schema = schema,
       max_tokens = 64000,
-      step_name = "Refinement"
+      step_name = "Refinement",
+      reasoning_effort = reasoning_effort
     )
 
     refine_result <- llm_result$result
