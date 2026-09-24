@@ -156,3 +156,29 @@ Author et al. (2020). Test Journal.
 "
 }
 
+
+#' Mock OCR with saved OCR output for the calling test
+#'
+#' Pipeline tests that are not about OCR start from the OCR result saved in
+#' fixtures/<pdf name>_ocr.json instead of calling an OCR provider. Only the
+#' full pipeline test runs real OCR.
+#' @param env Environment for cleanup (default: parent.frame())
+local_mock_ocr <- function(env = parent.frame()) {
+  testthat::local_mocked_bindings(
+    perform_ocr = function(pdf_file, ...) {
+      fixture <- testthat::test_path(
+        "fixtures", paste0(tools::file_path_sans_ext(basename(pdf_file)), "_ocr.json")
+      )
+      json_content <- paste(readLines(fixture, warn = FALSE), collapse = "\n")
+      list(
+        json_content = json_content,
+        ocr_images = NA_character_,
+        pages = jsonlite::fromJSON(json_content, simplifyVector = FALSE),
+        raw = NULL,
+        provider_used = "fixture",
+        error_log = NA_character_
+      )
+    },
+    .env = env
+  )
+}

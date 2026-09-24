@@ -1,0 +1,1212 @@
+[
+  {
+    "index": 0,
+    "markdown": "# CHARACTERIZATION OF PASTEURELLA FROM GINGIVAL SCRAPINGS OF DOGS AND CATS\n\nJEAN PIERRE GANIERE,¹* FRANÇOISE ESCANDE,² GENEVIÈVE ANDRE¹ and MYRIAM LARRAT¹\n\n¹Maladies Contagieuses et Zoonoses, Ecole Vétérinaire de Nantes, CP 3013, 44087 Nantes Cedex 03 et ²Centre National de Référence des Pasteurella, Institut Pasteur, 28 rue du Dr Roux, 75724 Paris Cedex 15, France\n\n(Received for publication 14 July 1992)\n\nAbstract—Gingival scrapings of 62 dogs and cats were examined for the presence of Pasteurella. Isolation was performed in a medium supplemented with thiostrepton. Twenty-eight and 37 strains were obtained from 21 dogs and 26 cats, respectively, and classified in recently described species or subspecies of the genus Pasteurella (P.): P. multocida subspecies multocida and septica, P. canis, P. dagmatis and P. stomatis. Twenty-one strains were classified as atypical P. stomatis and one strain obtained from a cat remained unclassified. All strains were susceptible to the antibiotics studied. P. multocida and P. stomatis (including atypical strains) represented 65 and 30% of feline isolates, and 14 and 68% of canine isolates, respectively. Assuming that P. multocida, P. canis and P. dagmatis are potentially pathogenic for humans, and that P. stomatis has a low pathogenicity or non-pathogenic, 77 and 28% of examined cats and dogs harboured one or several pathogenic strains. This difference could explain the fact that Pasteurella infections in man are lower in dog bites rather than cat bites.\n\nKey words: Pasteurella spp, characterization, frequency, dogs, cats, antibiotic sensitivity.\n\nRésumé—La recherche de Pasteurella a été effectuée à partir de la cavité buccale des chiens et chats, sur un milieu additionné de thiostrepton. Vingt-huit et 37 souches ont été isolées respectivement de 21 et 26 prélèvements d'origines canine et féline. Ces souches ont été classées dans les espèces et sous-espèces du genre Pasteurella (P.), récemment décrites: P. multocida sous-espèces multocida et septica, P. canis, P. dagmatis et P. stomatis. Vingt-et-une souches atypiques sont proches de P. stomatis et une souche d'origine féline n'a pu être classée. Toutes les souches se révèlent sensibles aux antibiotiques étudiés. P. multocida et P. stomatis (y compris les souches atypiques) représentent respectivement 65 et 30% des isolements d'origine féline, 14 et 68% de ceux d'origine canine. En considérant que P. multocida, P. canis et P. dagmatis sont potentiellement pathogènes pour l'homme, mais que P. stomatis est peu ou non pathogène, 77% des chats et 28% des chiens hébergent une ou plusieurs espèces pathogènes dans leur cavité buccale: cette différence permet d'expliquer le fait que les infections pasteurelliques humaines sont moins fréquentes après morsure de chien que de chat.\n\nMots clefs: Pasteurella, caractérisation, fréquence, chiens, chats, sensibilité aux antibiotiques.\n\n# INTRODUCTION\n\nPasteurellosis of man is commonly associated with dog or cat bites and scratches [1-4]. Indeed, Pasteurella is a commensal bacteria currently isolated from the oral cavity of dogs and cats [5-10]. The carriage is reported in frequency varying between 22 and 81% [9, 10]",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": "Comp. Immun. Microbiol. infect. Dis. Vol. 16, No. 1, pp. 77-85, 1993\nPrinted in Great Britain. All rights reserved\n0147-9571/93 $6.00 + 0.00\nCopyright © 1993 Pergamon Press Ltd",
+    "footer": "*Author for correspondence.\n77",
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 56,
+        "top_left_y": 62,
+        "bottom_right_x": 373,
+        "bottom_right_y": 76,
+        "content": "Comp. Immun. Microbiol. infect. Dis. Vol. 16, No. 1, pp. 77-85, 1993",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 56,
+        "top_left_y": 76,
+        "bottom_right_x": 257,
+        "bottom_right_y": 90,
+        "content": "Printed in Great Britain. All rights reserved",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 509,
+        "top_left_y": 61,
+        "bottom_right_x": 630,
+        "bottom_right_y": 74,
+        "content": "0147-9571/93 $6.00 + 0.00",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 450,
+        "top_left_y": 74,
+        "bottom_right_x": 630,
+        "bottom_right_y": 89,
+        "content": "Copyright © 1993 Pergamon Press Ltd",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 122,
+        "top_left_y": 148,
+        "bottom_right_x": 569,
+        "bottom_right_y": 192,
+        "content": "# CHARACTERIZATION OF PASTEURELLA FROM GINGIVAL SCRAPINGS OF DOGS AND CATS",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 120,
+        "top_left_y": 210,
+        "bottom_right_x": 570,
+        "bottom_right_y": 245,
+        "content": "JEAN PIERRE GANIERE,¹* FRANÇOISE ESCANDE,² GENEVIÈVE ANDRE¹ and MYRIAM LARRAT¹",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 93,
+        "top_left_y": 250,
+        "bottom_right_x": 597,
+        "bottom_right_y": 293,
+        "content": "¹Maladies Contagieuses et Zoonoses, Ecole Vétérinaire de Nantes, CP 3013, 44087 Nantes Cedex 03 et ²Centre National de Référence des Pasteurella, Institut Pasteur, 28 rue du Dr Roux, 75724 Paris Cedex 15, France",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 244,
+        "top_left_y": 309,
+        "bottom_right_x": 449,
+        "bottom_right_y": 326,
+        "content": "(Received for publication 14 July 1992)",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 93,
+        "top_left_y": 341,
+        "bottom_right_x": 599,
+        "bottom_right_y": 507,
+        "content": "Abstract—Gingival scrapings of 62 dogs and cats were examined for the presence of Pasteurella. Isolation was performed in a medium supplemented with thiostrepton. Twenty-eight and 37 strains were obtained from 21 dogs and 26 cats, respectively, and classified in recently described species or subspecies of the genus Pasteurella (P.): P. multocida subspecies multocida and septica, P. canis, P. dagmatis and P. stomatis. Twenty-one strains were classified as atypical P. stomatis and one strain obtained from a cat remained unclassified. All strains were susceptible to the antibiotics studied. P. multocida and P. stomatis (including atypical strains) represented 65 and 30% of feline isolates, and 14 and 68% of canine isolates, respectively. Assuming that P. multocida, P. canis and P. dagmatis are potentially pathogenic for humans, and that P. stomatis has a low pathogenicity or non-pathogenic, 77 and 28% of examined cats and dogs harboured one or several pathogenic strains. This difference could explain the fact that Pasteurella infections in man are lower in dog bites rather than cat bites.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 94,
+        "top_left_y": 523,
+        "bottom_right_x": 559,
+        "bottom_right_y": 539,
+        "content": "Key words: Pasteurella spp, characterization, frequency, dogs, cats, antibiotic sensitivity.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 93,
+        "top_left_y": 556,
+        "bottom_right_x": 599,
+        "bottom_right_y": 736,
+        "content": "Résumé—La recherche de Pasteurella a été effectuée à partir de la cavité buccale des chiens et chats, sur un milieu additionné de thiostrepton. Vingt-huit et 37 souches ont été isolées respectivement de 21 et 26 prélèvements d'origines canine et féline. Ces souches ont été classées dans les espèces et sous-espèces du genre Pasteurella (P.), récemment décrites: P. multocida sous-espèces multocida et septica, P. canis, P. dagmatis et P. stomatis. Vingt-et-une souches atypiques sont proches de P. stomatis et une souche d'origine féline n'a pu être classée. Toutes les souches se révèlent sensibles aux antibiotiques étudiés. P. multocida et P. stomatis (y compris les souches atypiques) représentent respectivement 65 et 30% des isolements d'origine féline, 14 et 68% de ceux d'origine canine. En considérant que P. multocida, P. canis et P. dagmatis sont potentiellement pathogènes pour l'homme, mais que P. stomatis est peu ou non pathogène, 77% des chats et 28% des chiens hébergent une ou plusieurs espèces pathogènes dans leur cavité buccale: cette différence permet d'expliquer le fait que les infections pasteurelliques humaines sont moins fréquentes après morsure de chien que de chat.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 95,
+        "top_left_y": 752,
+        "bottom_right_x": 582,
+        "bottom_right_y": 768,
+        "content": "Mots clefs: Pasteurella, caractérisation, fréquence, chiens, chats, sensibilité aux antibiotiques.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 289,
+        "top_left_y": 810,
+        "bottom_right_x": 405,
+        "bottom_right_y": 826,
+        "content": "# INTRODUCTION",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 59,
+        "top_left_y": 836,
+        "bottom_right_x": 635,
+        "bottom_right_y": 892,
+        "content": "Pasteurellosis of man is commonly associated with dog or cat bites and scratches [1-4]. Indeed, Pasteurella is a commensal bacteria currently isolated from the oral cavity of dogs and cats [5-10]. The carriage is reported in frequency varying between 22 and 81% [9, 10]",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 60,
+        "top_left_y": 909,
+        "bottom_right_x": 215,
+        "bottom_right_y": 925,
+        "content": "*Author for correspondence.",
+        "confidence_scores": {},
+        "type": "footer"
+      },
+      {
+        "top_left_x": 341,
+        "top_left_y": 938,
+        "bottom_right_x": 355,
+        "bottom_right_y": 951,
+        "content": "77",
+        "confidence_scores": {},
+        "type": "footer"
+      }
+    ]
+  },
+  {
+    "index": 1,
+    "markdown": "rising up to 90% for cats [8]. This high carriage rate explains the frequent occurrence of Pasteurella infection in bite or scratch wounds.\n\nMutters et al. [11], by DNA-DNA hybridizations, proposed a new classification of the genus Pasteurella (P.). Bisgaard and Mutters [12] also detailed phenotypic characterization of some previously unclassified Pasteurella spp obtained from the oral cavity of dogs and cats. Among the species described, P. multocida is the most frequently found in bite or scratch wounds. Other species have also been isolated, particularly P. canis and P. dagmatis [1, 13, 14]. However, no report using this new classification gives data on the proportion of these different species in dogs and cats.\n\nThe purpose of the present study was: (a) to characterize Pasteurella found in gingival scrapings of dogs and cats, with reference to species previously reported as being associated with human infection resulting from these animal bites; (b) to estimate the healthy carrier's percentage; (c) to determine the pathogenicity of the different species isolated and (d) to compare their sensitivity to antibiotics with that of human Pasteurella isolates.\n\n## MATERIALS AND METHODS\n\n### Collection of specimens\n\nGingival scrapings were taken from 32 dogs and 30 cats of various ages, sexes and breeds, using sterile cotton-tipped swabs. All of the animals presented for vaccination at the Veterinary School of Nantes between January and April 1990 were considered healthy.\n\n### Culture and identification\n\nSwabs were transported immediately to the laboratory and the specimens were rapidly streaked for isolation purposes on 5% sheep's blood agar (Columbia agar, Biomérieux) supplemented with thiostrepton (20 mg/l, Sigma). Plates were incubated at 37°C in ambient air for 48 h and suspect colonies were cultured for identification and conservation at -80°C. Identification of genus was done using conventional microbiological procedures, including susceptibility to the vibriostatic compound O/129, which was determined on Mueller-Hinton agar (Diagnostic Pasteur) supplemented with 0.1% yeast extract (Difco) [15].\n\nThe characterization of species and subspecies was performed using the API-20E and API-50CH system (Biomérieux). API-20E strips were used for indole, urea and ornithine decarboxylase tests, and API-50CH for carbohydrate fermentation tests. A bacterial suspension (corresponding to 4 Mc Farland standard) was inoculated to fill the cupules, in M63 medium as previously described [15]. Results were recorded after incubation period of 24-72 h at 37°C.\n\n### Mouse pathogenicity\n\nMouse pathogenicity of each isolate was determined. A 15-20 g Swiss mouse received intraperitoneally 0.3 ml of an 18 h broth culture. Death occurred within 72 h and Pasteurella was isolated from cardiac blood, which confirms its pathogenicity.\n\n### Antibiotic sensitivity\n\nStrains were tested for susceptibility to antibiotics usually recommended for pasteurellosis treatment [1, 16, 17]: ampicillin, penicillin, cefotaxime, chloramphenicol, tetracycline and pefloxacine. Minimal inhibitory concentrations (MICs) were determined on",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": "78\nJEAN PIERRE GANIERE et al.",
+    "footer": {},
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 61,
+        "top_left_y": 62,
+        "bottom_right_x": 75,
+        "bottom_right_y": 73,
+        "content": "78",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 275,
+        "top_left_y": 63,
+        "bottom_right_x": 417,
+        "bottom_right_y": 77,
+        "content": "JEAN PIERRE GANIERE et al.",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 58,
+        "top_left_y": 93,
+        "bottom_right_x": 632,
+        "bottom_right_y": 127,
+        "content": "rising up to 90% for cats [8]. This high carriage rate explains the frequent occurrence of Pasteurella infection in bite or scratch wounds.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 128,
+        "bottom_right_x": 631,
+        "bottom_right_y": 250,
+        "content": "Mutters et al. [11], by DNA-DNA hybridizations, proposed a new classification of the genus Pasteurella (P.). Bisgaard and Mutters [12] also detailed phenotypic characterization of some previously unclassified Pasteurella spp obtained from the oral cavity of dogs and cats. Among the species described, P. multocida is the most frequently found in bite or scratch wounds. Other species have also been isolated, particularly P. canis and P. dagmatis [1, 13, 14]. However, no report using this new classification gives data on the proportion of these different species in dogs and cats.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 251,
+        "bottom_right_x": 631,
+        "bottom_right_y": 341,
+        "content": "The purpose of the present study was: (a) to characterize Pasteurella found in gingival scrapings of dogs and cats, with reference to species previously reported as being associated with human infection resulting from these animal bites; (b) to estimate the healthy carrier's percentage; (c) to determine the pathogenicity of the different species isolated and (d) to compare their sensitivity to antibiotics with that of human Pasteurella isolates.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 244,
+        "top_left_y": 368,
+        "bottom_right_x": 445,
+        "bottom_right_y": 385,
+        "content": "## MATERIALS AND METHODS",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 58,
+        "top_left_y": 390,
+        "bottom_right_x": 211,
+        "bottom_right_y": 407,
+        "content": "### Collection of specimens",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 412,
+        "bottom_right_x": 631,
+        "bottom_right_y": 467,
+        "content": "Gingival scrapings were taken from 32 dogs and 30 cats of various ages, sexes and breeds, using sterile cotton-tipped swabs. All of the animals presented for vaccination at the Veterinary School of Nantes between January and April 1990 were considered healthy.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 58,
+        "top_left_y": 477,
+        "bottom_right_x": 223,
+        "bottom_right_y": 496,
+        "content": "### Culture and identification",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 501,
+        "bottom_right_x": 631,
+        "bottom_right_y": 641,
+        "content": "Swabs were transported immediately to the laboratory and the specimens were rapidly streaked for isolation purposes on 5% sheep's blood agar (Columbia agar, Biomérieux) supplemented with thiostrepton (20 mg/l, Sigma). Plates were incubated at 37°C in ambient air for 48 h and suspect colonies were cultured for identification and conservation at -80°C. Identification of genus was done using conventional microbiological procedures, including susceptibility to the vibriostatic compound O/129, which was determined on Mueller-Hinton agar (Diagnostic Pasteur) supplemented with 0.1% yeast extract (Difco) [15].",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 642,
+        "bottom_right_x": 631,
+        "bottom_right_y": 748,
+        "content": "The characterization of species and subspecies was performed using the API-20E and API-50CH system (Biomérieux). API-20E strips were used for indole, urea and ornithine decarboxylase tests, and API-50CH for carbohydrate fermentation tests. A bacterial suspension (corresponding to 4 Mc Farland standard) was inoculated to fill the cupules, in M63 medium as previously described [15]. Results were recorded after incubation period of 24-72 h at 37°C.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 58,
+        "top_left_y": 760,
+        "bottom_right_x": 192,
+        "bottom_right_y": 779,
+        "content": "### Mouse pathogenicity",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 783,
+        "bottom_right_x": 629,
+        "bottom_right_y": 837,
+        "content": "Mouse pathogenicity of each isolate was determined. A 15-20 g Swiss mouse received intraperitoneally 0.3 ml of an 18 h broth culture. Death occurred within 72 h and Pasteurella was isolated from cardiac blood, which confirms its pathogenicity.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 58,
+        "top_left_y": 848,
+        "bottom_right_x": 190,
+        "bottom_right_y": 865,
+        "content": "### Antibiotic sensitivity",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 869,
+        "bottom_right_x": 629,
+        "bottom_right_y": 923,
+        "content": "Strains were tested for susceptibility to antibiotics usually recommended for pasteurellosis treatment [1, 16, 17]: ampicillin, penicillin, cefotaxime, chloramphenicol, tetracycline and pefloxacine. Minimal inhibitory concentrations (MICs) were determined on",
+        "confidence_scores": {},
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "index": 2,
+    "markdown": "Mueller-Hinton agar supplemented with 5% sheep blood (haemolysed blood for pefloxacine).\n\n## RESULTS\n\nPasteurella were isolated scrapings in 21 out of 32 dogs and in 26 out of 30 cats (66 and 87%, respectively) from gingival scrapings. A single animal can be a carrier of several Pasteurella strains. As a result, 65 strains were characterized with 28 found in the 21 dogs and 37 strains found in the 26 cats.\n\nFrequency of isolates and phenotypic characteristics obtained are shown in Tables 1 and 2. Twenty-eight strains corresponded to P. multocida subspecies multocida and septica (9 strains differed from typical species described, by acid production from maltose), 4 strains to P. dagmatis (formerly P. pneumotropica biotype Henriksen) and 2 strains to P. canis (formerly P. multocida biotype 6 or dog-type of Frederiksen). Nine strains are identified as P. stomatis and 21 strains which formed a homogeneous group considered as atypical P. stomatis by acid production from maltose. One strain (Pasteurella spp), positive in acid production from sorbitol and negative from mannitol remained unclassified. All strains were susceptible to the vibriostatic compound O/129.\n\nIn this experiment, differences in species distribution were observed (Table 3) between dogs and cats: 23 out of 30 (77%) examined cats harboured P. multocida, but only 4 out of 32 (13%) dogs. P. stomatis and atypical P. stomatis predominated in dogs: these strains represented 68% of canine isolates (Table 1) and were recovered from 17 out of 32 (53%) of the dogs examined (Table 3). P. canis was only found in the dogs.\n\nA single animal can carry several species or subspecies, for example, P. multocida subspecies multocida and septica with atypical P. stomatis were obtained from gingival scraping of one dog and P. dagmatis with P. stomatis (or atypical P. stomatis) were recovered from one cat (Table 3).\n\nMost of the Pasteurella multocida (23 out of 28) and 1 out of 2 P. canis strains were lethal for mice. On the other hand, 2 P. stomatis and 2 atypical P. stomatis strains were pathogenic and P. dagmatis showed no pathogenicity to mice (Table 2).\n\nAll strains were susceptible to ampicillin (MIC ≤0.5 mg/l), penicillin G (MIC ≤0.5 UI/l), cefotaxime (MIC ≤0.03 mg/l), chloramphenicol (MIC ≤1 mg/l), tetracycline (MIC ≤2 mg/l), and pefloxacine (MIC ≤0.125 mg/l). No difference in susceptibility was noted between Pasteurella species (Table 4).\n\nTable 1. Isolation of Pasteurella species from dogs and cats\n\n[tbl-0.md](tbl-0.md)",
+    "images": [],
+    "tables": [
+      {
+        "id": "tbl-0.md",
+        "content": "|  Species | Number of strains  |   |\n| --- | --- | --- |\n|   |  Dogs | Cats  |\n|  P. multocida |  |   |\n|  subsp. multocida | 2 (7)* | 14 (38)  |\n|  subsp. septica | 2 (7) | 10 (27)  |\n|  P. stomatis | 19 (68) | 11 (30)  |\n|  (with atypical strains) |  |   |\n|  P. canis | 2 (7) | 0  |\n|  P. dagmatis | 3 (11) | 1 (3)  |\n|  Pasteurella spp | 0 | 1 (3)  |\n|  Total of isolates | 28 | 37  |",
+        "format": "markdown",
+        "word_confidence_scores": {}
+      }
+    ],
+    "hyperlinks": [],
+    "header": "Characterization of Pasteurella from gingival scrapings\n79",
+    "footer": "*Number in parentheses indicate percentage values",
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 198,
+        "top_left_y": 62,
+        "bottom_right_x": 489,
+        "bottom_right_y": 78,
+        "content": "Characterization of Pasteurella from gingival scrapings",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 614,
+        "top_left_y": 62,
+        "bottom_right_x": 628,
+        "bottom_right_y": 75,
+        "content": "79",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 55,
+        "top_left_y": 90,
+        "bottom_right_x": 630,
+        "bottom_right_y": 124,
+        "content": "Mueller-Hinton agar supplemented with 5% sheep blood (haemolysed blood for pefloxacine).",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 310,
+        "top_left_y": 147,
+        "bottom_right_x": 378,
+        "bottom_right_y": 163,
+        "content": "## RESULTS",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 55,
+        "top_left_y": 172,
+        "bottom_right_x": 630,
+        "bottom_right_y": 242,
+        "content": "Pasteurella were isolated scrapings in 21 out of 32 dogs and in 26 out of 30 cats (66 and 87%, respectively) from gingival scrapings. A single animal can be a carrier of several Pasteurella strains. As a result, 65 strains were characterized with 28 found in the 21 dogs and 37 strains found in the 26 cats.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 55,
+        "top_left_y": 243,
+        "bottom_right_x": 631,
+        "bottom_right_y": 403,
+        "content": "Frequency of isolates and phenotypic characteristics obtained are shown in Tables 1 and 2. Twenty-eight strains corresponded to P. multocida subspecies multocida and septica (9 strains differed from typical species described, by acid production from maltose), 4 strains to P. dagmatis (formerly P. pneumotropica biotype Henriksen) and 2 strains to P. canis (formerly P. multocida biotype 6 or dog-type of Frederiksen). Nine strains are identified as P. stomatis and 21 strains which formed a homogeneous group considered as atypical P. stomatis by acid production from maltose. One strain (Pasteurella spp), positive in acid production from sorbitol and negative from mannitol remained unclassified. All strains were susceptible to the vibriostatic compound O/129.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 55,
+        "top_left_y": 403,
+        "bottom_right_x": 631,
+        "bottom_right_y": 493,
+        "content": "In this experiment, differences in species distribution were observed (Table 3) between dogs and cats: 23 out of 30 (77%) examined cats harboured P. multocida, but only 4 out of 32 (13%) dogs. P. stomatis and atypical P. stomatis predominated in dogs: these strains represented 68% of canine isolates (Table 1) and were recovered from 17 out of 32 (53%) of the dogs examined (Table 3). P. canis was only found in the dogs.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 55,
+        "top_left_y": 493,
+        "bottom_right_x": 631,
+        "bottom_right_y": 563,
+        "content": "A single animal can carry several species or subspecies, for example, P. multocida subspecies multocida and septica with atypical P. stomatis were obtained from gingival scraping of one dog and P. dagmatis with P. stomatis (or atypical P. stomatis) were recovered from one cat (Table 3).",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 55,
+        "top_left_y": 563,
+        "bottom_right_x": 631,
+        "bottom_right_y": 617,
+        "content": "Most of the Pasteurella multocida (23 out of 28) and 1 out of 2 P. canis strains were lethal for mice. On the other hand, 2 P. stomatis and 2 atypical P. stomatis strains were pathogenic and P. dagmatis showed no pathogenicity to mice (Table 2).",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 58,
+        "top_left_y": 617,
+        "bottom_right_x": 633,
+        "bottom_right_y": 689,
+        "content": "All strains were susceptible to ampicillin (MIC ≤0.5 mg/l), penicillin G (MIC ≤0.5 UI/l), cefotaxime (MIC ≤0.03 mg/l), chloramphenicol (MIC ≤1 mg/l), tetracycline (MIC ≤2 mg/l), and pefloxacine (MIC ≤0.125 mg/l). No difference in susceptibility was noted between Pasteurella species (Table 4).",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 208,
+        "top_left_y": 746,
+        "bottom_right_x": 486,
+        "bottom_right_y": 760,
+        "content": "Table 1. Isolation of Pasteurella species from dogs and cats",
+        "confidence_scores": {},
+        "type": "caption"
+      },
+      {
+        "top_left_x": 194,
+        "top_left_y": 760,
+        "bottom_right_x": 501,
+        "bottom_right_y": 910,
+        "content": "|  Species | Number of strains  |   |\n| --- | --- | --- |\n|   |  Dogs | Cats  |\n|  P. multocida |  |   |\n|  subsp. multocida | 2 (7)* | 14 (38)  |\n|  subsp. septica | 2 (7) | 10 (27)  |\n|  P. stomatis | 19 (68) | 11 (30)  |\n|  (with atypical strains) |  |   |\n|  P. canis | 2 (7) | 0  |\n|  P. dagmatis | 3 (11) | 1 (3)  |\n|  Pasteurella spp | 0 | 1 (3)  |\n|  Total of isolates | 28 | 37  |",
+        "confidence_scores": {},
+        "type": "table",
+        "table_id": "tbl-0.md"
+      },
+      {
+        "top_left_x": 195,
+        "top_left_y": 911,
+        "bottom_right_x": 430,
+        "bottom_right_y": 925,
+        "content": "*Number in parentheses indicate percentage values",
+        "confidence_scores": {},
+        "type": "footer"
+      }
+    ]
+  },
+  {
+    "index": 3,
+    "markdown": "Table 2. Characteristics of isolated Pasteurella species\n\n[tbl-1.md](tbl-1.md)",
+    "images": [],
+    "tables": [
+      {
+        "id": "tbl-1.md",
+        "content": "|  Characteristics | P. multocida subsp. |   |   |   | P. stomatis (n = 30) |   | P. canis (n = 2) |   | P. dagmatis (n = 4) |   | Pasteurella spp (n = 1)  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|   |  multocida (n = 16) |   | septica (n = 12) |   | Dogs | Cats | Dogs | Cats | Dogs | Cats | Cat  |\n|   |  Dogs | Cats | Dogs | Cats  |   |   |   |   |   |   |   |\n|  Number of strains | 2 | 14 | 2 | 10 | 19 | 11 | 2 | 3 | 1 | 1 | 1  |\n|  Urease | - | - | - | - | - | - | - | - | - | - | -  |\n|  Indole* | + | - | + | - | + | - | + | - | + | - | +  |\n|  Ornithine-decarboxylase | + | - | + | - | - | - | + | - | - | - | +  |\n|  Acid from = N-acetyl-glucosamine | + | - | + | - | + | - | + | - | + | - | +  |\n|  Adonitol | - | - | - | - | - | - | - | - | - | - | -  |\n|  Amygdalin | - | - | - | - | - | - | - | - | - | - | -  |\n|  L-arabinose | - | 2/14 | - | - | - | - | - | - | - | - | -  |\n|  Cellobiose | - | - | - | - | - | - | - | - | - | - | -  |\n|  Ductiol | - | - | - | - | - | - | - | - | - | - | -  |\n|  Esculin | - | - | - | - | - | - | - | - | - | - | -  |\n|  Fructose | + | - | + | 18/19 | 9/11 | + | + | + | + | + | +  |\n|  Galactose | + | - | + | 15/19 | 7/11 | 1/2 | + | + | + | + | +  |\n|  Gluconate | 1/2 | 8/14 | + | 12/19 | 8/11 | + | + | + | + | + | +  |\n|  D-glucose | + | - | + | - | + | + | + | + | + | + | +  |\n|  Glycerol | 1/2 | 1/14 | - | 2/10 | - | - | - | - | - | - | -  |\n|  Inositol | - | - | - | - | - | - | - | - | - | - | -  |\n|  5-Cetogluconate | - | 3/14 | + | 3/10 | 8/19 | 2/11 | - | 2/3 | - | - | -  |\n|  Lactose | - | - | - | - | - | - | - | - | - | - | +  |\n|  D-lyxose | - | 9/14 | + | 1/19 | 3/11 | 1/2 | 1/3 | - | - | - | -  |\n|  Maltose | 1/2 | 2/14 | 1/2 | 5/10 | 13/19 | 8/11 | - | + | - | + | +  |\n|  D-mannitol | + | - | + | - | - | - | - | - | - | - | -  |\n|  D-mannose | + | - | + | - | + | + | + | + | + | + | +  |\n|  Melibiose | - | - | - | - | - | - | - | - | - | - | -  |\n|  Raffinose | - | 7/14 | - | 7/10 | 8/19 | 4/11 | - | 1/3 | - | - | -  |\n|  L-rhamnose | - | - | - | - | - | - | - | - | - | - | -  |\n|  D-ribose | 1/2 | + | + | 13/19 | + | - | 3/3 | - | - | - | -  |\n|  Salicine | - | - | - | - | - | - | - | - | - | - | -  |\n|  D-sorbitol | + | - | - | - | - | - | - | - | - | - | +  |\n|  Sucrose | + | - | + | 17/19 | 10/11 | 1/2 | 2/3 | + | - | - | -  |\n|  Trehalose | 1/2 | 4/14 | + | 9/10 | 12/19 | 8/11 | 1/2 | 1/3 | + | - | -  |\n|  D-xylose | 1/2 | 11/14 | + | 8/10 | 12/19 | - | - | 1/3 | - | - | -  |\n|  Experimental infection | 2/2 | 12/14 | 1/2 | 8/10 | 4/19 | - | 1/2 | - | - | - | -  |",
+        "format": "markdown",
+        "word_confidence_scores": {}
+      }
+    ],
+    "hyperlinks": [],
+    "header": "80\nJEAN PIERRE GANIERE et al.",
+    "footer": "*Some strains give weak reaction; number/n = total number of positive strains; + = Positive reaction observed after 2 or 4 days; - = no reaction.",
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 75,
+        "top_left_y": 64,
+        "bottom_right_x": 88,
+        "bottom_right_y": 75,
+        "content": "80",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 290,
+        "top_left_y": 65,
+        "bottom_right_x": 430,
+        "bottom_right_y": 76,
+        "content": "JEAN PIERRE GANIERE et al.",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 110,
+        "top_left_y": 387,
+        "bottom_right_x": 122,
+        "bottom_right_y": 632,
+        "content": "Table 2. Characteristics of isolated Pasteurella species",
+        "confidence_scores": {},
+        "type": "caption"
+      },
+      {
+        "top_left_x": 123,
+        "top_left_y": 145,
+        "bottom_right_x": 599,
+        "bottom_right_y": 873,
+        "content": "|  Characteristics | P. multocida subsp. |   |   |   | P. stomatis (n = 30) |   | P. canis (n = 2) |   | P. dagmatis (n = 4) |   | Pasteurella spp (n = 1)  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|   |  multocida (n = 16) |   | septica (n = 12) |   | Dogs | Cats | Dogs | Cats | Dogs | Cats | Cat  |\n|   |  Dogs | Cats | Dogs | Cats  |   |   |   |   |   |   |   |\n|  Number of strains | 2 | 14 | 2 | 10 | 19 | 11 | 2 | 3 | 1 | 1 | 1  |\n|  Urease | - | - | - | - | - | - | - | - | - | - | -  |\n|  Indole* | + | - | + | - | + | - | + | - | + | - | +  |\n|  Ornithine-decarboxylase | + | - | + | - | - | - | + | - | - | - | +  |\n|  Acid from = N-acetyl-glucosamine | + | - | + | - | + | - | + | - | + | - | +  |\n|  Adonitol | - | - | - | - | - | - | - | - | - | - | -  |\n|  Amygdalin | - | - | - | - | - | - | - | - | - | - | -  |\n|  L-arabinose | - | 2/14 | - | - | - | - | - | - | - | - | -  |\n|  Cellobiose | - | - | - | - | - | - | - | - | - | - | -  |\n|  Ductiol | - | - | - | - | - | - | - | - | - | - | -  |\n|  Esculin | - | - | - | - | - | - | - | - | - | - | -  |\n|  Fructose | + | - | + | 18/19 | 9/11 | + | + | + | + | + | +  |\n|  Galactose | + | - | + | 15/19 | 7/11 | 1/2 | + | + | + | + | +  |\n|  Gluconate | 1/2 | 8/14 | + | 12/19 | 8/11 | + | + | + | + | + | +  |\n|  D-glucose | + | - | + | - | + | + | + | + | + | + | +  |\n|  Glycerol | 1/2 | 1/14 | - | 2/10 | - | - | - | - | - | - | -  |\n|  Inositol | - | - | - | - | - | - | - | - | - | - | -  |\n|  5-Cetogluconate | - | 3/14 | + | 3/10 | 8/19 | 2/11 | - | 2/3 | - | - | -  |\n|  Lactose | - | - | - | - | - | - | - | - | - | - | +  |\n|  D-lyxose | - | 9/14 | + | 1/19 | 3/11 | 1/2 | 1/3 | - | - | - | -  |\n|  Maltose | 1/2 | 2/14 | 1/2 | 5/10 | 13/19 | 8/11 | - | + | - | + | +  |\n|  D-mannitol | + | - | + | - | - | - | - | - | - | - | -  |\n|  D-mannose | + | - | + | - | + | + | + | + | + | + | +  |\n|  Melibiose | - | - | - | - | - | - | - | - | - | - | -  |\n|  Raffinose | - | 7/14 | - | 7/10 | 8/19 | 4/11 | - | 1/3 | - | - | -  |\n|  L-rhamnose | - | - | - | - | - | - | - | - | - | - | -  |\n|  D-ribose | 1/2 | + | + | 13/19 | + | - | 3/3 | - | - | - | -  |\n|  Salicine | - | - | - | - | - | - | - | - | - | - | -  |\n|  D-sorbitol | + | - | - | - | - | - | - | - | - | - | +  |\n|  Sucrose | + | - | + | 17/19 | 10/11 | 1/2 | 2/3 | + | - | - | -  |\n|  Trehalose | 1/2 | 4/14 | + | 9/10 | 12/19 | 8/11 | 1/2 | 1/3 | + | - | -  |\n|  D-xylose | 1/2 | 11/14 | + | 8/10 | 12/19 | - | - | 1/3 | - | - | -  |\n|  Experimental infection | 2/2 | 12/14 | 1/2 | 8/10 | 4/19 | - | 1/2 | - | - | - | -  |",
+        "confidence_scores": {},
+        "type": "table",
+        "table_id": "tbl-1.md"
+      },
+      {
+        "top_left_x": 601,
+        "top_left_y": 206,
+        "bottom_right_x": 613,
+        "bottom_right_y": 873,
+        "content": "*Some strains give weak reaction; number/n = total number of positive strains; + = Positive reaction observed after 2 or 4 days; - = no reaction.",
+        "confidence_scores": {},
+        "type": "footer"
+      }
+    ]
+  },
+  {
+    "index": 4,
+    "markdown": "Table 3. Distribution of Pasteurella isolated from gingival scrapings of dogs and cats\n\n[tbl-2.md](tbl-2.md)\n\n## DISCUSSION\n\nThe aerobic flora found in oral cavity of dogs and cats was varied [7, 10], and the number of different organisms (particularly Gram-positive bacteria) growing on blood agar is often high. Thiostrepton, a polypeptidic antibiotic, is inactive against Pasteurella species (MIC ≥ 128 mg/l) but inhibits the Gram-positive bacteria. Its incorporation into blood agar of primary plates reduces number of the bacteria and can greatly facilitate the detection and identification of the Pasteurella colonies, which can be differentiated to colonies of other Gram-negative bacteria. These results indicate that thiostrepton blood agar can be recommended as an isolation medium for Pasteurella from feline and canine origin and confirm the high frequency carriage in the oral cavity of dogs and particularly of cats. The frequency of Pasteurella isolates (66 and 87% in dogs and cats, respectively), was similar to results found in other data [5–9].\n\nTable 4. Susceptibility to antibiotics among Pasteurella species\n\n[tbl-3.md](tbl-3.md)",
+    "images": [],
+    "tables": [
+      {
+        "id": "tbl-2.md",
+        "content": "|  Pasteurella species  |   |\n| --- | --- |\n|  Cats (n = 30)  |   |\n|  4 | No isolate  |\n|  8 | P. multocida subsp. multocida  |\n|  6 | P. multocida subsp. septica  |\n|  3 | P. multocida subsp. multocida + P. stomatis  |\n|  1 | P. multocida subsp. multocida + atypical P. stomatis  |\n|  3 | P. multocida subsp. septica + P. stomatis  |\n|  1 | P. multocida subsp. multocida + P. multocida subsp. septica + atypical P. stomatis  |\n|  1 | P. multocida subsp. multocida + P. dagmatis  |\n|  1 | Atypical P. stomatis  |\n|  1 | P. stomatis  |\n|  1 | Pasteurella spp (unclassified) + P. stomatis  |\n|  Dogs (n = 32)  |   |\n|  11 | No isolate  |\n|  1 | P. multocida subsp. septica  |\n|  1 | P. multocida subsp. septica + P. stomatis  |\n|  1 | P. multocida subsp. multocida + atypical P. stomatis  |\n|  1 | P. multocida subsp. multocida + P. stomatis + atypical P. stomatis  |\n|  2 | P. canis  |\n|  1 | P. dagmatis  |\n|  1 | P. dagmatis + P. stomatis  |\n|  1 | P. dagmatis + atypical P. stomatis  |\n|  2 | P. stomatis  |\n|  9 | Atypical P. stomatis  |\n|  1 | P. stomatis + atypical P. stomatis  |",
+        "format": "markdown",
+        "word_confidence_scores": {}
+      },
+      {
+        "id": "tbl-3.md",
+        "content": "|  Species | MIC (mg/l)*  |   |   |   |   |   |\n| --- | --- | --- | --- | --- | --- | --- |\n|   |  Ap | Pen | Ctx | Cm | Tc | Pef  |\n|  P. multocida subsp. multocida | 0.06–0.125 | 0.125–0.25 | 0.016–0.03 | 0.5–1 | 0.5–2 | 0.06–0.125  |\n|  P. multocida subsp. septica | 0.06–0.125 | 0.06–0.25 | 0.04–0.03 | 0.5–1 | 0.5–2 | 0.06–0.125  |\n|  P. canis | 0.06 | 0.125 | 0.016 | 0.5 | 0.5 | 0.125  |\n|  P. dagmatis | 0.06–0.125 | 0.25 | 0.08–0.016 | 0.5 | 0.5 | 0.125  |\n|  P. stomatis (with atypical strains) | 0.06–0.5 | 0.06–0.5 | 0.002–0.03 | 0.5–1 | 0.5–2 | 0.06–0.125  |\n|  Pasteurella spp | 0.03 | 0.06 | 0.04 | 0.5 | 0.5 | 0.125  |",
+        "format": "markdown",
+        "word_confidence_scores": {}
+      }
+    ],
+    "hyperlinks": [],
+    "header": "Characterization of Pasteurella from gingival scrapings\n81\nn = number of animals.",
+    "footer": "Ap: ampicillin; Ctx: cefotaxime; Cm: chloramphenicol; Pef: pelfloxacine; Pen: penicillin; Tc: tetracycline.\n*Penicillin: UI/ml.\nCIMID 16/1—D",
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 196,
+        "top_left_y": 62,
+        "bottom_right_x": 486,
+        "bottom_right_y": 78,
+        "content": "Characterization of Pasteurella from gingival scrapings",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 612,
+        "top_left_y": 62,
+        "bottom_right_x": 625,
+        "bottom_right_y": 74,
+        "content": "81",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 189,
+        "top_left_y": 90,
+        "bottom_right_x": 494,
+        "bottom_right_y": 115,
+        "content": "Table 3. Distribution of Pasteurella isolated from gingival scrapings of dogs and cats",
+        "confidence_scores": {},
+        "type": "caption"
+      },
+      {
+        "top_left_x": 189,
+        "top_left_y": 115,
+        "bottom_right_x": 497,
+        "bottom_right_y": 461,
+        "content": "|  Pasteurella species  |   |\n| --- | --- |\n|  Cats (n = 30)  |   |\n|  4 | No isolate  |\n|  8 | P. multocida subsp. multocida  |\n|  6 | P. multocida subsp. septica  |\n|  3 | P. multocida subsp. multocida + P. stomatis  |\n|  1 | P. multocida subsp. multocida + atypical P. stomatis  |\n|  3 | P. multocida subsp. septica + P. stomatis  |\n|  1 | P. multocida subsp. multocida + P. multocida subsp. septica + atypical P. stomatis  |\n|  1 | P. multocida subsp. multocida + P. dagmatis  |\n|  1 | Atypical P. stomatis  |\n|  1 | P. stomatis  |\n|  1 | Pasteurella spp (unclassified) + P. stomatis  |\n|  Dogs (n = 32)  |   |\n|  11 | No isolate  |\n|  1 | P. multocida subsp. septica  |\n|  1 | P. multocida subsp. septica + P. stomatis  |\n|  1 | P. multocida subsp. multocida + atypical P. stomatis  |\n|  1 | P. multocida subsp. multocida + P. stomatis + atypical P. stomatis  |\n|  2 | P. canis  |\n|  1 | P. dagmatis  |\n|  1 | P. dagmatis + P. stomatis  |\n|  1 | P. dagmatis + atypical P. stomatis  |\n|  2 | P. stomatis  |\n|  9 | Atypical P. stomatis  |\n|  1 | P. stomatis + atypical P. stomatis  |",
+        "confidence_scores": {},
+        "type": "table",
+        "table_id": "tbl-2.md"
+      },
+      {
+        "top_left_x": 190,
+        "top_left_y": 463,
+        "bottom_right_x": 300,
+        "bottom_right_y": 474,
+        "content": "n = number of animals.",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 300,
+        "top_left_y": 509,
+        "bottom_right_x": 387,
+        "bottom_right_y": 525,
+        "content": "## DISCUSSION",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 56,
+        "top_left_y": 535,
+        "bottom_right_x": 631,
+        "bottom_right_y": 732,
+        "content": "The aerobic flora found in oral cavity of dogs and cats was varied [7, 10], and the number of different organisms (particularly Gram-positive bacteria) growing on blood agar is often high. Thiostrepton, a polypeptidic antibiotic, is inactive against Pasteurella species (MIC ≥ 128 mg/l) but inhibits the Gram-positive bacteria. Its incorporation into blood agar of primary plates reduces number of the bacteria and can greatly facilitate the detection and identification of the Pasteurella colonies, which can be differentiated to colonies of other Gram-negative bacteria. These results indicate that thiostrepton blood agar can be recommended as an isolation medium for Pasteurella from feline and canine origin and confirm the high frequency carriage in the oral cavity of dogs and particularly of cats. The frequency of Pasteurella isolates (66 and 87% in dogs and cats, respectively), was similar to results found in other data [5–9].",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 200,
+        "top_left_y": 756,
+        "bottom_right_x": 488,
+        "bottom_right_y": 771,
+        "content": "Table 4. Susceptibility to antibiotics among Pasteurella species",
+        "confidence_scores": {},
+        "type": "caption"
+      },
+      {
+        "top_left_x": 59,
+        "top_left_y": 771,
+        "bottom_right_x": 631,
+        "bottom_right_y": 897,
+        "content": "|  Species | MIC (mg/l)*  |   |   |   |   |   |\n| --- | --- | --- | --- | --- | --- | --- |\n|   |  Ap | Pen | Ctx | Cm | Tc | Pef  |\n|  P. multocida subsp. multocida | 0.06–0.125 | 0.125–0.25 | 0.016–0.03 | 0.5–1 | 0.5–2 | 0.06–0.125  |\n|  P. multocida subsp. septica | 0.06–0.125 | 0.06–0.25 | 0.04–0.03 | 0.5–1 | 0.5–2 | 0.06–0.125  |\n|  P. canis | 0.06 | 0.125 | 0.016 | 0.5 | 0.5 | 0.125  |\n|  P. dagmatis | 0.06–0.125 | 0.25 | 0.08–0.016 | 0.5 | 0.5 | 0.125  |\n|  P. stomatis (with atypical strains) | 0.06–0.5 | 0.06–0.5 | 0.002–0.03 | 0.5–1 | 0.5–2 | 0.06–0.125  |\n|  Pasteurella spp | 0.03 | 0.06 | 0.04 | 0.5 | 0.5 | 0.125  |",
+        "confidence_scores": {},
+        "type": "table",
+        "table_id": "tbl-3.md"
+      },
+      {
+        "top_left_x": 59,
+        "top_left_y": 898,
+        "bottom_right_x": 534,
+        "bottom_right_y": 922,
+        "content": "Ap: ampicillin; Ctx: cefotaxime; Cm: chloramphenicol; Pef: pelfloxacine; Pen: penicillin; Tc: tetracycline.\n*Penicillin: UI/ml.",
+        "confidence_scores": {},
+        "type": "footer"
+      },
+      {
+        "top_left_x": 56,
+        "top_left_y": 941,
+        "bottom_right_x": 126,
+        "bottom_right_y": 954,
+        "content": "CIMID 16/1—D",
+        "confidence_scores": {},
+        "type": "footer"
+      }
+    ]
+  },
+  {
+    "index": 5,
+    "markdown": "Several authors [12, 13, 18, 19] have underlined the heterogeneity of phenotypic characteristics from feline and canine Pasteurella strains. This variety is confirmed in our study by the identification of several species (P. multocida subspecies multocida and septica, P. canis, P. dagmatis and P. stomatis) among dog and cat strains. Our results are in accordance with Mutters et al.'s classification [11, 20] except few strains identified as P. multocida which are maltose-positive and some strains identified as P. stomatis which are raffinose-positive. However, we found several atypical P. stomatis strains that we have first considered as a maltose-positive biotype. It would appear that this homogeneous taxon corresponds to the provisionally called \"Taxon 16\" of Bisgaard and Mutters [12]. The atypical strain \"19B\", isolated from one cat is ODC+, maltose+, mannitol- and sorbitol+, and could be tentatively classified as mannitol-negative P. multocida subsp. multocida. But phenotypic separation between different species or subspecies within the Pasteurella genus depends on a limited number of characters [12, 20] and errors of identification are possible.\n\nThe mouse pathogenicity test as performed here is critical because it is based on the inoculation of a single mouse per isolate, even though the use of a five or ten mice group per isolate would have been preferable. Our results are, however, indicative. For Smith [19], most of the feline strains were highly pathogenic for mice, whereas canine strains (often with maltose-positive character) were generally of low pathogenicity or non-pathogenic. In Art's study [6], the proportion of pathogenic strains was also higher among the cat isolates.\n\nGlobally in our study, 8 out of 28 canine and 20 out of 37 feline isolates were lethal for mice, but in reality mouse pathogenicity varies with respect to the Pasteurella species. The majority of P. multocida (82%) were lethal for mice. Furthermore there was no relation between pathogenicity and the positive or negative maltose strains found. On the other hand, the majority of P. stomatis and atypical P. stomatis isolates were non-pathogenic and only 2 feline strains in each group were pathogenic. One of two P. canis was lethal for mice, but there were insufficient strains in order to make a conclusion. Finally, P. dagmatis is recognized to be non-lethal for mice after intraperitoneal experiments.\n\nThe frequency of different Pasteurella in dogs and cats is worth commenting on with regards to the proportion of Pasteurella associated with bites in man. In dogs, the predominating species are P. stomatis and atypical P. stomatis (68%). P. multocida, P. canis and P. dagmatis were recovered in similar proportions (7-14%). In cats, the predominating species is P. multocida (65%).\n\nIn humans, the Pasteurella species isolated from animal bites or scratches are usually P. multocida and yet in lower frequency P. dagmatis or P. canis [1, 14, 21]. In a recent study [22], among 265 strains isolated from animals wounds and collected at the Pasteurella National Centre of Institut Pasteur between 1985 and 1990, Escande relates 60% of P. multocida (41 and 20% subspecies multocida and septica, respectively), 24% of P. canis, 11% of P. dagmatis, but only 4% of P. stomatis. The proportions of Pasteurella multocida subsp. multocida and septica confirm previous reports showing P. multocida subspecies septica as less present than multocida subspecies [23]. These observations contrast with our results, indicating that P. multocida subspecies multocida and septica are distributed in equal proportion in dog and cat oral cavities.\n\nVery little data is available on mixed infections in humans for several Pasteurella species following animal bites. Few cases of P. multocida and P. dagmatis infection resulting from",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": "82\nJEAN PIERRE GANIERE et al.",
+    "footer": {},
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 61,
+        "top_left_y": 62,
+        "bottom_right_x": 77,
+        "bottom_right_y": 74,
+        "content": "82",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 276,
+        "top_left_y": 63,
+        "bottom_right_x": 418,
+        "bottom_right_y": 77,
+        "content": "JEAN PIERRE GANIERE et al.",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 92,
+        "bottom_right_x": 633,
+        "bottom_right_y": 341,
+        "content": "Several authors [12, 13, 18, 19] have underlined the heterogeneity of phenotypic characteristics from feline and canine Pasteurella strains. This variety is confirmed in our study by the identification of several species (P. multocida subspecies multocida and septica, P. canis, P. dagmatis and P. stomatis) among dog and cat strains. Our results are in accordance with Mutters et al.'s classification [11, 20] except few strains identified as P. multocida which are maltose-positive and some strains identified as P. stomatis which are raffinose-positive. However, we found several atypical P. stomatis strains that we have first considered as a maltose-positive biotype. It would appear that this homogeneous taxon corresponds to the provisionally called \"Taxon 16\" of Bisgaard and Mutters [12]. The atypical strain \"19B\", isolated from one cat is ODC+, maltose+, mannitol- and sorbitol+, and could be tentatively classified as mannitol-negative P. multocida subsp. multocida. But phenotypic separation between different species or subspecies within the Pasteurella genus depends on a limited number of characters [12, 20] and errors of identification are possible.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 341,
+        "bottom_right_x": 631,
+        "bottom_right_y": 464,
+        "content": "The mouse pathogenicity test as performed here is critical because it is based on the inoculation of a single mouse per isolate, even though the use of a five or ten mice group per isolate would have been preferable. Our results are, however, indicative. For Smith [19], most of the feline strains were highly pathogenic for mice, whereas canine strains (often with maltose-positive character) were generally of low pathogenicity or non-pathogenic. In Art's study [6], the proportion of pathogenic strains was also higher among the cat isolates.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 464,
+        "bottom_right_x": 631,
+        "bottom_right_y": 624,
+        "content": "Globally in our study, 8 out of 28 canine and 20 out of 37 feline isolates were lethal for mice, but in reality mouse pathogenicity varies with respect to the Pasteurella species. The majority of P. multocida (82%) were lethal for mice. Furthermore there was no relation between pathogenicity and the positive or negative maltose strains found. On the other hand, the majority of P. stomatis and atypical P. stomatis isolates were non-pathogenic and only 2 feline strains in each group were pathogenic. One of two P. canis was lethal for mice, but there were insufficient strains in order to make a conclusion. Finally, P. dagmatis is recognized to be non-lethal for mice after intraperitoneal experiments.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 624,
+        "bottom_right_x": 630,
+        "bottom_right_y": 714,
+        "content": "The frequency of different Pasteurella in dogs and cats is worth commenting on with regards to the proportion of Pasteurella associated with bites in man. In dogs, the predominating species are P. stomatis and atypical P. stomatis (68%). P. multocida, P. canis and P. dagmatis were recovered in similar proportions (7-14%). In cats, the predominating species is P. multocida (65%).",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 714,
+        "bottom_right_x": 630,
+        "bottom_right_y": 889,
+        "content": "In humans, the Pasteurella species isolated from animal bites or scratches are usually P. multocida and yet in lower frequency P. dagmatis or P. canis [1, 14, 21]. In a recent study [22], among 265 strains isolated from animals wounds and collected at the Pasteurella National Centre of Institut Pasteur between 1985 and 1990, Escande relates 60% of P. multocida (41 and 20% subspecies multocida and septica, respectively), 24% of P. canis, 11% of P. dagmatis, but only 4% of P. stomatis. The proportions of Pasteurella multocida subsp. multocida and septica confirm previous reports showing P. multocida subspecies septica as less present than multocida subspecies [23]. These observations contrast with our results, indicating that P. multocida subspecies multocida and septica are distributed in equal proportion in dog and cat oral cavities.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 889,
+        "bottom_right_x": 627,
+        "bottom_right_y": 925,
+        "content": "Very little data is available on mixed infections in humans for several Pasteurella species following animal bites. Few cases of P. multocida and P. dagmatis infection resulting from",
+        "confidence_scores": {},
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "index": 6,
+    "markdown": "cat bites were reported [24, 25], and Escande [22] also found several double infections with P. multocida associated with P. canis, and P. dagmatis associated with P. canis. This occurrence can be explained by our study which shows the simultaneous presence of different Pasteurella species or subspecies in gingival scrapings of some dogs and cats.\n\nDespite the fact that dogs are more frequently involved in bites than cats, the frequency of Pasteurella infection in man is lower after dog bites than following cat bites [2, 4, 26]. This difference could be explained by the fact that the cat, with its sharp canine teeth, can bring about more severe bite wounds. This may involve deeper punctures, affecting bones, joints and tendons, a situation which is more propitious to Pasteurella infection development [6]. The higher Pasteurella carriage in cats may be another explanation [8]. Smith [19] also indicated a possible difference in pathogenicity among Pasteurella isolated from dogs as compared to those from cats. Assuming that P. stomatis and atypical P. stomatis species are of low pathogenicity or non pathogenic, and that P. multocida (especially P. multocida subspecies multocida), P. dagmatis and P. canis are potentially pathogenic for human, our results are partially consistent with this hypothesis. Indeed, the pathogenic Pasteurella species carrier state in cats is significantly higher (P ≤ 0.05) than that of dogs. In our study 23 out of 32 cats and only 9 out of 30 dogs harboured one or several potential pathogens.\n\nAccording to Goldstein et al. [27], antibiotic susceptibility from feline and canine strains, with their various degrees of pathogenicity, may not be applicable to the clinical situation encountered in human infection. We think that the antibiotic sensitivity survey of these isolates could be an interesting indicator. In the present investigation, all the strains are uniformly sensitive to the tested antibiotics. No difference was found in susceptibility between the Pasteurella species of either feline or canine origin. Penicillin and tetracycline are classically regarded as the drugs of choice for pasteurellosis treatment in man [17, 26], but other active drugs, including ampicillin, parenteral cephalosporins, chloramphenicol [1] or more recently quinolones of third generation [16, 28, 29] should be prescribed. However, in previous reports, the antibiotic susceptibility (performed with the disk diffusion method) of animals isolates was the subject of controversial data. In Arnbjørb's study [5], 25 and 50% of canine and feline strains respectively were resistant to penicillin; in Art's study [6], 42 and 73% of canine and feline isolates were also resistant to penicillin, 6% of canine strains were resistant to ampicillin and 15% of feline strains were resistant to tetracycline. However, no penicillin resistance has been reported in Pasteurella strains isolated from human bite infections [26], and our MIC results are similar to those recently found in animal bite wound isolates [27, 30, 31]. Moreover, we failed to find penicillin resistance among strains isolated from pathological cases (bite wounds, abcess, respiratory or genital tract infections) in cats and dogs (unpubl. data). This situation also differs from those described in bovine and porcine isolates [32–34], for which the antibiotics use as preventive therapy in intensive production system has led to the emergence of multi-resistant Pasteurella strains [32, 34].\n\nIn conclusion, various Pasteurella species and subspecies, and also numerous atypical strains are currently isolated from the oral cavity of dogs and cats. Bacteriological examination of gingival scrapings of dogs and cats confirms this heterogeneity and shows that Pasteurella are not distributed in equivalent proportions in these animals. In cats, the predominating species is P. multocida, whereas P. stomatis (or atypical P. stomatis) prevails in dogs. On the other hand, in humans, Pasteurella species isolated from animal bite wounds are usually P. multocida, P. canis, P. dagmatis and exceptionally P. stomatis.",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": "Characterization of Pasteurella from gingival scrapings\n83",
+    "footer": {},
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 201,
+        "top_left_y": 61,
+        "bottom_right_x": 490,
+        "bottom_right_y": 77,
+        "content": "Characterization of Pasteurella from gingival scrapings",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 617,
+        "top_left_y": 64,
+        "bottom_right_x": 631,
+        "bottom_right_y": 76,
+        "content": "83",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 92,
+        "bottom_right_x": 633,
+        "bottom_right_y": 163,
+        "content": "cat bites were reported [24, 25], and Escande [22] also found several double infections with P. multocida associated with P. canis, and P. dagmatis associated with P. canis. This occurrence can be explained by our study which shows the simultaneous presence of different Pasteurella species or subspecies in gingival scrapings of some dogs and cats.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 163,
+        "bottom_right_x": 633,
+        "bottom_right_y": 409,
+        "content": "Despite the fact that dogs are more frequently involved in bites than cats, the frequency of Pasteurella infection in man is lower after dog bites than following cat bites [2, 4, 26]. This difference could be explained by the fact that the cat, with its sharp canine teeth, can bring about more severe bite wounds. This may involve deeper punctures, affecting bones, joints and tendons, a situation which is more propitious to Pasteurella infection development [6]. The higher Pasteurella carriage in cats may be another explanation [8]. Smith [19] also indicated a possible difference in pathogenicity among Pasteurella isolated from dogs as compared to those from cats. Assuming that P. stomatis and atypical P. stomatis species are of low pathogenicity or non pathogenic, and that P. multocida (especially P. multocida subspecies multocida), P. dagmatis and P. canis are potentially pathogenic for human, our results are partially consistent with this hypothesis. Indeed, the pathogenic Pasteurella species carrier state in cats is significantly higher (P ≤ 0.05) than that of dogs. In our study 23 out of 32 cats and only 9 out of 30 dogs harboured one or several potential pathogens.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 411,
+        "bottom_right_x": 631,
+        "bottom_right_y": 800,
+        "content": "According to Goldstein et al. [27], antibiotic susceptibility from feline and canine strains, with their various degrees of pathogenicity, may not be applicable to the clinical situation encountered in human infection. We think that the antibiotic sensitivity survey of these isolates could be an interesting indicator. In the present investigation, all the strains are uniformly sensitive to the tested antibiotics. No difference was found in susceptibility between the Pasteurella species of either feline or canine origin. Penicillin and tetracycline are classically regarded as the drugs of choice for pasteurellosis treatment in man [17, 26], but other active drugs, including ampicillin, parenteral cephalosporins, chloramphenicol [1] or more recently quinolones of third generation [16, 28, 29] should be prescribed. However, in previous reports, the antibiotic susceptibility (performed with the disk diffusion method) of animals isolates was the subject of controversial data. In Arnbjørb's study [5], 25 and 50% of canine and feline strains respectively were resistant to penicillin; in Art's study [6], 42 and 73% of canine and feline isolates were also resistant to penicillin, 6% of canine strains were resistant to ampicillin and 15% of feline strains were resistant to tetracycline. However, no penicillin resistance has been reported in Pasteurella strains isolated from human bite infections [26], and our MIC results are similar to those recently found in animal bite wound isolates [27, 30, 31]. Moreover, we failed to find penicillin resistance among strains isolated from pathological cases (bite wounds, abcess, respiratory or genital tract infections) in cats and dogs (unpubl. data). This situation also differs from those described in bovine and porcine isolates [32–34], for which the antibiotics use as preventive therapy in intensive production system has led to the emergence of multi-resistant Pasteurella strains [32, 34].",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 55,
+        "top_left_y": 801,
+        "bottom_right_x": 630,
+        "bottom_right_y": 926,
+        "content": "In conclusion, various Pasteurella species and subspecies, and also numerous atypical strains are currently isolated from the oral cavity of dogs and cats. Bacteriological examination of gingival scrapings of dogs and cats confirms this heterogeneity and shows that Pasteurella are not distributed in equivalent proportions in these animals. In cats, the predominating species is P. multocida, whereas P. stomatis (or atypical P. stomatis) prevails in dogs. On the other hand, in humans, Pasteurella species isolated from animal bite wounds are usually P. multocida, P. canis, P. dagmatis and exceptionally P. stomatis.",
+        "confidence_scores": {},
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "index": 7,
+    "markdown": "These observations should explain the classical observation that cat bite wounds are more often infected than dog bite wounds. All strains are susceptible to antibiotics possibly recommended for pasteurellosis treatment in humans, particularly penicillin G and tetracycline.\n\n# REFERENCES\n\n1. Frederiksen W. Pasteurellosis of man. In Pasteurella and Pasteurellosis (Edited by Adlam C. and Rutter J. M.), pp. 303-318. Academic Press, New York (1989).\n\n2. May T., Marchou B., Canton P. and Armengaud M. Pasteurelloses par inoculation cutanée. Résultats de l'étude multicentrique. Méd. mal. Infect. 16, 36-39 (1986).\n\n3. Rasmussen A. K., Iversen B. F. and Sorensen T. S. Bidsar bakteriologiog risikofaktorer for infektion. Ugeskr-Laeger 149, 1532-1535 (1987).\n\n4. Underman A. E. Bite wounds inflicted by dogs and cats. Vet. clin. N. Am.; small anim. Pract. 17, 195-207 (1987).\n\n5. Arnbjerg J. Pasteurella multocida from canine and feline teeth, with a case report of \"glossitis calcincsa\" in a dog caused by P. multocida. Nord. vet. Med. 30, 324-332 (1978).\n\n6. Art D. Portage buccal des Pasteurella chez le chien et le chat. Antibiorésistance et pouvoir pathogène expérimental. Ann. méd. Vét. 128, 361-368 (1984).\n\n7. Bailie W. E., Stowe E. C. and Schmitt A. M. Aerobic bacterial flora and nasal fluids of canines with reference to bacteria associated with bites. J. clin. Microb. 7, 223-231 (1978).\n\n8. Oudar J., Joubert L., Prave M., Dickele C. and Munos-Trana J. C. Le portage buccal de Pasteurella multocida chez le chat. Etude épidémiologique, biochimique et sérologique. Bull. soc. sci. vet. med. Comp. (Lyon) 74, 353-357 (1972).\n\n9. Rollof J., Nordin-Fredriksson G. and Holst E. Pasteurella multocida occurs in a high frequency in the saliva of pet dogs. Scand. J. infect. Dis. 21, 583-584 (1989).\n\n10. Saphir D. A. and Carter G. R. Gingival flora of the dog with special reference to bacteria associated with bites. J. clin. Microbiol. 3, 344-349 (1976).\n\n11. Mutters R., Ihm P., Pohl S., Frederiksen W. and Mannheim W. Reclassification of the genus Pasteurella Trevisan 1887 on the basis of deoxyribonucleic acid homology, with proposals for the new species Pasteurella dagmatis, Pasteurella canis, Pasteurella stomatis, Pasteurella anatis and Pasteurella langaa. Int. J. Syst. Bacteriol. 35, 309-322 (1985).\n\n12. Bisgaard M. and Mutters R. Characterization of some previously unclassified \"Pasteurella\" spp obtained from the oral cavity of dogs and cats and description of a new species tentatively classified with the family Pasteurellaceae Pohl, 1981 and provisionally called \"taxon 16\". Acta Path. Microbiol. Immun. Scand. Sect. B. 94, 177-184 (1986).\n\n13. Dibb W. L. and Digranes A. Characteristics of 20 human Pasteurella isolates from animal bite wounds. Acta Path. Microbiol. Scand. Sect. B. 89, 137-141 (1981).\n\n14. Mollaret H. H. Pasteurelloses et Pasteurella: évolution des idées et classification. Med. mal. Infect. 16, 4-9 (1986).\n\n15. Bercovier H., Escande F. and Grimont P. Biochemical characterisation of Actinobacillus species and Pasteurella ureae. Ann. Microbiol. (Inst. Pasteur) 135A, 203-218 (1984).\n\n16. Akli J., Piedon A., Germain M., Harnois C., Laurence S., Rodon P. and Choutet P. Traitement des pasteurelloses d'inoculation par la pefloxacine. Med. mal. Infect. 19, 55-56 (1989).\n\n17. Becq-Giraudon B. Propositions thérapeutiques dans la Pasteurellose. Méd. mal. Infect. 16, 57-64 (1986).\n\n18. Oberhofer T. R. Characteristics and biotypes of Pasteurella multocida isolated from humans. J. clin. Microbiol. 13, 566-571 (1981).\n\n19. Smith J. E. Studies on Pasteurella septica. II. Some cultural and biochemical properties of strains from different host species. J. comp. Pathol. Ther. 69, 315-323 (1958).\n\n20. Mutters R., Mannheim W. and Bisgaard M. Taxonomy of the group. In Pasteurella and Pasteurellosis (Edited by Adlam C. and Rutter J. M.), pp. 3-34. Academic Press, New York (1989).\n\n21. Golstein E. J. C., Citron D. M., Wield B., Blachman U., Sutter V. L., Miller T. and Finegold S. M. Bacteriology of human and animal bite wounds. J. clin. Microbiol. 8, 667-672 (1978).\n\n22. Escande F. Bilan épidémiologique de la pasteurellose: à partir des données adressées au Centre National de Référence. Personal communication (1991).\n\n23. Avril J. L. and Donnio P. Y. Caracterisation des Pasteurella isolées chez l'homme. Path. Biol. 35, 169-172 (1987).",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": "84\nJEAN PIERRE GANIERE et al.",
+    "footer": {},
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 58,
+        "top_left_y": 63,
+        "bottom_right_x": 73,
+        "bottom_right_y": 74,
+        "content": "84",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 272,
+        "top_left_y": 62,
+        "bottom_right_x": 412,
+        "bottom_right_y": 75,
+        "content": "JEAN PIERRE GANIERE et al.",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 56,
+        "top_left_y": 90,
+        "bottom_right_x": 630,
+        "bottom_right_y": 158,
+        "content": "These observations should explain the classical observation that cat bite wounds are more often infected than dog bite wounds. All strains are susceptible to antibiotics possibly recommended for pasteurellosis treatment in humans, particularly penicillin G and tetracycline.",
+        "confidence_scores": {},
+        "type": "text"
+      },
+      {
+        "top_left_x": 295,
+        "top_left_y": 180,
+        "bottom_right_x": 392,
+        "bottom_right_y": 195,
+        "content": "# REFERENCES",
+        "confidence_scores": {},
+        "type": "title"
+      },
+      {
+        "top_left_x": 63,
+        "top_left_y": 205,
+        "bottom_right_x": 628,
+        "bottom_right_y": 233,
+        "content": "1. Frederiksen W. Pasteurellosis of man. In Pasteurella and Pasteurellosis (Edited by Adlam C. and Rutter J. M.), pp. 303-318. Academic Press, New York (1989).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 64,
+        "top_left_y": 235,
+        "bottom_right_x": 629,
+        "bottom_right_y": 263,
+        "content": "2. May T., Marchou B., Canton P. and Armengaud M. Pasteurelloses par inoculation cutanée. Résultats de l'étude multicentrique. Méd. mal. Infect. 16, 36-39 (1986).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 64,
+        "top_left_y": 264,
+        "bottom_right_x": 629,
+        "bottom_right_y": 291,
+        "content": "3. Rasmussen A. K., Iversen B. F. and Sorensen T. S. Bidsar bakteriologiog risikofaktorer for infektion. Ugeskr-Laeger 149, 1532-1535 (1987).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 64,
+        "top_left_y": 292,
+        "bottom_right_x": 629,
+        "bottom_right_y": 320,
+        "content": "4. Underman A. E. Bite wounds inflicted by dogs and cats. Vet. clin. N. Am.; small anim. Pract. 17, 195-207 (1987).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 64,
+        "top_left_y": 321,
+        "bottom_right_x": 629,
+        "bottom_right_y": 348,
+        "content": "5. Arnbjerg J. Pasteurella multocida from canine and feline teeth, with a case report of \"glossitis calcincsa\" in a dog caused by P. multocida. Nord. vet. Med. 30, 324-332 (1978).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 64,
+        "top_left_y": 349,
+        "bottom_right_x": 629,
+        "bottom_right_y": 378,
+        "content": "6. Art D. Portage buccal des Pasteurella chez le chien et le chat. Antibiorésistance et pouvoir pathogène expérimental. Ann. méd. Vét. 128, 361-368 (1984).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 64,
+        "top_left_y": 379,
+        "bottom_right_x": 629,
+        "bottom_right_y": 406,
+        "content": "7. Bailie W. E., Stowe E. C. and Schmitt A. M. Aerobic bacterial flora and nasal fluids of canines with reference to bacteria associated with bites. J. clin. Microb. 7, 223-231 (1978).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 64,
+        "top_left_y": 407,
+        "bottom_right_x": 629,
+        "bottom_right_y": 450,
+        "content": "8. Oudar J., Joubert L., Prave M., Dickele C. and Munos-Trana J. C. Le portage buccal de Pasteurella multocida chez le chat. Etude épidémiologique, biochimique et sérologique. Bull. soc. sci. vet. med. Comp. (Lyon) 74, 353-357 (1972).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 64,
+        "top_left_y": 451,
+        "bottom_right_x": 629,
+        "bottom_right_y": 478,
+        "content": "9. Rollof J., Nordin-Fredriksson G. and Holst E. Pasteurella multocida occurs in a high frequency in the saliva of pet dogs. Scand. J. infect. Dis. 21, 583-584 (1989).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 479,
+        "bottom_right_x": 629,
+        "bottom_right_y": 507,
+        "content": "10. Saphir D. A. and Carter G. R. Gingival flora of the dog with special reference to bacteria associated with bites. J. clin. Microbiol. 3, 344-349 (1976).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 508,
+        "bottom_right_x": 630,
+        "bottom_right_y": 563,
+        "content": "11. Mutters R., Ihm P., Pohl S., Frederiksen W. and Mannheim W. Reclassification of the genus Pasteurella Trevisan 1887 on the basis of deoxyribonucleic acid homology, with proposals for the new species Pasteurella dagmatis, Pasteurella canis, Pasteurella stomatis, Pasteurella anatis and Pasteurella langaa. Int. J. Syst. Bacteriol. 35, 309-322 (1985).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 564,
+        "bottom_right_x": 630,
+        "bottom_right_y": 621,
+        "content": "12. Bisgaard M. and Mutters R. Characterization of some previously unclassified \"Pasteurella\" spp obtained from the oral cavity of dogs and cats and description of a new species tentatively classified with the family Pasteurellaceae Pohl, 1981 and provisionally called \"taxon 16\". Acta Path. Microbiol. Immun. Scand. Sect. B. 94, 177-184 (1986).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 622,
+        "bottom_right_x": 630,
+        "bottom_right_y": 649,
+        "content": "13. Dibb W. L. and Digranes A. Characteristics of 20 human Pasteurella isolates from animal bite wounds. Acta Path. Microbiol. Scand. Sect. B. 89, 137-141 (1981).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 651,
+        "bottom_right_x": 630,
+        "bottom_right_y": 678,
+        "content": "14. Mollaret H. H. Pasteurelloses et Pasteurella: évolution des idées et classification. Med. mal. Infect. 16, 4-9 (1986).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 679,
+        "bottom_right_x": 630,
+        "bottom_right_y": 707,
+        "content": "15. Bercovier H., Escande F. and Grimont P. Biochemical characterisation of Actinobacillus species and Pasteurella ureae. Ann. Microbiol. (Inst. Pasteur) 135A, 203-218 (1984).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 708,
+        "bottom_right_x": 630,
+        "bottom_right_y": 735,
+        "content": "16. Akli J., Piedon A., Germain M., Harnois C., Laurence S., Rodon P. and Choutet P. Traitement des pasteurelloses d'inoculation par la pefloxacine. Med. mal. Infect. 19, 55-56 (1989).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 736,
+        "bottom_right_x": 630,
+        "bottom_right_y": 750,
+        "content": "17. Becq-Giraudon B. Propositions thérapeutiques dans la Pasteurellose. Méd. mal. Infect. 16, 57-64 (1986).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 751,
+        "bottom_right_x": 630,
+        "bottom_right_y": 779,
+        "content": "18. Oberhofer T. R. Characteristics and biotypes of Pasteurella multocida isolated from humans. J. clin. Microbiol. 13, 566-571 (1981).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 780,
+        "bottom_right_x": 630,
+        "bottom_right_y": 807,
+        "content": "19. Smith J. E. Studies on Pasteurella septica. II. Some cultural and biochemical properties of strains from different host species. J. comp. Pathol. Ther. 69, 315-323 (1958).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 808,
+        "bottom_right_x": 630,
+        "bottom_right_y": 836,
+        "content": "20. Mutters R., Mannheim W. and Bisgaard M. Taxonomy of the group. In Pasteurella and Pasteurellosis (Edited by Adlam C. and Rutter J. M.), pp. 3-34. Academic Press, New York (1989).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 837,
+        "bottom_right_x": 630,
+        "bottom_right_y": 864,
+        "content": "21. Golstein E. J. C., Citron D. M., Wield B., Blachman U., Sutter V. L., Miller T. and Finegold S. M. Bacteriology of human and animal bite wounds. J. clin. Microbiol. 8, 667-672 (1978).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 865,
+        "bottom_right_x": 630,
+        "bottom_right_y": 892,
+        "content": "22. Escande F. Bilan épidémiologique de la pasteurellose: à partir des données adressées au Centre National de Référence. Personal communication (1991).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 61,
+        "top_left_y": 893,
+        "bottom_right_x": 630,
+        "bottom_right_y": 920,
+        "content": "23. Avril J. L. and Donnio P. Y. Caracterisation des Pasteurella isolées chez l'homme. Path. Biol. 35, 169-172 (1987).",
+        "confidence_scores": {},
+        "type": "references"
+      }
+    ]
+  },
+  {
+    "index": 8,
+    "markdown": "24. Brisou B., Georget J. P., Lepers J. P., Jouan A., Roche J. C. and Beaujon M. H. Double infection à Pasteurella multocida et Pasteurella pneumotropica après morsure de chat. L. M. M. Méd. sud-ouest 18, 6144–6149 (1982).\n\n25. Zbinden R., Sommerhalder P. and Von Wartburg U. Co-isolation of Pasteurella dagmatis and Pasteurella multocida from cat-bite wounds. Eur. J. clin. Microbiol. infect. Dis. 7, 203–204 (1988).\n\n26. Weber D. J., Wolfson J. S., Swartz M. N. and Hooper D. C. Pasteurella multocida infections. Report of 34 cases and review of the literature. Medicine 63, 133–173 (1984).\n\n27. Goldstein E. J. C., Citron D. M. and Richwald G. A. Lack of in vitro efficacy of oral forms of certain cephalosporins, erythromycin and oxacillin against Pasteurella multocida. Antimicrob. Agents Chemother. 32, 213–215 (1988).\n\n28. Raffi F., Poirier P. and Raynaud A. E. Arthrite septique à Pasteurella multocida. Traitement par une fluoroquinolone. Presse Médic. 18, 1482 (1989).\n\n29. Taillan B., Fuzibet J. G., Vinti H., Bernard E., Dellamonica P. and Dujardin P. Traitement des pasteurelloses d'inoculation par les quinolones de troisième génération. Méd. mal. Infect. 19, 421–422 (1989).\n\n30. Escande F. Etude de l'activité in vitro de 18 antibiotiques sur des bactéries du genre Pasteurella et bactéries apparentées (EF4). Méd. mal. Infect. 16, 45–51 (1986).\n\n31. Lion C., Mory F., Conroy M. C., Weber M. and Burdin J. C. Sensibilité aux antibiotiques de Pasteurella multocida et de germes voisins (groupes bactériens M5 et EF4): études des concentrations minimales inhibitrices par dilution en gélose. Path. Biol. 34, 1061–1066 (1986).\n\n32. Escande F., Gerbaud G., Martel J. L. and Courvalin P. Resistance to trimethoprim and 2,4-diamino-6,7-diisopropyl-pteridine (O/129) in Pasteurella haemolytica. Vet. Microbiol. 26, 107–114 (1991).\n\n33. Joly B., Martel J. L., Michel R., Reynaud A. and Cluzel R. Sensibilité aux antibiotiques et production de bétalactamase chez les souches de Pasteurella d'origine bovine isolées en France. Méd. mal. Infect. 16, 52–56 (1986).\n\n34. Livrelli V. O., Darfeuille-Richaud A., Rich C. D., Joly B. K. H. and Martel J. L. Genetic determinant of the ROB-1 B-Lactamase in bovine and porcine Pasteurella strains. Antimicrob. Agents Chemother. 32, 1282–1284 (1988).",
+    "images": [],
+    "tables": [],
+    "hyperlinks": [],
+    "header": "Characterization of Pasteurella from gingival scrapings\n85",
+    "footer": {},
+    "dimensions": {
+      "dpi": 107,
+      "height": 1017,
+      "width": 696
+    },
+    "confidence_scores": {},
+    "blocks": [
+      {
+        "top_left_x": 199,
+        "top_left_y": 61,
+        "bottom_right_x": 489,
+        "bottom_right_y": 77,
+        "content": "Characterization of Pasteurella from gingival scrapings",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 614,
+        "top_left_y": 63,
+        "bottom_right_x": 628,
+        "bottom_right_y": 75,
+        "content": "85",
+        "confidence_scores": {},
+        "type": "header"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 90,
+        "bottom_right_x": 630,
+        "bottom_right_y": 131,
+        "content": "24. Brisou B., Georget J. P., Lepers J. P., Jouan A., Roche J. C. and Beaujon M. H. Double infection à Pasteurella multocida et Pasteurella pneumotropica après morsure de chat. L. M. M. Méd. sud-ouest 18, 6144–6149 (1982).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 131,
+        "bottom_right_x": 630,
+        "bottom_right_y": 157,
+        "content": "25. Zbinden R., Sommerhalder P. and Von Wartburg U. Co-isolation of Pasteurella dagmatis and Pasteurella multocida from cat-bite wounds. Eur. J. clin. Microbiol. infect. Dis. 7, 203–204 (1988).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 157,
+        "bottom_right_x": 630,
+        "bottom_right_y": 184,
+        "content": "26. Weber D. J., Wolfson J. S., Swartz M. N. and Hooper D. C. Pasteurella multocida infections. Report of 34 cases and review of the literature. Medicine 63, 133–173 (1984).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 184,
+        "bottom_right_x": 630,
+        "bottom_right_y": 222,
+        "content": "27. Goldstein E. J. C., Citron D. M. and Richwald G. A. Lack of in vitro efficacy of oral forms of certain cephalosporins, erythromycin and oxacillin against Pasteurella multocida. Antimicrob. Agents Chemother. 32, 213–215 (1988).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 222,
+        "bottom_right_x": 630,
+        "bottom_right_y": 249,
+        "content": "28. Raffi F., Poirier P. and Raynaud A. E. Arthrite septique à Pasteurella multocida. Traitement par une fluoroquinolone. Presse Médic. 18, 1482 (1989).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 249,
+        "bottom_right_x": 630,
+        "bottom_right_y": 277,
+        "content": "29. Taillan B., Fuzibet J. G., Vinti H., Bernard E., Dellamonica P. and Dujardin P. Traitement des pasteurelloses d'inoculation par les quinolones de troisième génération. Méd. mal. Infect. 19, 421–422 (1989).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 277,
+        "bottom_right_x": 630,
+        "bottom_right_y": 303,
+        "content": "30. Escande F. Etude de l'activité in vitro de 18 antibiotiques sur des bactéries du genre Pasteurella et bactéries apparentées (EF4). Méd. mal. Infect. 16, 45–51 (1986).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 303,
+        "bottom_right_x": 630,
+        "bottom_right_y": 343,
+        "content": "31. Lion C., Mory F., Conroy M. C., Weber M. and Burdin J. C. Sensibilité aux antibiotiques de Pasteurella multocida et de germes voisins (groupes bactériens M5 et EF4): études des concentrations minimales inhibitrices par dilution en gélose. Path. Biol. 34, 1061–1066 (1986).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 343,
+        "bottom_right_x": 630,
+        "bottom_right_y": 371,
+        "content": "32. Escande F., Gerbaud G., Martel J. L. and Courvalin P. Resistance to trimethoprim and 2,4-diamino-6,7-diisopropyl-pteridine (O/129) in Pasteurella haemolytica. Vet. Microbiol. 26, 107–114 (1991).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 371,
+        "bottom_right_x": 630,
+        "bottom_right_y": 408,
+        "content": "33. Joly B., Martel J. L., Michel R., Reynaud A. and Cluzel R. Sensibilité aux antibiotiques et production de bétalactamase chez les souches de Pasteurella d'origine bovine isolées en France. Méd. mal. Infect. 16, 52–56 (1986).",
+        "confidence_scores": {},
+        "type": "references"
+      },
+      {
+        "top_left_x": 57,
+        "top_left_y": 408,
+        "bottom_right_x": 630,
+        "bottom_right_y": 449,
+        "content": "34. Livrelli V. O., Darfeuille-Richaud A., Rich C. D., Joly B. K. H. and Martel J. L. Genetic determinant of the ROB-1 B-Lactamase in bovine and porcine Pasteurella strains. Antimicrob. Agents Chemother. 32, 1282–1284 (1988).",
+        "confidence_scores": {},
+        "type": "references"
+      }
+    ]
+  }
+]

@@ -30,6 +30,13 @@
   columns. It previously used an inner join, so documents where extraction
   found nothing were missing from the export (#149).
 
+* LLM calls whose structured output cannot be parsed (for example, stray
+  markup after the JSON object) are retried on the same model before falling
+  back to the next one. Content refusals are still not retried.
+* `process_documents(document_id = ...)` finds documents from any
+  subdirectory of the project. Stored file paths are relative to the project
+  root but were resolved against the working directory, so reprocessing by
+  ID from elsewhere reported "file not found".
 * `refine_records()` no longer reports "Refinement failed: object 'error_log'
   not found" when every record in a document is human-edited or deleted. The
   step is now marked `skipped`.

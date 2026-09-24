@@ -373,7 +373,7 @@ process_documents <- function(pdf_path = NULL,
     all_docs <- DBI::dbGetQuery(query_conn, "SELECT document_id, file_path FROM documents")
     if (!inherits(db_conn, "DBIConnection")) DBI::dbDisconnect(query_conn)
     if (nrow(all_docs) == 0) stop("No documents found in database")
-    pdf_files <- all_docs$file_path
+    pdf_files <- from_project_relative_path(all_docs$file_path)
     pdf_document_ids <- all_docs$document_id
   }
 
@@ -398,7 +398,7 @@ process_documents <- function(pdf_path = NULL,
     if (nrow(id_docs) == 0) {
       stop("No documents found in database for the provided document_id")
     }
-    pdf_files <- id_docs$file_path
+    pdf_files <- from_project_relative_path(id_docs$file_path)
     pdf_document_ids <- id_docs$document_id
   }
 

@@ -1,0 +1,190 @@
+[
+  {
+    "OHP_Pathogen_Name": "Pasteurella",
+    "PDF_Name": null,
+    "DOI": null,
+    "Pathogen_Name": "Pasteurella multocida (subsp. multocida and subsp. septica)",
+    "Host_Name": "Canis familiaris (dog)",
+    "Detection_Method": [
+      "Culture/isolation on thiostrepton-supplemented blood agar",
+      "Biochemical characterization (API-20E, API-50CH)",
+      "Susceptibility to vibriostatic compound O/129"
+    ],
+    "Sample_type": "Gingival scrapings",
+    "all_supporting_source_sentences": [
+      "Pasteurella were isolated scrapings in 21 out of 32 dogs and in 26 out of 30 cats (66 and 87%, respectively) from gingival scrapings.",
+      "Twenty-eight strains corresponded to P. multocida subspecies multocida and septica (9 strains differed from typical species described, by acid production from maltose), 4 strains to P. dagmatis (formerly P. pneumotropica biotype Henriksen) and 2 strains to P. canis (formerly P. multocida biotype 6 or dog-type of Frederiksen).",
+      "In this experiment, differences in species distribution were observed (Table 3) between dogs and cats: 23 out of 30 (77%) examined cats harboured P. multocida, but only 4 out of 32 (13%) dogs.",
+      "P. multocida, P. canis and P. dagmatis were recovered in similar proportions (7-14%).",
+      "Table 1. Isolation of Pasteurella species from dogs and cats"
+    ],
+    "Confidence_Score": 5,
+    "Vector_Name": [],
+    "GenBank_Accession": [],
+    "Extraction_quality_score": 5,
+    "Supplemental_Material": false
+  },
+  {
+    "OHP_Pathogen_Name": "Pasteurella",
+    "PDF_Name": null,
+    "DOI": null,
+    "Pathogen_Name": "Pasteurella multocida (subsp. multocida and subsp. septica)",
+    "Host_Name": "Felis catus (cat)",
+    "Detection_Method": [
+      "Culture/isolation on thiostrepton-supplemented blood agar",
+      "Biochemical characterization (API-20E, API-50CH)",
+      "Susceptibility to vibriostatic compound O/129"
+    ],
+    "Sample_type": "Gingival scrapings",
+    "all_supporting_source_sentences": [
+      "Pasteurella were isolated scrapings in 21 out of 32 dogs and in 26 out of 30 cats (66 and 87%, respectively) from gingival scrapings.",
+      "In this experiment, differences in species distribution were observed (Table 3) between dogs and cats: 23 out of 30 (77%) examined cats harboured P. multocida, but only 4 out of 32 (13%) dogs.",
+      "In cats, the predominating species is P. multocida (65%).",
+      "P. multocida and P. stomatis (including atypical strains) represented 65 and 30% of feline isolates, and 14 and 68% of canine isolates, respectively.",
+      "Table 1. Isolation of Pasteurella species from dogs and cats"
+    ],
+    "Confidence_Score": 5,
+    "Vector_Name": [],
+    "GenBank_Accession": [],
+    "Extraction_quality_score": 5,
+    "Supplemental_Material": false
+  },
+  {
+    "OHP_Pathogen_Name": "Pasteurella",
+    "PDF_Name": null,
+    "DOI": null,
+    "Pathogen_Name": "Pasteurella canis",
+    "Host_Name": "Canis familiaris (dog)",
+    "Detection_Method": [
+      "Culture/isolation on thiostrepton-supplemented blood agar",
+      "Biochemical characterization (API-20E, API-50CH)",
+      "Susceptibility to vibriostatic compound O/129"
+    ],
+    "Sample_type": "Gingival scrapings",
+    "all_supporting_source_sentences": [
+      "Twenty-eight strains corresponded to P. multocida subspecies multocida and septica (9 strains differed from typical species described, by acid production from maltose), 4 strains to P. dagmatis (formerly P. pneumotropica biotype Henriksen) and 2 strains to P. canis (formerly P. multocida biotype 6 or dog-type of Frederiksen).",
+      "P. canis was only found in the dogs.",
+      "Table 1. Isolation of Pasteurella species from dogs and cats"
+    ],
+    "Confidence_Score": 5,
+    "Vector_Name": [],
+    "GenBank_Accession": [],
+    "Extraction_quality_score": 5,
+    "Supplemental_Material": false
+  },
+  {
+    "OHP_Pathogen_Name": "Pasteurella",
+    "PDF_Name": null,
+    "DOI": null,
+    "Pathogen_Name": "Pasteurella dagmatis",
+    "Host_Name": "Canis familiaris (dog)",
+    "Detection_Method": [
+      "Culture/isolation on thiostrepton-supplemented blood agar",
+      "Biochemical characterization (API-20E, API-50CH)",
+      "Susceptibility to vibriostatic compound O/129"
+    ],
+    "Sample_type": "Gingival scrapings",
+    "all_supporting_source_sentences": [
+      "Twenty-eight strains corresponded to P. multocida subspecies multocida and septica (9 strains differed from typical species described, by acid production from maltose), 4 strains to P. dagmatis (formerly P. pneumotropica biotype Henriksen) and 2 strains to P. canis (formerly P. multocida biotype 6 or dog-type of Frederiksen).",
+      "P. multocida, P. canis and P. dagmatis were recovered in similar proportions (7-14%).",
+      "Table 1. Isolation of Pasteurella species from dogs and cats"
+    ],
+    "Confidence_Score": 4,
+    "Vector_Name": [],
+    "GenBank_Accession": [],
+    "Extraction_quality_score": 5,
+    "Supplemental_Material": false
+  },
+  {
+    "OHP_Pathogen_Name": "Pasteurella",
+    "PDF_Name": null,
+    "DOI": null,
+    "Pathogen_Name": "Pasteurella dagmatis",
+    "Host_Name": "Felis catus (cat)",
+    "Detection_Method": [
+      "Culture/isolation on thiostrepton-supplemented blood agar",
+      "Biochemical characterization (API-20E, API-50CH)",
+      "Susceptibility to vibriostatic compound O/129"
+    ],
+    "Sample_type": "Gingival scrapings",
+    "all_supporting_source_sentences": [
+      "A single animal can carry several species or subspecies, for example, P. multocida subspecies multocida and septica with atypical P. stomatis were obtained from gingival scraping of one dog and P. dagmatis with P. stomatis (or atypical P. stomatis) were recovered from one cat (Table 3).",
+      "Table 1. Isolation of Pasteurella species from dogs and cats"
+    ],
+    "Confidence_Score": 4,
+    "Vector_Name": [],
+    "GenBank_Accession": [],
+    "Extraction_quality_score": 4,
+    "Supplemental_Material": false
+  },
+  {
+    "OHP_Pathogen_Name": "Pasteurella",
+    "PDF_Name": null,
+    "DOI": null,
+    "Pathogen_Name": "Pasteurella stomatis (including atypical strains)",
+    "Host_Name": "Canis familiaris (dog)",
+    "Detection_Method": [
+      "Culture/isolation on thiostrepton-supplemented blood agar",
+      "Biochemical characterization (API-20E, API-50CH)",
+      "Susceptibility to vibriostatic compound O/129"
+    ],
+    "Sample_type": "Gingival scrapings",
+    "all_supporting_source_sentences": [
+      "Nine strains are identified as P. stomatis and 21 strains which formed a homogeneous group considered as atypical P. stomatis by acid production from maltose.",
+      "P. stomatis and atypical P. stomatis predominated in dogs: these strains represented 68% of canine isolates (Table 1) and were recovered from 17 out of 32 (53%) of the dogs examined (Table 3).",
+      "In dogs, the predominating species are P. stomatis and atypical P. stomatis (68%).",
+      "Table 1. Isolation of Pasteurella species from dogs and cats"
+    ],
+    "Confidence_Score": 5,
+    "Vector_Name": [],
+    "GenBank_Accession": [],
+    "Extraction_quality_score": 5,
+    "Supplemental_Material": false
+  },
+  {
+    "OHP_Pathogen_Name": "Pasteurella",
+    "PDF_Name": null,
+    "DOI": null,
+    "Pathogen_Name": "Pasteurella stomatis (including atypical strains)",
+    "Host_Name": "Felis catus (cat)",
+    "Detection_Method": [
+      "Culture/isolation on thiostrepton-supplemented blood agar",
+      "Biochemical characterization (API-20E, API-50CH)",
+      "Susceptibility to vibriostatic compound O/129"
+    ],
+    "Sample_type": "Gingival scrapings",
+    "all_supporting_source_sentences": [
+      "P. multocida and P. stomatis (including atypical strains) represented 65 and 30% of feline isolates, and 14 and 68% of canine isolates, respectively.",
+      "On the other hand, the majority of P. stomatis and atypical P. stomatis isolates were non-pathogenic and only 2 feline strains in each group were pathogenic.",
+      "Table 1. Isolation of Pasteurella species from dogs and cats"
+    ],
+    "Confidence_Score": 4,
+    "Vector_Name": [],
+    "GenBank_Accession": [],
+    "Extraction_quality_score": 5,
+    "Supplemental_Material": false
+  },
+  {
+    "OHP_Pathogen_Name": "Pasteurella",
+    "PDF_Name": null,
+    "DOI": null,
+    "Pathogen_Name": "Pasteurella spp (unclassified)",
+    "Host_Name": "Felis catus (cat)",
+    "Detection_Method": [
+      "Culture/isolation on thiostrepton-supplemented blood agar",
+      "Biochemical characterization (API-20E, API-50CH)",
+      "Susceptibility to vibriostatic compound O/129"
+    ],
+    "Sample_type": "Gingival scrapings",
+    "all_supporting_source_sentences": [
+      "One strain (Pasteurella spp), positive in acid production from sorbitol and negative from mannitol remained unclassified.",
+      "Twenty-one strains were classified as atypical P. stomatis and one strain obtained from a cat remained unclassified.",
+      "Table 1. Isolation of Pasteurella species from dogs and cats"
+    ],
+    "Confidence_Score": 3,
+    "Vector_Name": [],
+    "GenBank_Accession": [],
+    "Extraction_quality_score": 3,
+    "Supplemental_Material": false
+  }
+]

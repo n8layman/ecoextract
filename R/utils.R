@@ -37,6 +37,23 @@ to_project_relative_path <- function(file_path) {
   substring(abs_path, nchar(root_prefix) + 1)
 }
 
+#' Resolve a stored file path against the project root
+#'
+#' Inverse of \code{to_project_relative_path()}: a project-relative path from
+#' the database is joined to the project root found by walking up from the
+#' working directory, so documents resolve from any subdirectory of the
+#' project. Absolute paths, and paths when no project root is found, are
+#' returned unchanged.
+#' @param file_path Stored file path
+#' @return File path usable from the working directory
+#' @keywords internal
+from_project_relative_path <- function(file_path) {
+  root <- find_project_root(getwd())
+  is_absolute <- grepl("^(/|[A-Za-z]:)", file_path)
+  if (is.null(root)) return(file_path)
+  ifelse(is_absolute, file_path, file.path(root, file_path))
+}
+
 #' Generate a UUID v4 identifier
 #'
 #' Produces a standards-compliant UUID v4 using base R only (no extra dependency).
@@ -428,7 +445,8 @@ add_usage <- function(x, y) {
 #' @param context User context/input for the LLM (turn 1 message)
 #' @param schema ellmer type schema for structured output (turn 2 in two-turn mode)
 #' @param max_tokens Maximum tokens for response (default 64000)
-#' @param max_retries Maximum retry attempts per model for stochastic failures (default 2)
+#' @param max_retries Maximum retry attempts per model for stochastic failures
+#'   (empty reasoning or unparseable JSON) (default 2)
 #' @param step_name Name of the step for logging (default "LLM call")
 #' @param reasoning_prompt When non-NULL, enables two-turn mode. This string is
 #'   the turn 2 user message instructing the model to extract after reasoning.
@@ -646,9 +664,12 @@ try_models_with_fallback <- function(
       )
     })
     # If last attempt succeeded, function already returned.
-    # If error was stored, check if retryable (empty reasoning = stochastic).
+    # If error was stored, check if retryable. Empty reasoning and malformed
+    # JSON (e.g. stray markup after the object) are stochastic; content
+    # refusals can also surface as parse errors and are not retried.
     if (!is.null(errors[[model]]) && attempt < max_retries) {
-      is_retryable <- grepl("empty/missing reasoning", errors[[model]]$error)
+      is_retryable <- grepl("empty/missing reasoning|parse error", errors[[model]]$error) &&
+        !errors[[model]]$refusal
       if (is_retryable) next
     }
     break  # Hard failure or max retries reached — move to next model

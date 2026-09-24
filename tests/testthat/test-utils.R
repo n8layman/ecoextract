@@ -138,3 +138,62 @@ test_that("add_usage sums element-wise and treats NULL as no call", {
   expect_equal(add_usage(x, NULL), x)
   expect_null(add_usage(NULL, NULL))
 })
+
+test_that("from_project_relative_path resolves stored paths from a subdirectory", {
+  project <- withr::local_tempdir()
+  file.create(file.path(project, "DESCRIPTION"))
+  dir.create(file.path(project, "pdfs"))
+  dir.create(file.path(project, "analysis"))
+  pdf <- file.path(project, "pdfs", "paper.pdf")
+  file.create(pdf)
+
+  stored <- to_project_relative_path(pdf)
+  expect_equal(stored, "pdfs/paper.pdf")
+
+  withr::local_dir(file.path(project, "analysis"))
+  expect_true(file.exists(from_project_relative_path(stored)))
+  expect_equal(from_project_relative_path("/abs/paper.pdf"), "/abs/paper.pdf")
+})
+
+test_that("try_models_with_fallback retries the same model after a parse error", {
+  withr::local_envvar(ANTHROPIC_API_KEY = "unused")
+  calls <- 0
+  local_mocked_bindings(
+    chat = function(...) {
+      fake <- new.env()
+      fake$turns <- list()
+      fake$chat_structured <- function(...) {
+        calls <<- calls + 1
+        if (calls == 1) stop("parse error: trailing garbage")
+        fake$turns <- list(
+          ellmer::UserTurn(list(ellmer::ContentText("input"))),
+          ellmer::AssistantTurn(list(ellmer::ContentText("{}")), tokens = c(10, 5, 0))
+        )
+        list(answer = "ok")
+      }
+      fake$get_turns <- function() fake$turns
+      fake$get_tokens <- function() {
+        chat <- ellmer::chat_anthropic(credentials = function() "unused")
+        chat$set_turns(fake$turns)
+        chat$get_tokens()
+      }
+      fake
+    },
+    .package = "ellmer"
+  )
+  schema <- ellmer::TypeJsonSchema(
+    description = "Test schema",
+    json = list(type = "object", properties = list(answer = list(type = "string")))
+  )
+
+  result <- try_models_with_fallback(
+    models = "anthropic/claude-sonnet-5",
+    system_prompt = "system",
+    context = "input",
+    schema = schema
+  )
+
+  expect_equal(calls, 2)
+  expect_equal(result$result$answer, "ok")
+  expect_match(result$error_log, "parse error")
+})

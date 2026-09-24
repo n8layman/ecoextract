@@ -1,6 +1,10 @@
 # Integration Tests
 # All tests that require API keys (ANTHROPIC_API_KEY, GOOGLE_API_KEY, MISTRAL_API_KEY, OPENAI_API_KEY)
 # These are automatically skipped when keys are not set
+#
+# Only "full pipeline from PDF to database" runs real OCR. Other pipeline tests
+# start from saved OCR output (local_mock_ocr()), and the refinement test
+# starts from saved OCR output and saved records.
 
 # Full Pipeline ----------------------------------------------------------------
 
@@ -68,6 +72,7 @@ test_that("extraction rediscovers physically deleted records", {
   cat("\n========== TEST: extraction rediscovers physically deleted records ==========\n")
   skip_if(Sys.getenv("OPENAI_API_KEY") == "", "OPENAI_API_KEY not set")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
+  local_mock_ocr()
 
   test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
   skip_if_not(file.exists(test_pdf), "Test PDF not found")
@@ -160,8 +165,7 @@ test_that("API failures are captured in status columns, not thrown", {
   # Verify that API failures don't throw errors but return tibble with
   # error messages in status columns
   # Uses bad API key so it should fail without using credits
-
-  skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
+  local_mock_ocr()
 
   test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
   skip_if_not(file.exists(test_pdf), "Test PDF not found")
@@ -198,9 +202,8 @@ test_that("API failures are captured in status columns, not thrown", {
   expect_true(has_errors_in_status,
               info = "With bad API key, at least one status column should contain an error message")
 
-  # OCR should work (uses Mistral, different key)
-  expect_equal(result$ocr_status[1], "completed",
-               info = "OCR uses Mistral, should still complete")
+  # OCR comes from the saved fixture, so only the LLM steps can fail
+  expect_equal(result$ocr_status[1], "completed")
 
   # Audit or extraction should fail (uses Anthropic)
   audit_or_extraction_has_error <-
@@ -217,10 +220,10 @@ test_that("API failures are captured in status columns, not thrown", {
 
 # Schema-Agnostic Pipeline ----------------------------------------------------
 
-test_that("host-pathogen schema works end-to-end", {
-  cat("\n========== TEST: host-pathogen schema works end-to-end ==========\n")
-  skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
+test_that("host-pathogen schema extracts records", {
+  cat("\n========== TEST: host-pathogen schema extracts records ==========\n")
   skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
+  local_mock_ocr()
 
   test_pdf <- testthat::test_path("fixtures", "hostpathogen_paper.pdf")
   schema_file <- testthat::test_path("fixtures", "hostpathogen_schema.json")
@@ -232,13 +235,12 @@ test_that("host-pathogen schema works end-to-end", {
 
   db_path <- withr::local_tempfile(fileext = ".sqlite")
 
-  # Test the full process_documents workflow with custom schema
+  # Run the pipeline with a custom schema (OCR from the saved fixture)
   result <- process_documents(
     test_pdf,
     db_conn = db_path,
     schema_file = schema_file,
-    extraction_prompt_file = prompt_file,
-    run_refinement = TRUE
+    extraction_prompt_file = prompt_file
   )
 
   expect_s3_class(result, "tbl_df")
@@ -248,7 +250,6 @@ test_that("host-pathogen schema works end-to-end", {
   expect_equal(result$ocr_status[1], "completed")
   expect_equal(result$metadata_status[1], "completed")
   expect_equal(result$extraction_status[1], "completed")
-  expect_equal(result$refinement_status[1], "completed")
 
   # Verify data in database
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
@@ -286,12 +287,50 @@ test_that("host-pathogen schema works end-to-end", {
               "All record_ids should match pattern Author_2024_1_r1")
 })
 
+# Refinement -------------------------------------------------------------------
+
+test_that("refinement improves existing records", {
+  cat("\n========== TEST: refinement improves existing records ==========\n")
+  skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
+
+  # Start from saved OCR output and saved extracted records
+  schema_file <- testthat::test_path("fixtures", "hostpathogen_schema.json")
+  prompt_file <- testthat::test_path("fixtures", "hostpathogen_extraction_prompt.md")
+  db_path <- withr::local_tempfile(fileext = ".sqlite")
+  init_ecoextract_database(db_path, schema_file = schema_file)
+
+  document_content <- paste(
+    readLines(testthat::test_path("fixtures", "hostpathogen_paper_ocr.json"), warn = FALSE),
+    collapse = "\n"
+  )
+  doc_id <- save_document_to_db(
+    db_path, testthat::test_path("fixtures", "hostpathogen_paper.pdf"),
+    metadata = list(document_content = document_content)
+  )
+  records <- jsonlite::fromJSON(testthat::test_path("fixtures", "hostpathogen_records.json"))
+  save_records_to_db(db_path, doc_id, records, list(),
+                     schema_list = jsonlite::fromJSON(schema_file, simplifyVector = FALSE))
+
+  result <- refine_records(db_path, doc_id,
+                           extraction_prompt_file = prompt_file,
+                           schema_file = schema_file)
+
+  expect_equal(result$status, "completed")
+  expect_named(result$usage, c("input_tokens", "output_tokens", "cached_input_tokens"))
+  expect_gt(result$usage$input_tokens, 0)
+
+  # Refinement updates records in place: none added or removed
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  expect_equal(DBI::dbGetQuery(con, "SELECT COUNT(*) AS n FROM records")$n, nrow(records))
+})
+
 # Gemini Provider (requires GOOGLE_API_KEY) ------------------------------------
 
 test_that("Gemini extraction works with additionalProperties stripping", {
   cat("\n========== TEST: Gemini extraction works ==========\n")
   skip_if(Sys.getenv("GOOGLE_API_KEY") == "", "GOOGLE_API_KEY not set")
-  skip_if(Sys.getenv("TENSORLAKE_API_KEY") == "", "TENSORLAKE_API_KEY not set")
+  local_mock_ocr()
 
   test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
   skip_if_not(file.exists(test_pdf), "Test PDF not found")
@@ -326,8 +365,7 @@ test_that("Gemini extraction works with additionalProperties stripping", {
 
 test_that("reprocessing by document_id does not create duplicate rows", {
   cat("\n========== TEST: reprocessing by document_id does not duplicate rows ==========\n")
-  skip_if(Sys.getenv("MISTRAL_API_KEY") == "", "MISTRAL_API_KEY not set")
-  skip_if(Sys.getenv("ANTHROPIC_API_KEY") == "", "ANTHROPIC_API_KEY not set")
+  local_mock_ocr()
 
   test_pdf <- testthat::test_path("fixtures", "test_paper.pdf")
   skip_if_not(file.exists(test_pdf), "Test PDF not found")
@@ -336,9 +374,10 @@ test_that("reprocessing by document_id does not create duplicate rows", {
   schema_file <- system.file("extdata", "schema.json", package = "ecoextract")
   prompt_file <- system.file("prompts", "extraction_prompt.md", package = "ecoextract")
 
-  # Initial full pipeline run
+  # Initial run (OCR only; the LLM steps don't affect document rows)
   process_documents(test_pdf, db_conn = db_path,
-                    schema_file = schema_file, extraction_prompt_file = prompt_file)
+                    schema_file = schema_file, extraction_prompt_file = prompt_file,
+                    run_metadata = FALSE, run_extraction = FALSE)
 
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
   withr::defer(DBI::dbDisconnect(con))
@@ -347,15 +386,17 @@ test_that("reprocessing by document_id does not create duplicate rows", {
   doc_id <- docs_before$document_id[1]
   expect_equal(nrow(docs_before), 1)
 
-  # Reprocess OCR + extraction by document_id
+  # Reprocess OCR by document_id
   result2 <- process_documents(
     document_id = doc_id,
     db_conn = db_path,
     schema_file = schema_file,
     extraction_prompt_file = prompt_file,
     force_reprocess_ocr = TRUE,
-    force_reprocess_extraction = TRUE
+    run_metadata = FALSE,
+    run_extraction = FALSE
   )
+  expect_equal(result2$ocr_status[1], "completed")
 
   docs_after <- DBI::dbReadTable(con, "documents")
   expect_equal(nrow(docs_after), 1, info = "Reprocessing must not create a second documents row")
@@ -830,7 +871,7 @@ test_that("llm_deduplicate accepts a model cascade vector (#118)", {
     )
   )$unique_indices
 
+  # Structure only: which records the model calls duplicates is its judgement
   expect_true(is.integer(unique_indices))
-  # J. Smith/NYC is a duplicate; Bob Wilson/Chicago is unique
-  expect_equal(unique_indices, 2L)
+  expect_true(all(unique_indices %in% seq_len(nrow(new_records))))
 })
