@@ -241,6 +241,7 @@ See the [Complete Guide](https://n8layman.github.io/ecoextract/articles/ecoextra
 - `get_documents()` - Query documents and their metadata from database
 - `get_records()` - Query extracted records from database
 - `get_ocr_markdown()` - Get OCR markdown text for a document
+- `get_ocr_pages()` - Get OCR markdown for each page, with stored images embedded
 - `get_ocr_html_preview()` - Render OCR output with embedded images as HTML
 - `get_db_stats()` - Get document and record counts from database
 - `export_db()` - Export records with metadata to tibble or CSV file

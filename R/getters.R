@@ -39,6 +39,103 @@ get_ocr_markdown <- function(document_id, db_conn = "ecoextract_records.db") {
   get_document_content(document_id, con)
 }
 
+#' Get OCR Pages
+#'
+#' Retrieve a document's OCR text as markdown, one element per page. With
+#' \code{embed_images = TRUE}, each image placeholder in a page (for example
+#' \code{![img-0.jpeg](img-0.jpeg)}) is replaced by an \code{<img>} tag carrying
+#' the image stored in \code{ocr_images} for that page, matched by the image's
+#' stored \code{id}. Placeholders with no stored image become their alt text.
+#'
+#' Requires OCR output with page markdown (Mistral). Providers that store
+#' structured page fields instead, such as Tensorlake, have no page markdown.
+#'
+#' @param document_id Document ID
+#' @param db_conn Database connection (any DBI backend) or path to SQLite
+#'   database file. Defaults to "ecoextract_records.db"
+#' @param embed_images If TRUE (default), embed stored images in place of their
+#'   placeholders
+#' @return Character vector of page markdown, one element per page
+#' @export
+#' @examples
+#' \dontrun{
+#' pages <- get_ocr_pages(1)
+#' cat(pages[1])
+#' }
+get_ocr_pages <- function(document_id, db_conn = "ecoextract_records.db", embed_images = TRUE) {
+  # Handle database connection - accept either connection object or path
+  if (inherits(db_conn, "DBIConnection")) {
+    con <- db_conn
+  } else {
+    con <- DBI::dbConnect(RSQLite::SQLite(), db_conn)
+    configure_sqlite_connection(con)
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+  }
+
+  content <- get_document_content(document_id, con)
+  if (is.na(content)) {
+    stop("No OCR content found for document ID: ", document_id)
+  }
+  pages <- jsonlite::fromJSON(content, simplifyVector = FALSE)
+  if (!all(purrr::map_lgl(pages, function(page) is.character(page$markdown)))) {
+    stop("OCR content for document ID ", document_id, " has no page markdown ",
+         "(its OCR provider stores structured page fields instead)")
+  }
+  markdown <- purrr::map_chr(pages, "markdown")
+  if (!embed_images) return(markdown)
+
+  ocr_images <- DBI::dbGetQuery(con,
+    "SELECT ocr_images FROM documents WHERE document_id = ?",
+    params = list(document_id))$ocr_images[1]
+  page_images <- if (is.na(ocr_images) || !nzchar(ocr_images)) {
+    list()
+  } else {
+    jsonlite::fromJSON(ocr_images, simplifyVector = FALSE)$pages
+  }
+
+  purrr::imap_chr(markdown, function(page_markdown, i) {
+    images <- if (i <= length(page_images)) page_images[[i]]$images else list()
+    embed_page_images(page_markdown, images)
+  })
+}
+
+#' Embed a page's OCR images in its markdown (internal)
+#'
+#' Replaces each markdown image placeholder \code{![alt](src)} with an
+#' \code{<img>} tag when an image with \code{id == src} is stored for the page,
+#' and with the alt text (or the source, if the alt text is empty) otherwise.
+#' Image numbering restarts on every page, so this works on one page at a time.
+#'
+#' @param markdown Markdown text of one page
+#' @param images List of the page's stored images, each with \code{id} and
+#'   \code{image_base64}
+#' @return Markdown with images embedded
+#' @keywords internal
+embed_page_images <- function(markdown, images) {
+  base64_by_id <- purrr::set_names(
+    purrr::map_chr(images, "image_base64"),
+    purrr::map_chr(images, "id")
+  )
+  placeholder <- "!\\[([^\\]]*)\\]\\(([^)]*)\\)"
+  stringr::str_replace_all(markdown, placeholder, function(match) {
+    parts <- stringr::str_match(match, placeholder)
+    alt <- parts[, 2]
+    src <- parts[, 3]
+    purrr::map_chr(seq_along(match), function(j) {
+      if (src[j] %in% names(base64_by_id)) {
+        data_uri <- base64_by_id[[src[j]]]
+        if (!startsWith(data_uri, "data:")) data_uri <- paste0("data:image/jpeg;base64,", data_uri)
+        sprintf('<img src="%s" alt="%s" style="max-width: 100%%; height: auto;" />',
+                data_uri, htmltools::htmlEscape(alt[j], attribute = TRUE))
+      } else if (nzchar(alt[j])) {
+        alt[j]
+      } else {
+        src[j]
+      }
+    })
+  })
+}
+
 #' Get OCR HTML Preview
 #'
 #' Render OCR results as HTML with embedded images
@@ -94,7 +191,7 @@ get_ocr_html_preview <- function(document_id, db_conn = "ecoextract_records.db",
 
   # If no images, just render markdown
   if (is.null(result$ocr_images) || result$ocr_images == "" || is.na(result$ocr_images)) {
-    html_content <- markdown::mark_html(markdown_content)
+    html_content <- markdown::mark_html(text = markdown_content)
     styled_html <- sprintf(
       '<div style="font-family: sans-serif; max-width: 900px; margin: 20px auto; padding: 20px; line-height: 1.6;">
         <style>
@@ -115,14 +212,13 @@ get_ocr_html_preview <- function(document_id, db_conn = "ecoextract_records.db",
     return(htmltools::browsable(htmltools::HTML(styled_html)))
   }
 
-  # Parse images JSON
-  images_data <- jsonlite::fromJSON(result$ocr_images, simplifyVector = FALSE)
-
-  # Process markdown to embed images
-  processed_markdown <- embed_images_in_markdown(markdown_content, images_data, page_num)
+  # Embed each page's images in that page's markdown
+  pages <- get_ocr_pages(document_id, con, embed_images = TRUE)
+  if (page_num != "all") pages <- pages[page_num]
+  processed_markdown <- paste(pages, collapse = "\n\n")
 
   # Convert to HTML
-  html_content <- markdown::mark_html(processed_markdown)
+  html_content <- markdown::mark_html(text = processed_markdown)
 
   # Wrap in styled div
   styled_html <- sprintf(
@@ -141,96 +237,6 @@ get_ocr_html_preview <- function(document_id, db_conn = "ecoextract_records.db",
   )
 
   return(htmltools::browsable(htmltools::HTML(styled_html)))
-}
-
-#' Embed Images in Markdown (Internal Helper)
-#'
-#' Replace markdown image bibliography with HTML img tags containing base64 data
-#'
-#' @param markdown_text Markdown text
-#' @param images_data Parsed images JSON object
-#' @param page_num Page number to process (default: 1, "all" for all pages)
-#' @return Processed markdown with embedded images
-#' @keywords internal
-embed_images_in_markdown <- function(markdown_text, images_data, page_num = 1) {
-  if (is.null(images_data$pages) || length(images_data$pages) == 0) {
-    return(markdown_text)
-  }
-
-  processed_text <- markdown_text
-
-  # Process each page
-  for (page_idx in seq_along(images_data$pages)) {
-    # Skip if not the requested page (unless page_num == "all")
-    if (page_num != "all" && page_idx != page_num) {
-      next
-    }
-
-    page_data <- images_data$pages[[page_idx]]
-
-    if (is.null(page_data$images) || length(page_data$images) == 0) {
-      next
-    }
-
-    # Process each image in the page
-    for (i in seq_along(page_data$images)) {
-      image_data <- page_data$images[[i]]
-
-      # Get the base64 string
-      base64_string <- image_data$image_base64
-
-      # Ensure it has data URI prefix
-      if (grepl("^data:image/", base64_string)) {
-        data_uri <- base64_string
-      } else {
-        data_uri <- paste0("data:image/png;base64,", base64_string)
-      }
-
-      # Create HTML img tag
-      img_html <- sprintf('<img src="%s" style="max-width: 100%%; height: auto;" alt="Page %d, Image %d" />',
-                          data_uri, page_idx, i)
-
-      # Image index (0-based in Mistral's naming: img-0.jpeg, img-1.jpeg, etc.)
-      img_idx <- i - 1
-
-      # Try multiple markdown image reference patterns
-
-      # Pattern 1: ![img-{idx}.jpeg](img-{idx}.jpeg) or similar extensions
-      pattern1 <- sprintf("!\\[img-%d\\.[^]]+\\]\\(img-%d\\.[^)]+\\)", img_idx, img_idx)
-      if (grepl(pattern1, processed_text)) {
-        processed_text <- gsub(pattern1, img_html, processed_text)
-        next
-      }
-
-      # Pattern 2: ![image{i}](...) or ![image{i}]
-      pattern2 <- sprintf("!\\[image%d\\](\\([^)]*\\))?", i)
-      if (grepl(pattern2, processed_text)) {
-        processed_text <- gsub(pattern2, img_html, processed_text)
-        next
-      }
-
-      # Pattern 3: ![{i}](...) or ![{i}]
-      pattern3 <- sprintf("!\\[%d\\](\\([^)]*\\))?", i)
-      if (grepl(pattern3, processed_text)) {
-        processed_text <- gsub(pattern3, img_html, processed_text)
-        next
-      }
-
-      # Pattern 4: ![](...) - replace the i-th occurrence
-      pattern4 <- "!\\[\\]\\([^)]*\\)"
-      matches <- gregexpr(pattern4, processed_text)
-      if (matches[[1]][1] != -1 && length(matches[[1]]) >= i) {
-        match_pos <- matches[[1]][i]
-        match_len <- attr(matches[[1]], "match.length")[i]
-
-        before <- substr(processed_text, 1, match_pos - 1)
-        after <- substr(processed_text, match_pos + match_len, nchar(processed_text))
-        processed_text <- paste0(before, img_html, after)
-      }
-    }
-  }
-
-  return(processed_text)
 }
 
 #' Get Documents

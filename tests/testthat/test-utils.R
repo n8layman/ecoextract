@@ -187,7 +187,7 @@ local_fake_chat <- function(first_error, env = parent.frame()) {
   calls
 }
 
-test_that("try_models_with_fallback retries the same model after malformed JSON", {
+test_that("try_models_with_fallback retries the same model after a transient failure", {
   withr::local_envvar(ANTHROPIC_API_KEY = "unused")
   schema <- ellmer::TypeJsonSchema(
     description = "Test schema",
@@ -195,9 +195,10 @@ test_that("try_models_with_fallback retries the same model after malformed JSON"
   )
 
   # jsonlite's messages for stray markup after the object and for an
-  # unescaped quote inside a string
+  # unescaped quote inside a string, and an HTTP 500 server error
   for (first_error in c("parse error: trailing garbage",
-                        "lexical error: invalid char in json text.")) {
+                        "lexical error: invalid char in json text.",
+                        "HTTP 500 Internal Server Error.")) {
     calls <- local_fake_chat(first_error)
 
     result <- try_models_with_fallback(
@@ -263,4 +264,19 @@ test_that("try_models_with_fallback passes thinking settings to ellmer::chat", {
                            reasoning_effort = "high")
   expect_equal(captured$params$reasoning_effort, "high")
   expect_equal(captured$api_args, list())
+})
+
+test_that("try_models_with_fallback does not retry client errors", {
+  withr::local_envvar(ANTHROPIC_API_KEY = "unused")
+  schema <- ellmer::TypeJsonSchema(
+    description = "Test schema",
+    json = list(type = "object", properties = list(answer = list(type = "string")))
+  )
+  calls <- local_fake_chat("HTTP 400 Bad Request.")
+
+  expect_error(
+    try_models_with_fallback("anthropic/claude-sonnet-5", "system", "input", schema),
+    "HTTP 400"
+  )
+  expect_equal(calls$n, 1)
 })

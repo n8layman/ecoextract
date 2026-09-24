@@ -485,7 +485,8 @@ llm_api_args <- function(model, reasoning_effort = NULL) {
 #' @param schema ellmer type schema for structured output (turn 2 in two-turn mode)
 #' @param max_tokens Maximum tokens for response (default 64000)
 #' @param max_retries Maximum retry attempts per model for stochastic failures
-#'   (empty reasoning or unparseable JSON) (default 2)
+#'   (empty reasoning, unparseable JSON, or an HTTP 500-504 server error)
+#'   (default 2)
 #' @param step_name Name of the step for logging (default "LLM call")
 #' @param reasoning_effort Thinking effort passed to \code{ellmer::params()}
 #'   (e.g. "low", "medium", "high"). NULL (default) turns thinking off: Claude
@@ -707,10 +708,13 @@ try_models_with_fallback <- function(
     # If error was stored, check if retryable. Empty reasoning and malformed
     # JSON are stochastic. jsonlite reports malformed JSON as "parse error"
     # (e.g. stray markup after the object) or "lexical error" (e.g. an
-    # unescaped quote inside a string). Content refusals can also surface as
-    # parse errors and are not retried.
+    # unescaped quote inside a string). Server errors (HTTP 500-504) are
+    # transient; ellmer already retries 429, 503, and 529 itself, but not 500,
+    # 502, or 504. Content refusals can also surface as parse errors and are
+    # not retried.
     if (!is.null(errors[[model]]) && attempt < max_retries) {
-      is_retryable <- grepl("empty/missing reasoning|parse error|lexical error", errors[[model]]$error) &&
+      is_retryable <- grepl("empty/missing reasoning|parse error|lexical error|HTTP 50[0-4]",
+                            errors[[model]]$error) &&
         !errors[[model]]$refusal
       if (is_retryable) next
     }
