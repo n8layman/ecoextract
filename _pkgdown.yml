@@ -69,6 +69,7 @@ reference:
       - get_documents
       - get_records
       - get_ocr_markdown
+      - get_ocr_pages
       - get_ocr_html_preview
       - get_db_stats
       - export_db
