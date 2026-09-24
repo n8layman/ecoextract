@@ -79,6 +79,12 @@ validate_force_param <- function(param, param_name) {
 #'   other providers use their model default. Set an effort level such as
 #'   "low", "medium", or "high" to turn thinking on. Thinking tokens are billed
 #'   as output and are counted in the \code{<step>_output_tokens} columns.
+#' @param coalesce_metadata How metadata results are saved. NULL (default)
+#'   replaces the stored metadata on a forced re-run
+#'   (\code{force_reprocess_metadata}), writing empty results as empty, and
+#'   otherwise only fills fields that are still empty. TRUE always fills only
+#'   empty fields; FALSE always replaces. Fields a reviewer edited through
+#'   \code{save_document()} are never overwritten by a model run.
 #' @param force_reprocess_ocr Controls OCR reprocessing. NULL (default) uses normal skip logic,
 #'   TRUE forces all documents, or an integer vector of document_ids to force specific documents.
 #' @param force_reprocess_metadata Controls metadata reprocessing. NULL (default) uses normal skip logic,
@@ -194,6 +200,7 @@ process_documents <- function(pdf_path = NULL,
                              metadata_prompt_file = NULL,
                              model = "anthropic/claude-sonnet-5",
                              reasoning_effort = NULL,
+                             coalesce_metadata = NULL,
                              ocr_provider = "mistral",
                              ocr_timeout = 300,
                              force_reprocess_ocr = NULL,
@@ -357,15 +364,17 @@ process_documents <- function(pdf_path = NULL,
     }
   }
 
-  # Add columns for custom metadata fields and token usage to an existing
-  # database here, before any parallel workers start, so workers never race to alter the table
+  # Add columns for custom metadata fields and token usage, and the metadata
+  # edit log, to an existing database here, before any parallel workers start, so workers never race to alter the table
   if (inherits(db_conn, "DBIConnection")) {
     add_metadata_columns(db_conn, metadata_schema_list)
     add_usage_columns(db_conn)
+    add_document_edits_table(db_conn)
   } else {
     setup_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
     add_metadata_columns(setup_conn, metadata_schema_list)
     add_usage_columns(setup_conn)
+    add_document_edits_table(setup_conn)
     DBI::dbDisconnect(setup_conn)
   }
 
@@ -480,6 +489,7 @@ process_documents <- function(pdf_path = NULL,
                     metadata_prompt_file = metadata_prompt_file,
                     model = model,
                     reasoning_effort = reasoning_effort,
+                    coalesce_metadata = coalesce_metadata,
                     ocr_provider = ocr_provider,
                     ocr_timeout = ocr_timeout,
                     force_reprocess_ocr = force_reprocess_ocr,
@@ -515,6 +525,7 @@ process_documents <- function(pdf_path = NULL,
                 metadata_prompt_file = metadata_prompt_file,
                 model = model,
                 reasoning_effort = reasoning_effort,
+                coalesce_metadata = coalesce_metadata,
                 ocr_provider = ocr_provider,
                 ocr_timeout = ocr_timeout,
                 force_reprocess_ocr = force_reprocess_ocr,
@@ -542,6 +553,7 @@ process_documents <- function(pdf_path = NULL,
           metadata_prompt_file = metadata_prompt_file,
           model = model,
           reasoning_effort = reasoning_effort,
+          coalesce_metadata = coalesce_metadata,
           ocr_provider = ocr_provider,
           ocr_timeout = ocr_timeout,
           force_reprocess_ocr = force_reprocess_ocr,
@@ -688,6 +700,7 @@ process_documents <- function(pdf_path = NULL,
         metadata_prompt_file = metadata_prompt_file,
         model = model,
         reasoning_effort = reasoning_effort,
+        coalesce_metadata = coalesce_metadata,
         ocr_provider = ocr_provider,
         ocr_timeout = ocr_timeout,
         force_reprocess_ocr = force_reprocess_ocr,
@@ -784,6 +797,8 @@ process_documents <- function(pdf_path = NULL,
 #'   Can be a single model name or a vector of models for tiered fallback. Default: "anthropic/claude-sonnet-5"
 #' @param reasoning_effort Thinking effort for every LLM step, or NULL (default)
 #'   for thinking off. See \code{process_documents()}.
+#' @param coalesce_metadata How metadata results are saved: NULL (default),
+#'   TRUE, or FALSE. See \code{process_documents()}.
 #' @param ocr_provider OCR provider(s) to use (default: "mistral"). Accepts a character
 #'   vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first
 #'   and falls back to mistral on failure. Options: "tensorlake", "mistral", "claude"
@@ -817,6 +832,7 @@ process_single_document <- function(pdf_file,
                                     metadata_prompt_file = NULL,
                                     model = "anthropic/claude-sonnet-5",
                                     reasoning_effort = NULL,
+                                    coalesce_metadata = NULL,
                                     ocr_provider = "mistral",
                                     ocr_timeout = 300,
                                     force_reprocess_ocr = NULL,
@@ -850,11 +866,13 @@ process_single_document <- function(pdf_file,
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
-  # Ensure columns exist for custom metadata fields and token usage (no-op when
-  # called from process_documents(), which adds them before dispatching documents)
+  # Ensure columns exist for custom metadata fields and token usage, and the
+  # metadata edit log (no-op when called from process_documents(), which adds
+  # them before dispatching documents)
   metadata_schema_list <- load_metadata_schema(metadata_schema_file)
   add_metadata_columns(db_conn, metadata_schema_list)
   add_usage_columns(db_conn)
+  add_document_edits_table(db_conn)
   metadata_fields <- names(get_metadata_fields(metadata_schema_list))
 
   # Initialize status tracking with filename only (all start as 'skipped')
@@ -1031,6 +1049,9 @@ process_single_document <- function(pdf_file,
         db_conn = db_conn,
         model = model,
         reasoning_effort = reasoning_effort,
+        # A forced re-run replaces the metadata; other runs only fill gaps
+        coalesce_metadata = rlang::`%||%`(coalesce_metadata,
+                                          !is_forced(force_reprocess_metadata, doc_id)),
         metadata_schema_file = metadata_schema_file,
         metadata_prompt_file = metadata_prompt_file
       )

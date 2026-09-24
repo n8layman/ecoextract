@@ -205,6 +205,7 @@ init_ecoextract_database <- function(db_conn = "ecoextract_results.sqlite", sche
     # Add a column for each metadata schema field
     add_metadata_columns(con, load_metadata_schema(metadata_schema_file))
     add_usage_columns(con)
+    add_document_edits_table(con)
 
     # Load schema using priority order (explicit > project ecoextract/ > wd > package)
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
@@ -524,6 +525,9 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
       if (nrow(existing) > 0) {
         doc_id_inner <- existing$document_id[1]
         DBI::dbExecute(db_conn, "DELETE FROM records WHERE document_id = ?", params = list(doc_id_inner))
+        # The re-created row starts without metadata, so earlier reviewer edits
+        # no longer apply and must not block the new metadata run
+        DBI::dbExecute(db_conn, "DELETE FROM document_edits WHERE document_id = ?", params = list(doc_id_inner))
         DBI::dbExecute(db_conn, "DELETE FROM documents WHERE document_id = ?", params = list(doc_id_inner))
       }
     }
@@ -558,18 +562,26 @@ save_document_to_db <- function(db_conn, file_path, file_hash = NULL, metadata =
   return(doc_id)
 }
 
-#' Save publication metadata to EcoExtract database (internal)
-#' 
-#' Updates existing document metadata fields that are currently NULL/NA/empty.
-#' Optionally overwrites all metadata if `overwrite = TRUE`.
-#' 
+#' Save document metadata to EcoExtract database (internal)
+#'
+#' Writes a metadata extraction result to the document's row. With
+#' \code{coalesce = TRUE}, only fields that are currently empty are filled and
+#' existing values are kept. With \code{coalesce = FALSE}, every field is written
+#' exactly as given, NULLs included, so an empty result clears the field.
+#' Fields a reviewer edited (listed in \code{document_edits}) are never written,
+#' whichever mode is used.
+#'
 #' @param document_id Document ID to update
 #' @param db_conn Database connection or path to SQLite database
 #' @param metadata Named list with metadata fields
-#' @param overwrite Logical, if TRUE will overwrite all existing fields
+#' @param metadata_llm_model Model that produced the metadata
+#' @param metadata_log JSON audit log of failed attempts
+#' @param coalesce Logical. TRUE (default) fills empty fields and keeps existing
+#'   values; FALSE replaces every field, including with NULL.
 #' @return Document ID
 #' @keywords internal
-save_metadata_to_db <- function(document_id, db_conn, metadata = list(), metadata_llm_model = NULL, metadata_log = NULL, overwrite = FALSE) {
+save_metadata_to_db <- function(document_id, db_conn, metadata = list(), metadata_llm_model = NULL,
+                                metadata_log = NULL, coalesce = TRUE) {
 
   # Safe null/NA coalescing
   `%||NA%` <- function(x, y) {
@@ -586,57 +598,33 @@ save_metadata_to_db <- function(document_id, db_conn, metadata = list(), metadat
   }
 
   # Ensure document exists
-  existing <- DBI::dbGetQuery(con, "SELECT * FROM documents WHERE document_id = ?", params = list(document_id))
+  existing <- DBI::dbGetQuery(con, "SELECT document_id FROM documents WHERE document_id = ?",
+                              params = list(document_id))
   if (nrow(existing) == 0) stop("Document ID ", document_id, " not found")
 
-   # Handle overwrite: drop existing row by hash if requested
-  if (overwrite) {
-      DBI::dbExecute(con, "DELETE FROM records WHERE document_id = ?", params = list(document_id))
-      DBI::dbExecute(con, "DELETE FROM documents WHERE document_id = ?", params = list(document_id))
-    }
+  # Fields a reviewer edited are never overwritten by a model run
+  edited <- DBI::dbGetQuery(con,
+    "SELECT DISTINCT column_name FROM document_edits WHERE document_id = ?",
+    params = list(document_id))$column_name
+  metadata <- metadata[setdiff(names(metadata), edited)]
 
-  # Metadata columns are the fields passed in (defined by the metadata schema)
-  meta_keys <- DBI::dbQuoteIdentifier(con, names(metadata))
-  metadata_complete <- unname(purrr::map(metadata, function(value) value %||NA% NA))
-
-  # Add metadata_llm_model and metadata_log to the update
-  params <- c(metadata_complete, metadata_llm_model %||NA% NA, metadata_log %||NA% NA, document_id)
-
-  # Build the SET clause dynamically
-  meta_set <- glue::glue_collapse(
-    if (overwrite) {
-      glue::glue("{meta_keys} = ?")
-    } else {
-      glue::glue("{meta_keys} = COALESCE(?, {meta_keys})")
-    },
-    sep = ", "
+  columns <- c(names(metadata), "metadata_llm_model", "metadata_log")
+  values <- c(
+    unname(purrr::map(metadata, function(value) value %||NA% NA)),
+    list(metadata_llm_model %||NA% NA, metadata_log %||NA% NA)
   )
-
-  # Add metadata_llm_model and metadata_log to SET clause
-  llm_model_set <- if (overwrite) {
-    "metadata_llm_model = ?"
+  keys <- DBI::dbQuoteIdentifier(con, columns)
+  set_clause <- if (coalesce) {
+    paste0(keys, " = COALESCE(?, ", keys, ")", collapse = ", ")
   } else {
-    "metadata_llm_model = COALESCE(?, metadata_llm_model)"
+    paste0(keys, " = ?", collapse = ", ")
   }
-
-  llm_log_set <- if (overwrite) {
-    "metadata_log = ?"
-  } else {
-    "metadata_log = COALESCE(?, metadata_log)"
-  }
-
-  set_clause <- paste(meta_set, llm_model_set, llm_log_set, sep = ", ")
-
-  # Build full SQL
-  sql <- glue::glue("
-    UPDATE documents
-    SET {set_clause}
-    WHERE document_id = ?
-  ")
 
   # Execute query with retry logic for parallel processing
   retry_db_operation({
-    DBI::dbExecute(con, sql, params = params)
+    DBI::dbExecute(con,
+      paste("UPDATE documents SET", set_clause, "WHERE document_id = ?"),
+      params = c(values, list(document_id)))
   })
 
   return(document_id)
@@ -1332,6 +1320,31 @@ add_metadata_columns <- function(con, schema_list) {
       json_type_to_sql(json_property_type(field_spec))
     ))
   })
+  invisible(NULL)
+}
+
+#' Add the document_edits audit table (internal)
+#'
+#' Records each document field a reviewer changes in \code{save_document()},
+#' the way \code{record_edits} does for records. Model runs never overwrite a
+#' field listed here (see \code{save_metadata_to_db()}). Safe to run on any
+#' database; creates the table only if it is missing.
+#'
+#' @param con Database connection
+#' @return NULL (invisibly)
+#' @keywords internal
+add_document_edits_table <- function(con) {
+  DBI::dbExecute(con, "
+    CREATE TABLE IF NOT EXISTS document_edits (
+      id TEXT PRIMARY KEY,
+      document_id INTEGER NOT NULL,
+      column_name TEXT NOT NULL,
+      original_value TEXT,
+      edited_at TEXT NOT NULL,
+      FOREIGN KEY (document_id) REFERENCES documents (document_id)
+    )
+  ")
+  DBI::dbExecute(con, "CREATE INDEX IF NOT EXISTS idx_document_edits_document ON document_edits (document_id)")
   invisible(NULL)
 }
 

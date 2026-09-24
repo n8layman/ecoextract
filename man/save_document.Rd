@@ -27,7 +27,9 @@ only updates reviewed_at timestamp without modifying records.}
 \code{x-record-id-fields} determine IDs for records added during review.
 Defaults to \code{ecoextract/metadata_schema.json} or the package default.}
 
-\item{...}{Additional metadata fields to update on the document}
+\item{...}{Additional metadata fields to update on the document. Fields
+whose value changes are logged in the \code{document_edits} table, and
+later metadata runs leave them unchanged.}
 }
 \value{
 Invisibly returns the document_id

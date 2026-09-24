@@ -205,6 +205,94 @@ test_that("save_metadata_to_db keeps existing values when new value is missing",
   expect_equal(doc$doc_number, 7L)
 })
 
+test_that("save_metadata_to_db with coalesce = FALSE replaces every field, clearing empty ones", {
+  local_custom_metadata_schema()
+  db_path <- local_test_db()
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+
+  save_metadata_to_db(doc_id, db_path,
+    metadata = list(doc_code = "A-1", doc_number = 42L),
+    metadata_llm_model = "old-model", metadata_log = "old errors")
+  save_metadata_to_db(doc_id, db_path,
+    metadata = list(doc_code = NULL, doc_number = 7L),
+    metadata_llm_model = "new-model", metadata_log = NULL, coalesce = FALSE)
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  doc <- DBI::dbGetQuery(con,
+    "SELECT doc_code, doc_number, metadata_llm_model, metadata_log FROM documents WHERE document_id = ?",
+    params = list(doc_id))
+
+  expect_true(is.na(doc$doc_code))
+  expect_equal(doc$doc_number, 7L)
+  expect_equal(doc$metadata_llm_model, "new-model")
+  expect_true(is.na(doc$metadata_log))
+  expect_equal(nrow(DBI::dbReadTable(con, "documents")), 1)
+})
+
+test_that("save_metadata_to_db never overwrites reviewer-edited fields", {
+  local_custom_metadata_schema()
+  db_path <- local_test_db()
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+  save_metadata_to_db(doc_id, db_path, metadata = list(doc_code = "A-1", doc_number = 42L))
+
+  # Reviewer corrects doc_code
+  save_document(doc_id, tibble::tibble(), db_conn = db_path, doc_code = "A-2")
+
+  for (coalesce in c(TRUE, FALSE)) {
+    save_metadata_to_db(doc_id, db_path,
+      metadata = list(doc_code = "MODEL", doc_number = 7L), coalesce = coalesce)
+  }
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  doc <- DBI::dbGetQuery(con,
+    "SELECT doc_code, doc_number FROM documents WHERE document_id = ?",
+    params = list(doc_id))
+
+  expect_equal(doc$doc_code, "A-2")
+  expect_equal(doc$doc_number, 7L)
+})
+
+test_that("save_document logs only fields whose value changed", {
+  local_custom_metadata_schema()
+  db_path <- local_test_db()
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+  save_metadata_to_db(doc_id, db_path, metadata = list(doc_code = "A-1", doc_number = 42L))
+
+  # doc_number unchanged, doc_tags empty over missing, doc_code changed
+  save_document(doc_id, tibble::tibble(), db_conn = db_path,
+                doc_code = "A-2", doc_number = 42L, doc_tags = "")
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  edits <- DBI::dbReadTable(con, "document_edits")
+
+  expect_equal(edits$column_name, "doc_code")
+  expect_equal(edits$original_value, "A-1")
+  expect_equal(edits$document_id, doc_id)
+})
+
+test_that("re-creating a document for OCR clears its metadata edits", {
+  db_path <- local_test_db()
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+  save_document(doc_id, tibble::tibble(), db_conn = db_path, title = "Reviewed title")
+
+  save_document_to_db(db_path, test_file, overwrite = TRUE, document_id = doc_id)
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  expect_equal(nrow(DBI::dbReadTable(con, "document_edits")), 0)
+})
+
 # Workflow ---------------------------------------------------------------------
 
 #' Save a document that has completed OCR, so the workflow starts at metadata
@@ -274,6 +362,31 @@ test_that("process_single_document passes reasoning_effort to the LLM steps", {
 
   expect_equal(captured$metadata, "low")
   expect_equal(captured$extraction, "low")
+})
+
+test_that("metadata replaces on a forced re-run and fills gaps otherwise", {
+  db_path <- local_test_db()
+  test_file <- local_ocr_document(db_path)
+
+  captured <- new.env()
+  local_mocked_bindings(
+    extract_metadata = function(document_id, coalesce_metadata, ...) {
+      captured$coalesce <- coalesce_metadata
+      list(status = "completed", document_id = document_id)
+    }
+  )
+
+  process_single_document(test_file, db_path, run_extraction = FALSE)
+  expect_true(captured$coalesce)
+
+  process_single_document(test_file, db_path, run_extraction = FALSE,
+                          force_reprocess_metadata = TRUE)
+  expect_false(captured$coalesce)
+
+  # Explicit setting overrides the default in either direction
+  process_single_document(test_file, db_path, run_extraction = FALSE,
+                          force_reprocess_metadata = TRUE, coalesce_metadata = TRUE)
+  expect_true(captured$coalesce)
 })
 
 # Record IDs -------------------------------------------------------------------

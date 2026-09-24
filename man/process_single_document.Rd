@@ -14,6 +14,7 @@ process_single_document(
   metadata_prompt_file = NULL,
   model = "anthropic/claude-sonnet-5",
   reasoning_effort = NULL,
+  coalesce_metadata = NULL,
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
@@ -50,6 +51,9 @@ Can be a single model name or a vector of models for tiered fallback. Default: "
 
 \item{reasoning_effort}{Thinking effort for every LLM step, or NULL (default)
 for thinking off. See \code{process_documents()}.}
+
+\item{coalesce_metadata}{How metadata results are saved: NULL (default),
+TRUE, or FALSE. See \code{process_documents()}.}
 
 \item{ocr_provider}{OCR provider(s) to use (default: "mistral"). Accepts a character
 vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first

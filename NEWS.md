@@ -1,3 +1,28 @@
+# ecoextract 0.1.25
+
+## New features
+
+* New `coalesce_metadata` argument to `process_documents()` and
+  `process_single_document()` sets how metadata results are saved. NULL
+  (default) replaces the stored metadata on a forced re-run
+  (`force_reprocess_metadata`), including clearing fields the new result
+  leaves empty, and otherwise only fills fields that are still empty. TRUE or
+  FALSE overrides this in either direction (#156).
+* Reviewer edits to document metadata are protected. `save_document()` logs
+  each metadata field whose value changes in a new `document_edits` table, and
+  later metadata runs never overwrite those fields, whatever
+  `coalesce_metadata` says. Existing databases gain the table on their next
+  run (#156).
+
+## Bug fixes
+
+* A forced metadata re-run now clears fields whose new result is empty.
+  Previously every field was saved as `COALESCE(new, old)`, so an empty result
+  kept the old value, and a clean re-run could keep an old `metadata_log`
+  (#155).
+* `save_metadata_to_db()` no longer has an `overwrite` mode that deleted the
+  document and its records before updating them (#155).
+
 # ecoextract 0.1.24
 
 ## New features

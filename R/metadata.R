@@ -13,6 +13,9 @@
 #' @param model LLM model for metadata extraction (default: "anthropic/claude-sonnet-5")
 #' @param reasoning_effort Thinking effort (e.g. "low", "high"), or NULL
 #'   (default) for thinking off. See \code{process_documents()}.
+#' @param coalesce_metadata Logical. TRUE (default) fills only empty fields and
+#'   keeps existing values; FALSE writes the result as returned, so an empty
+#'   result clears the field. Reviewer-edited fields are kept either way.
 #' @param metadata_schema_file Path to custom metadata schema JSON file (optional)
 #' @param metadata_prompt_file Path to custom metadata prompt file (optional)
 #' @return List with status ("completed"/<error message>), document_id, and
@@ -21,6 +24,7 @@
 extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
                              model = "anthropic/claude-sonnet-5",
                              reasoning_effort = NULL,
+                             coalesce_metadata = TRUE,
                              metadata_schema_file = NULL,
                              metadata_prompt_file = NULL) {
 
@@ -115,7 +119,8 @@ extract_metadata <- function(document_id, db_conn, force_reprocess = TRUE,
       db_conn = db_conn,
       metadata = metadata,
       metadata_llm_model = model_used,
-      metadata_log = error_log
+      metadata_log = error_log,
+      coalesce = coalesce_metadata
     )
 
       # Log metadata extracted to console for user. Arrays are summarized by length.

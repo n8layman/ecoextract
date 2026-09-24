@@ -363,3 +363,11 @@ test_that("save_usage_to_db writes a step's usage and NULL when no call was made
     "FROM documents WHERE document_id = ?"), params = list(doc_id))
   expect_true(all(is.na(unlist(row))))
 })
+
+test_that("new databases have the document_edits table", {
+  db_path <- local_test_db()
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  expect_true("document_edits" %in% DBI::dbListTables(con))
+})
