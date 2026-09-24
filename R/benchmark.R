@@ -99,6 +99,9 @@ scrub_pipeline_stages <- function(db_path, through) {
   configure_sqlite_connection(con)
   withr::defer(DBI::dbDisconnect(con))
 
+  # Trial databases copied from before token tracking lack the usage columns
+  add_usage_columns(con)
+
   if (through == "ocr") {
     metadata_cols <- intersect(
       names(get_metadata_fields(load_metadata_schema())),
@@ -106,7 +109,8 @@ scrub_pipeline_stages <- function(db_path, through) {
     )
     set_clause <- paste0(
       c(DBI::dbQuoteIdentifier(con, metadata_cols),
-        "metadata_status", "metadata_llm_model", "metadata_log"),
+        "metadata_status", "metadata_llm_model", "metadata_log",
+        usage_columns("metadata")),
       " = NULL", collapse = ", "
     )
     DBI::dbExecute(con, paste("UPDATE documents SET", set_clause))
@@ -116,7 +120,9 @@ scrub_pipeline_stages <- function(db_path, through) {
     DBI::dbExecute(con, "
       UPDATE documents SET
         extraction_reasoning = NULL, records_extracted = NULL,
-        extraction_status = NULL, extraction_llm_model = NULL, extraction_log = NULL
+        extraction_status = NULL, extraction_llm_model = NULL, extraction_log = NULL,
+        extraction_input_tokens = NULL, extraction_output_tokens = NULL,
+        extraction_cached_input_tokens = NULL
     ")
     DBI::dbExecute(con, "DELETE FROM records")
     DBI::dbExecute(con, "DELETE FROM record_edits")
@@ -126,7 +132,9 @@ scrub_pipeline_stages <- function(db_path, through) {
   DBI::dbExecute(con, "
     UPDATE documents SET
       refinement_reasoning = NULL, refinement_status = NULL,
-      refinement_llm_model = NULL, refinement_log = NULL
+      refinement_llm_model = NULL, refinement_log = NULL,
+      refinement_input_tokens = NULL, refinement_output_tokens = NULL,
+      refinement_cached_input_tokens = NULL
   ")
 
   # Benchmarks should not inherit human review state

@@ -350,13 +350,15 @@ process_documents <- function(pdf_path = NULL,
     }
   }
 
-  # Add columns for custom metadata fields to an existing database here, before
-  # any parallel workers start, so workers never race to alter the table
+  # Add columns for custom metadata fields and token usage to an existing
+  # database here, before any parallel workers start, so workers never race to alter the table
   if (inherits(db_conn, "DBIConnection")) {
     add_metadata_columns(db_conn, metadata_schema_list)
+    add_usage_columns(db_conn)
   } else {
     setup_conn <- DBI::dbConnect(RSQLite::SQLite(), db_path)
     add_metadata_columns(setup_conn, metadata_schema_list)
+    add_usage_columns(setup_conn)
     DBI::dbDisconnect(setup_conn)
   }
 
@@ -834,10 +836,11 @@ process_single_document <- function(pdf_file,
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
 
-  # Ensure columns exist for custom metadata fields (no-op when called from
-  # process_documents(), which adds them before dispatching documents)
+  # Ensure columns exist for custom metadata fields and token usage (no-op when
+  # called from process_documents(), which adds them before dispatching documents)
   metadata_schema_list <- load_metadata_schema(metadata_schema_file)
   add_metadata_columns(db_conn, metadata_schema_list)
+  add_usage_columns(db_conn)
   metadata_fields <- names(get_metadata_fields(metadata_schema_list))
 
   # Initialize status tracking with filename only (all start as 'skipped')
@@ -1025,13 +1028,14 @@ process_single_document <- function(pdf_file,
           params = list(doc_id))
       })
 
-      # Save metadata status to DB with retry logic
+      # Save metadata status and token usage to DB with retry logic
       tryCatch({
         retry_db_operation({
           DBI::dbExecute(db_conn,
             "UPDATE documents SET metadata_status = ? WHERE document_id = ?",
             params = list(status_tracking$metadata_status, doc_id))
         })
+        save_usage_to_db(db_conn, doc_id, "metadata", metadata_result$usage)
       }, error = function(e) {
         status_tracking$metadata_status <<- paste("Failure: Could not save status -", e$message)
       })
@@ -1070,7 +1074,7 @@ process_single_document <- function(pdf_file,
       status_tracking$extraction_status <- extraction_result$status
       status_tracking$records_extracted <- rlang::`%||%`(extraction_result$records_extracted, 0)
 
-      # Save extraction status, model, and log to DB with retry logic
+      # Save extraction status, model, log, and token usage to DB with retry logic
       tryCatch({
         extraction_log <- if (!is.null(extraction_result$error_log)) {
           extraction_result$error_log
@@ -1089,6 +1093,7 @@ process_single_document <- function(pdf_file,
             "UPDATE documents SET extraction_status = ?, extraction_llm_model = ?, extraction_log = ? WHERE document_id = ?",
             params = list(status_tracking$extraction_status, extraction_model, extraction_log, doc_id))
         })
+        save_usage_to_db(db_conn, doc_id, "extraction", extraction_result$usage)
       }, error = function(e) {
         status_tracking$extraction_status <<- paste("Failure: Could not save status -", e$message)
       })
@@ -1127,7 +1132,7 @@ process_single_document <- function(pdf_file,
       status_tracking$refinement_status <- "skipped: no records"
     }
 
-    # Save refinement status, model, and log to DB with retry logic
+    # Save refinement status, model, log, and token usage to DB with retry logic
     tryCatch({
       refinement_log <- if (exists("refinement_result") && !is.null(refinement_result$error_log)) {
         refinement_result$error_log
@@ -1146,6 +1151,9 @@ process_single_document <- function(pdf_file,
           "UPDATE documents SET refinement_status = ?, refinement_llm_model = ?, refinement_log = ? WHERE document_id = ?",
           params = list(status_tracking$refinement_status, refinement_model, refinement_log, doc_id))
       })
+      if (exists("refinement_result")) {
+        save_usage_to_db(db_conn, doc_id, "refinement", refinement_result$usage)
+      }
     }, error = function(e) {
       status_tracking$refinement_status <<- paste("Failure: Could not save status -", e$message)
     })

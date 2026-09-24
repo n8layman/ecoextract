@@ -383,6 +383,35 @@ check_api_keys_for_models <- function(models) {
   }
 }
 
+#' Token usage of a chat (internal)
+#'
+#' Sums the token counts ellmer records for each completed assistant turn.
+#' \code{input_tokens} includes tokens written to the prompt cache;
+#' \code{cached_input_tokens} are tokens read from it.
+#'
+#' @param chat An ellmer Chat object
+#' @return Named list with input_tokens, output_tokens, and cached_input_tokens
+#' @keywords internal
+chat_usage <- function(chat) {
+  tokens <- chat$get_tokens()
+  list(
+    input_tokens = sum(tokens$input),
+    output_tokens = sum(tokens$output),
+    cached_input_tokens = sum(tokens$cached_input)
+  )
+}
+
+#' Add two token usage lists (internal)
+#'
+#' @param x,y Usage lists from \code{chat_usage()}, or NULL when no call was made
+#' @return Element-wise sum, or NULL if both are NULL
+#' @keywords internal
+add_usage <- function(x, y) {
+  if (is.null(x)) return(y)
+  if (is.null(y)) return(x)
+  purrr::map2(x, y, `+`)
+}
+
 #' Try multiple LLM models with fallback on refusal
 #'
 #' Attempts to get structured output from LLMs in sequential order.
@@ -405,7 +434,11 @@ check_api_keys_for_models <- function(models) {
 #'   the turn 2 user message instructing the model to extract after reasoning.
 #'   The turn 1 result (reasoning) and turn 2 result (records) are combined into
 #'   a single list returned as \code{result}.
-#' @return List with result (structured output), model_used (which model succeeded), and error_log (JSON string of failed attempts)
+#' @return List with result (structured output), model_used (which model
+#'   succeeded), error_log (JSON string of failed attempts, each with its
+#'   token usage), and usage (token totals across every attempt, including
+#'   failed ones). When all models fail, the error condition carries
+#'   \code{error_log} and \code{usage}.
 #' @keywords internal
 try_models_with_fallback <- function(
   models,
@@ -426,9 +459,11 @@ try_models_with_fallback <- function(
   check_api_keys_for_models(models)
 
   errors <- list()
+  usage <- NULL
 
   for (model in models) {
     for (attempt in seq_len(max_retries)) {
+    chat <- NULL
     tryCatch({
       if (attempt > 1) message(sprintf("  Retry %d/%d for %s", attempt, max_retries, model))
       # Create chat instance
@@ -552,6 +587,7 @@ try_models_with_fallback <- function(
 
       # Success - return immediately with error log
       message(sprintf("%s completed successfully using %s", step_name, model))
+      usage <- add_usage(usage, chat_usage(chat))
 
       # Convert error log to JSON (NULL if no errors)
       error_log_json <- if (length(errors) > 0) {
@@ -563,10 +599,15 @@ try_models_with_fallback <- function(
       return(list(
         result = result,
         model_used = model,
-        error_log = error_log_json
+        error_log = error_log_json,
+        usage = usage
       ))
 
     }, error = function(e) {
+      # Failed attempts are billed for any turns the model completed
+      attempt_usage <- if (is.null(chat)) NULL else chat_usage(chat)
+      usage <<- add_usage(usage, attempt_usage)
+
       # Capture raw response from model
       raw_content <- NULL
       stop_reason <- NULL
@@ -600,6 +641,7 @@ try_models_with_fallback <- function(
         stop_reason = stop_reason,
         refusal = is_refusal,
         attempt = attempt,
+        usage = attempt_usage,
         timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       )
     })
@@ -630,5 +672,6 @@ try_models_with_fallback <- function(
 
   cnd <- simpleError(error_summary)
   cnd$error_log <- error_log_json
+  cnd$usage <- usage
   stop(cnd)
 }

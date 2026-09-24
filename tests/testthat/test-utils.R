@@ -102,3 +102,39 @@ test_that("estimate_tokens handles various inputs", {
   expect_type(tokens, "double")
   expect_true(tokens > 0)
 })
+
+test_that("chat_usage sums tokens across assistant turns", {
+  chat <- ellmer::chat_anthropic(credentials = function() "unused")
+  chat$set_turns(list(
+    ellmer::UserTurn(list(ellmer::ContentText("first"))),
+    ellmer::AssistantTurn(list(ellmer::ContentText("reply")), tokens = c(100, 20, 5)),
+    ellmer::UserTurn(list(ellmer::ContentText("second"))),
+    ellmer::AssistantTurn(list(ellmer::ContentText("reply")), tokens = c(150, 30, 0))
+  ))
+
+  expect_equal(
+    chat_usage(chat),
+    list(input_tokens = 250, output_tokens = 50, cached_input_tokens = 5)
+  )
+})
+
+test_that("chat_usage returns zeros for a chat with no turns", {
+  chat <- ellmer::chat_anthropic(credentials = function() "unused")
+  expect_equal(
+    chat_usage(chat),
+    list(input_tokens = 0, output_tokens = 0, cached_input_tokens = 0)
+  )
+})
+
+test_that("add_usage sums element-wise and treats NULL as no call", {
+  x <- list(input_tokens = 10, output_tokens = 2, cached_input_tokens = 1)
+  y <- list(input_tokens = 5, output_tokens = 3, cached_input_tokens = 0)
+
+  expect_equal(
+    add_usage(x, y),
+    list(input_tokens = 15, output_tokens = 5, cached_input_tokens = 1)
+  )
+  expect_equal(add_usage(NULL, y), y)
+  expect_equal(add_usage(x, NULL), x)
+  expect_null(add_usage(NULL, NULL))
+})

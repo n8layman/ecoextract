@@ -66,10 +66,20 @@ test_that("get_record_id_fields errors for fields not in the metadata schema", {
   expect_error(get_record_id_fields(load_metadata_schema()), "not_a_field")
 })
 
-test_that("get_metadata_fields errors without publication_metadata properties", {
+test_that("metadata object can have any name", {
+  local_custom_metadata_schema(key = "shipment_metadata")
+  schema_list <- load_metadata_schema()
+
+  expect_equal(get_metadata_key(schema_list), "shipment_metadata")
+  expect_setequal(names(get_metadata_fields(schema_list)), c("doc_code", "doc_number", "doc_tags"))
+  expect_equal(get_record_id_fields(schema_list), c("doc_code", "doc_number"))
+})
+
+test_that("get_metadata_key errors unless there is exactly one metadata object", {
+  expect_error(get_metadata_key(list(properties = list())), "found: none")
   expect_error(
-    get_metadata_fields(list(properties = list())),
-    "publication_metadata"
+    get_metadata_key(list(properties = list(a = list(), b = list()))),
+    "found: a, b"
   )
 })
 
@@ -86,6 +96,33 @@ test_that("init_ecoextract_database adds custom metadata columns", {
   expect_true(all(c("doc_code", "doc_number", "doc_tags") %in% info$name))
   expect_equal(info$type[info$name == "doc_number"], "INTEGER")
   expect_equal(info$type[info$name == "doc_tags"], "TEXT")
+})
+
+test_that("custom metadata schemas do not get the default bibliographic columns", {
+  local_custom_metadata_schema()
+  db_path <- local_test_db()
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  default_fields <- names(get_metadata_fields(jsonlite::fromJSON(
+    system.file("extdata", "metadata_schema.json", package = "ecoextract"),
+    simplifyVector = FALSE
+  )))
+
+  expect_false(any(default_fields %in% DBI::dbListFields(con, "documents")))
+})
+
+test_that("the default metadata schema gives the bibliographic columns", {
+  withr::local_dir(withr::local_tempdir())  # no project ecoextract/ override
+  db_path <- local_test_db()
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  info <- DBI::dbGetQuery(con, "PRAGMA table_info(documents)")
+  default_fields <- names(get_metadata_fields(load_metadata_schema()))
+
+  expect_true(all(default_fields %in% info$name))
+  expect_equal(info$type[info$name == "publication_year"], "INTEGER")
 })
 
 test_that("init_ecoextract_database adds columns from an explicit metadata schema", {
@@ -284,4 +321,46 @@ test_that("save_records_to_db keeps record IDs that already belong to the docume
   )
   after <- DBI::dbGetQuery(con, "SELECT record_id FROM records")$record_id
   expect_setequal(after, saved$record_id)
+})
+
+# Export -----------------------------------------------------------------------
+
+test_that("export_db exports the metadata schema's fields as document columns", {
+  local_custom_metadata_schema()
+  db_path <- local_test_db()
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file)
+  save_metadata_to_db(doc_id, db_path, metadata = list(doc_code = "A-1", doc_number = 42L))
+  save_records_to_db(db_path, doc_id, sample_records(), list())
+
+  full <- export_db(db_conn = db_path)
+  expect_true(all(c("doc_code", "doc_number", "doc_tags") %in% names(full)))
+  expect_false("title" %in% names(full))
+
+  simple <- export_db(db_conn = db_path, simple = TRUE)
+  expect_equal(names(simple)[1:4], c("document_id", "file_name", "doc_code", "doc_number"))
+  expect_false("doc_tags" %in% names(simple))
+})
+
+test_that("export_db keeps documents that have no records", {
+  local_custom_metadata_schema()
+  db_path <- local_test_db()
+  with_records <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("with records", with_records)
+  no_records <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("no records", no_records)
+
+  doc_with <- save_document_to_db(db_path, with_records)
+  save_records_to_db(db_path, doc_with, sample_records(), list())
+  doc_without <- save_document_to_db(db_path, no_records)
+  save_metadata_to_db(doc_without, db_path, metadata = list(doc_code = "B-2"))
+
+  result <- export_db(db_conn = db_path)
+  empty_row <- result[result$document_id == doc_without, ]
+
+  expect_equal(nrow(result), nrow(sample_records()) + 1)
+  expect_equal(nrow(empty_row), 1)
+  expect_equal(empty_row$doc_code, "B-2")
+  expect_true(is.na(empty_row$record_id))
 })

@@ -27,7 +27,8 @@ extract_metadata(
 \item{metadata_prompt_file}{Path to custom metadata prompt file (optional)}
 }
 \value{
-List with status ("completed"/<error message>) and document_id
+List with status ("completed"/<error message>), document_id, and
+  usage (token usage across all attempts, NULL if no LLM call was made)
 }
 \description{
 Extracts document-level metadata from OCR-processed documents and saves it

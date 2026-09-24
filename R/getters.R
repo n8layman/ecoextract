@@ -359,17 +359,22 @@ get_records <- function(document_id = NULL, db_conn = "ecoextract_records.db") {
 
 #' Export Database
 #'
-#' Export records joined with document metadata
+#' Export records joined with document metadata. Every document is included:
+#' a document with no records appears as one row with empty record columns,
+#' and its \code{extraction_status} and \code{records_extracted} show whether
+#' it was processed.
 #'
 #' @param document_id Optional document ID to filter by (NULL for all documents)
 #' @param db_conn Database connection (any DBI backend) or path to SQLite
 #'   database file. Defaults to "ecoextract_records.db"
 #' @param include_ocr If TRUE, include OCR content in export (default: FALSE)
 #' @param simple If TRUE, return only minimal document columns (document_id,
-#'   file_name, first_author_lastname, publication_year) plus schema-defined
-#'   record fields, excluding record metadata like id, extraction_timestamp,
-#'   and prompt_hash (default: FALSE)
+#'   file_name, and the metadata schema's \code{x-record-id-fields}) plus
+#'   schema-defined record fields, excluding record metadata like id,
+#'   extraction_timestamp, and prompt_hash (default: FALSE)
 #' @param filename Optional path to save as CSV file (if NULL, returns tibble only)
+#' @param metadata_schema_file Path to custom metadata schema JSON file
+#'   (optional). Its fields are the document metadata columns in the export.
 #' @return Tibble with records joined to document metadata, or invisibly if saved to file
 #' @export
 #' @examples
@@ -393,7 +398,8 @@ export_db <- function(document_id = NULL,
                       db_conn = "ecoextract_records.db",
                       include_ocr = FALSE,
                       simple = FALSE,
-                      filename = NULL) {
+                      filename = NULL,
+                      metadata_schema_file = NULL) {
   # Handle database connection
   if (inherits(db_conn, "DBIConnection")) {
     con <- db_conn
@@ -416,12 +422,17 @@ export_db <- function(document_id = NULL,
       ""
     }
 
+    # Document metadata columns come from the metadata schema
+    metadata_schema <- load_metadata_schema(metadata_schema_file)
+    metadata_cols <- intersect(
+      names(get_metadata_fields(metadata_schema)),
+      DBI::dbListFields(con, "documents")
+    )
+
     # Build SELECT - curated document columns + all record columns
     select_cols <- c(
       "d.document_id", "d.file_name", "d.file_path",
-      "d.title", "d.authors", "d.first_author_lastname", "d.publication_year",
-      "d.journal", "d.volume", "d.issue", "d.pages",
-      "d.doi", "d.issn", "d.publisher", "d.bibliography",
+      paste0("d.", DBI::dbQuoteIdentifier(con, metadata_cols)),
       "d.records_extracted",
       "d.ocr_status", "d.metadata_status", "d.extraction_status", "d.refinement_status"
     )
@@ -437,8 +448,8 @@ export_db <- function(document_id = NULL,
     # Execute query with curated columns
     query <- paste0(
       "SELECT ", paste(select_cols, collapse = ", "), " ",
-      "FROM records r ",
-      "JOIN documents d ON r.document_id = d.document_id ",
+      "FROM documents d ",
+      "LEFT JOIN records r ON r.document_id = d.document_id ",
       where_clause
     )
 
@@ -451,9 +462,8 @@ export_db <- function(document_id = NULL,
       doc_cols_ordered <- c(
         # Document identification
         "document_id", "file_name", "file_path",
-        # Publication metadata
-        "title", "authors", "first_author_lastname", "publication_year",
-        "journal", "volume", "issue", "pages", "doi", "issn", "publisher", "bibliography",
+        # Document metadata (from the metadata schema)
+        metadata_cols,
         # Extraction summary and status
         "records_extracted",
         "ocr_status", "metadata_status", "extraction_status", "refinement_status"
@@ -483,8 +493,8 @@ export_db <- function(document_id = NULL,
 
     # Simple mode: minimal document columns + schema-defined record fields only
     if (simple && nrow(result) > 0) {
-      simple_doc_cols <- c("document_id", "file_name", "first_author_lastname",
-                           "publication_year")
+      simple_doc_cols <- unique(c("document_id", "file_name",
+                                  get_record_id_fields(metadata_schema)))
       record_metadata <- c("id", "document_id", "extraction_timestamp",
                            "prompt_hash", "fields_changed_count",
                            "human_edited", "deleted_by_user")

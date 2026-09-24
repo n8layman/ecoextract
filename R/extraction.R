@@ -47,6 +47,17 @@ extract_records <- function(document_id = NA,
   }
 
   model_used <- NULL  # Initialize so error handler can always reference it
+
+  # Track across reps — use env to avoid <<- scoping issues in tryCatch.
+  # Created before tryCatch so the error handler can report token usage.
+  track <- new.env(parent = emptyenv())
+  track$models_used <- character(0)
+  track$error_log <- NA_character_
+  track$reasoning_text <- NULL
+  track$status <- "completed"
+  track$records_count <- 0
+  track$usage <- NULL
+
   tryCatch({
     # Load schema JSON and convert to ellmer TypeJsonSchema
     schema_path <- load_config_file(schema_file, "schema.json", "extdata", return_content = FALSE)
@@ -72,14 +83,7 @@ extract_records <- function(document_id = NA,
       .null = "0"
     ), "\n")
 
-    # Track across reps — use env to avoid <<- scoping issues in tryCatch
     has_db <- !is.na(document_id) && !inherits(db_conn, "logical")
-    track <- new.env(parent = emptyenv())
-    track$models_used <- character(0)
-    track$error_log <- NA_character_
-    track$reasoning_text <- NULL
-    track$status <- "completed"
-    track$records_count <- 0
     reps <- as.integer(reps)
 
     for (rep in seq_len(reps)) {
@@ -100,6 +104,7 @@ extract_records <- function(document_id = NA,
         extract_result <- llm_result$result
         track$models_used <- c(track$models_used, llm_result$model_used)
         track$error_log <- llm_result$error_log
+        track$usage <- add_usage(track$usage, llm_result$usage)
 
         # Save reasoning on first rep only
         if (rep == 1) {
@@ -154,6 +159,7 @@ extract_records <- function(document_id = NA,
               model = model
             )
 
+            track$usage <- add_usage(track$usage, dedup_result$usage)
             unique_records <- dedup_result$unique_records
             if (nrow(unique_records) > 0) {
               save_records_to_db(
@@ -186,6 +192,7 @@ extract_records <- function(document_id = NA,
         err_msg <- e$message
         message(sprintf("  Extraction rep %d failed: %s", rep, err_msg))
         track$status <- paste("Extraction failed:", err_msg)
+        track$usage <- add_usage(track$usage, e$usage)
         track$error_log <- if (is.na(track$error_log)) err_msg else paste(track$error_log, err_msg, sep = "; ")
         if (rep == 1 && length(track$models_used) == 0) {
           stop(e)
@@ -271,7 +278,8 @@ extract_records <- function(document_id = NA,
         document_id = if (!is.na(document_id)) document_id else NA,
         raw_llm_response = extract_result,  # Include raw LLM response
         error_log = error_log,  # Include error log for audit
-        model_used = model_used  # Model that succeeded
+        model_used = model_used,  # Model that succeeded
+        usage = track$usage  # Token usage across reps, retries, and deduplication
       ))
     } else {
       return(list(
@@ -280,7 +288,8 @@ extract_records <- function(document_id = NA,
         document_id = if (!is.na(document_id)) document_id else NA,
         raw_llm_response = extract_result,  # Include raw LLM response
         error_log = error_log,  # Include error log for audit
-        model_used = model_used  # Model that succeeded
+        model_used = model_used,  # Model that succeeded
+        usage = track$usage  # Token usage across reps, retries, and deduplication
       ))
     }
   }, error = function(e) {
@@ -305,7 +314,8 @@ extract_records <- function(document_id = NA,
       document_id = if (!is.na(document_id)) document_id else NA,
       raw_llm_response = NULL,  # No response on error
       error_log = e$error_log %||% NA_character_,
-      model_used = model_used  # Preserve model even on error
+      model_used = model_used,  # Preserve model even on error
+      usage = track$usage
     ))
   })
 }

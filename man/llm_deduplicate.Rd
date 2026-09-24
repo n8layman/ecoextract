@@ -21,7 +21,8 @@ llm_deduplicate(
 \item{model}{LLM model (default: "anthropic/claude-sonnet-5")}
 }
 \value{
-Integer vector of 1-based indices of unique new records
+List with unique_indices (integer vector of 1-based indices of
+  unique new records) and usage (token usage of the LLM call)
 }
 \description{
 Compare new records against existing records using an LLM.

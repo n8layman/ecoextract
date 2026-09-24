@@ -53,6 +53,13 @@ test_that("full pipeline from PDF to database", {
 
   expect_equal(nrow(docs), 1)
   expect_true(nrow(records) >= 0)  # Zero is valid - paper may not contain data
+
+  # Token usage recorded for each LLM step that ran (refinement is opt-in)
+  expect_gt(docs$metadata_input_tokens, 0)
+  expect_gt(docs$metadata_output_tokens, 0)
+  expect_gt(docs$extraction_input_tokens, 0)
+  expect_gt(docs$extraction_output_tokens, 0)
+  expect_true(is.na(docs$refinement_input_tokens))
 })
 
 test_that("extraction rediscovers physically deleted records", {
@@ -200,6 +207,12 @@ test_that("API failures are captured in status columns, not thrown", {
     result$metadata_status[1] != "completed" || result$extraction_status[1] != "completed"
   expect_true(audit_or_extraction_has_error,
               info = "Document audit or extraction should fail with bad Anthropic key")
+
+  # Rejected calls are recorded as zero tokens, not left NULL
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+  docs <- DBI::dbReadTable(con, "documents")
+  expect_equal(docs$metadata_input_tokens, 0)
 })
 
 # Schema-Agnostic Pipeline ----------------------------------------------------
@@ -775,12 +788,15 @@ test_that("llm_deduplicate standalone function works", {
 
   key_fields <- c("name", "city")
 
-  unique_indices <- llm_deduplicate(
+  result <- llm_deduplicate(
     new_records = new_records,
     existing_records = existing_records,
     key_fields = key_fields,
     model = "anthropic/claude-sonnet-5"
   )
+  unique_indices <- result$unique_indices
+  expect_named(result$usage, c("input_tokens", "output_tokens", "cached_input_tokens"))
+  expect_gt(result$usage$input_tokens, 0)
 
   # First record should be detected as duplicate (J. Smith/NYC = John Smith/New York)
   # Second record is unique
@@ -812,7 +828,7 @@ test_that("llm_deduplicate accepts a model cascade vector (#118)", {
       "anthropic/claude-haiku-4-5-20251001",
       "anthropic/claude-sonnet-5"
     )
-  )
+  )$unique_indices
 
   expect_true(is.integer(unique_indices))
   # J. Smith/NYC is a duplicate; Bob Wilson/Chicago is unique

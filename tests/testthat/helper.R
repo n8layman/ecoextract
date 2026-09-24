@@ -21,9 +21,11 @@ local_test_db <- function(env = parent.frame()) {
 #' integer, one array) and changes into the project directory for the calling
 #' test. Both are undone automatically.
 #' @param id_fields Value for x-record-id-fields (NULL omits it)
+#' @param key Name of the metadata object under properties
 #' @param env Environment for cleanup (default: parent.frame())
 #' @return Path to the temporary project directory
 local_custom_metadata_schema <- function(id_fields = list("doc_code", "doc_number"),
+                                         key = "publication_metadata",
                                          env = parent.frame()) {
   project_dir <- withr::local_tempdir(.local_envir = env)
   dir.create(file.path(project_dir, "ecoextract"))
@@ -45,8 +47,8 @@ local_custom_metadata_schema <- function(id_fields = list("doc_code", "doc_numbe
 
   schema <- list(
     type = "object",
-    properties = list(publication_metadata = doc_metadata),
-    required = list("publication_metadata")
+    properties = rlang::set_names(list(doc_metadata), key),
+    required = list(key)
   )
   jsonlite::write_json(
     schema,

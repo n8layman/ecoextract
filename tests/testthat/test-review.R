@@ -87,6 +87,28 @@ test_that("save_document marks deleted records as deleted_by_user", {
   expect_false(is.na(deleted_record$deleted_by_user))
 })
 
+test_that("refine_records skips a document whose records are all protected", {
+  db_path <- local_test_db()
+
+  test_file <- withr::local_tempfile(fileext = ".pdf")
+  writeLines("test content", test_file)
+  doc_id <- save_document_to_db(db_path, test_file,
+                                metadata = list(document_content = "test content"))
+
+  save_records_to_db(db_path, doc_id, sample_records(), list())
+  original <- get_records(doc_id, db_path)
+
+  # Delete every record so all are protected from refinement
+  save_document(doc_id, original[0, , drop = FALSE], original, db_path)
+
+  result <- refine_records(db_path, doc_id)
+
+  expect_equal(result$status, "skipped")
+  expect_true(is.na(result$error_log))
+  expect_true(is.na(result$model_used))
+  expect_null(result$usage)
+})
+
 test_that("save_document without original_df only updates reviewed_at", {
   db_path <- local_test_db()
 

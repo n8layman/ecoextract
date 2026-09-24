@@ -103,9 +103,16 @@ test_that("through = 'ocr' preserves OCR and clears later stages", {
 test_that("through = 'ocr' clears custom metadata columns", {
   local_custom_metadata_schema()
   db_path <- local_test_db()
-  insert_full_document(db_path)
   con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
-  DBI::dbExecute(con, "UPDATE documents SET doc_code = 'A-1', doc_number = 42")
+  DBI::dbExecute(con, "
+    INSERT INTO documents (
+      file_name, file_path, file_hash, upload_timestamp,
+      document_content, ocr_status, doc_code, doc_number, metadata_status
+    ) VALUES (
+      'test.pdf', '/path/test.pdf', 'hash123', '2024-01-01',
+      'OCR content here', 'completed', 'A-1', 42, 'completed'
+    )
+  ")
   DBI::dbDisconnect(con)
 
   trial_dir <- withr::local_tempdir()

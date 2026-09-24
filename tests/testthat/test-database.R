@@ -313,3 +313,53 @@ test_that("migrate_ecoextract_database upgrades INTEGER ids to UUID TEXT", {
   # Re-running is a no-op
   expect_message(migrate_ecoextract_database(con), "already")
 })
+
+test_that("new databases have token usage columns for each LLM step", {
+  db_path <- local_test_db()
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  columns <- purrr::map(c("metadata", "extraction", "refinement"), usage_columns) |>
+    purrr::list_c()
+  expect_true(all(columns %in% DBI::dbListFields(con, "documents")))
+})
+
+test_that("add_usage_columns adds missing columns to an existing database", {
+  db_path <- local_test_db()
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  DBI::dbExecute(con, "ALTER TABLE documents DROP COLUMN extraction_input_tokens")
+  expect_false("extraction_input_tokens" %in% DBI::dbListFields(con, "documents"))
+
+  add_usage_columns(con)
+  expect_true("extraction_input_tokens" %in% DBI::dbListFields(con, "documents"))
+
+  # Running again is a no-op
+  expect_no_error(add_usage_columns(con))
+})
+
+test_that("save_usage_to_db writes a step's usage and NULL when no call was made", {
+  db_path <- local_test_db()
+  con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  withr::defer(DBI::dbDisconnect(con))
+
+  DBI::dbExecute(con, "
+    INSERT INTO documents (file_name, file_path, file_hash, upload_timestamp)
+    VALUES ('test.pdf', '/path/test.pdf', 'hash123', '2024-01-01')
+  ")
+  doc_id <- DBI::dbGetQuery(con, "SELECT document_id FROM documents")$document_id[1]
+
+  save_usage_to_db(con, doc_id, "extraction",
+    list(input_tokens = 1200, output_tokens = 300, cached_input_tokens = 800))
+  row <- DBI::dbGetQuery(con, paste(
+    "SELECT", paste(usage_columns("extraction"), collapse = ", "),
+    "FROM documents WHERE document_id = ?"), params = list(doc_id))
+  expect_equal(unlist(row, use.names = FALSE), c(1200, 300, 800))
+
+  save_usage_to_db(con, doc_id, "extraction", NULL)
+  row <- DBI::dbGetQuery(con, paste(
+    "SELECT", paste(usage_columns("extraction"), collapse = ", "),
+    "FROM documents WHERE document_id = ?"), params = list(doc_id))
+  expect_true(all(is.na(unlist(row))))
+})

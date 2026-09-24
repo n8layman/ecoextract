@@ -26,6 +26,9 @@ refine_records <- function(db_conn = NULL, document_id,
 
   status <- "skipped"
   records_count <- 0
+  error_log <- NA_character_
+  model_used <- NA_character_
+  usage <- NULL
 
   tryCatch({
     # Handle database connection - accept either connection object or path string
@@ -139,6 +142,7 @@ refine_records <- function(db_conn = NULL, document_id,
     refine_result <- llm_result$result
     model_used <- llm_result$model_used
     error_log <- llm_result$error_log
+    usage <- llm_result$usage
 
     # Parse if it's a JSON string
     if (is.character(refine_result)) {
@@ -306,7 +310,8 @@ refine_records <- function(db_conn = NULL, document_id,
       records_refined = records_count,
       document_id = document_id,
       error_log = error_log,  # Include error log for audit
-      model_used = model_used  # Model that succeeded
+      model_used = model_used,  # Model that succeeded
+      usage = usage  # Token usage across all attempts
     ))
   }, error = function(e) {
     status <- paste("Refinement failed:", e$message)
@@ -328,7 +333,8 @@ refine_records <- function(db_conn = NULL, document_id,
       records_refined = 0,
       document_id = document_id,
       error_log = e$error_log %||% NA_character_,
-      model_used = NA_character_  # No model used if failed before LLM call
+      model_used = NA_character_,  # No model used if failed before LLM call
+      usage = e$usage %||% usage
     ))
   })
 }
