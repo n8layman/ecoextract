@@ -208,3 +208,19 @@ test_that("reviewed_at is always cleared", {
   doc <- DBI::dbGetQuery(con, "SELECT reviewed_at FROM documents LIMIT 1")
   expect_true(is.na(doc$reviewed_at))
 })
+
+test_that("metadata edits are always cleared from trial databases", {
+  db_path <- local_test_db()
+  insert_full_document(db_path)
+  source_con <- DBI::dbConnect(RSQLite::SQLite(), db_path)
+  doc_id <- DBI::dbGetQuery(source_con, "SELECT document_id FROM documents LIMIT 1")$document_id
+  DBI::dbDisconnect(source_con)
+  save_document(doc_id, tibble::tibble(), db_conn = db_path, title = "Reviewed title")
+
+  trial_dir <- withr::local_tempdir()
+  trial_paths <- duplicate_for_trials(db_path, n = 1, through = "extraction", dir = trial_dir)
+
+  con <- DBI::dbConnect(RSQLite::SQLite(), trial_paths[1])
+  withr::defer(DBI::dbDisconnect(con))
+  expect_equal(nrow(DBI::dbReadTable(con, "document_edits")), 0)
+})

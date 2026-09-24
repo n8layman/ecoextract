@@ -591,6 +591,20 @@ diff_records <- function(original_df, records_df) {
   )
 }
 
+#' Text form of a document field value for edit comparison (internal)
+#'
+#' NULL, NA, and empty strings all mean "no value", so a reviewer saving an
+#' empty input over a missing value does not count as an edit.
+#'
+#' @param value Field value
+#' @return Character string, or NA_character_ for no value
+#' @keywords internal
+field_value_text <- function(value) {
+  if (is.null(value) || length(value) == 0 || all(is.na(value))) return(NA_character_)
+  text <- as.character(value)
+  if (identical(text, "")) NA_character_ else text
+}
+
 #' Save Document After Human Review
 #'
 #' Updates document metadata with review timestamp and saves modified records,
@@ -604,7 +618,9 @@ diff_records <- function(original_df, records_df) {
 #' @param metadata_schema_file Optional path to a metadata JSON schema file. Its
 #'   \code{x-record-id-fields} determine IDs for records added during review.
 #'   Defaults to \code{ecoextract/metadata_schema.json} or the package default.
-#' @param ... Additional metadata fields to update on the document
+#' @param ... Additional metadata fields to update on the document. Fields
+#'   whose value changes are logged in the \code{document_edits} table, and
+#'   later metadata runs leave them unchanged.
 #' @return Invisibly returns the document_id
 #' @export
 #' @examples
@@ -645,6 +661,9 @@ save_document <- function(document_id, records_df, original_df = NULL,
     stop("Document ID ", document_id, " not found")
   }
 
+  # Databases created before metadata edit tracking lack the audit table
+  add_document_edits_table(con)
+
   # Begin transaction
   DBI::dbBegin(con)
   tryCatch({
@@ -653,8 +672,25 @@ save_document <- function(document_id, records_df, original_df = NULL,
     reviewed_at <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 
     if (length(dots) > 0) {
-      # Build dynamic UPDATE for additional fields
+      # Log each field whose value the reviewer changed, so later model runs
+      # leave it alone (see save_metadata_to_db())
       field_names <- names(dots)
+      current <- DBI::dbGetQuery(con,
+        paste("SELECT", paste(DBI::dbQuoteIdentifier(con, field_names), collapse = ", "),
+              "FROM documents WHERE document_id = ?"),
+        params = list(document_id))
+      purrr::iwalk(dots, function(value, field) {
+        original <- current[[field]][1]
+        if (!identical(field_value_text(original), field_value_text(value))) {
+          DBI::dbExecute(con,
+            "INSERT INTO document_edits (id, document_id, column_name, original_value, edited_at)
+             VALUES (?, ?, ?, ?, ?)",
+            params = list(generate_uuid(), document_id, field,
+                          field_value_text(original), reviewed_at))
+        }
+      })
+
+      # Build dynamic UPDATE for additional fields
       set_clause <- paste0(field_names, " = ?", collapse = ", ")
       query <- paste0("UPDATE documents SET reviewed_at = ?, ", set_clause,
                       " WHERE document_id = ?")

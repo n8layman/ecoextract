@@ -2,7 +2,7 @@
 % Please edit documentation in R/database.R
 \name{save_metadata_to_db}
 \alias{save_metadata_to_db}
-\title{Save publication metadata to EcoExtract database (internal)}
+\title{Save document metadata to EcoExtract database (internal)}
 \usage{
 save_metadata_to_db(
   document_id,
@@ -10,7 +10,7 @@ save_metadata_to_db(
   metadata = list(),
   metadata_llm_model = NULL,
   metadata_log = NULL,
-  overwrite = FALSE
+  coalesce = TRUE
 )
 }
 \arguments{
@@ -20,13 +20,22 @@ save_metadata_to_db(
 
 \item{metadata}{Named list with metadata fields}
 
-\item{overwrite}{Logical, if TRUE will overwrite all existing fields}
+\item{metadata_llm_model}{Model that produced the metadata}
+
+\item{metadata_log}{JSON audit log of failed attempts}
+
+\item{coalesce}{Logical. TRUE (default) fills empty fields and keeps existing
+values; FALSE replaces every field, including with NULL.}
 }
 \value{
 Document ID
 }
 \description{
-Updates existing document metadata fields that are currently NULL/NA/empty.
-Optionally overwrites all metadata if `overwrite = TRUE`.
+Writes a metadata extraction result to the document's row. With
+\code{coalesce = TRUE}, only fields that are currently empty are filled and
+existing values are kept. With \code{coalesce = FALSE}, every field is written
+exactly as given, NULLs included, so an empty result clears the field.
+Fields a reviewer edited (listed in \code{document_edits}) are never written,
+whichever mode is used.
 }
 \keyword{internal}

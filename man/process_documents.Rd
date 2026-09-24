@@ -15,6 +15,7 @@ process_documents(
   metadata_prompt_file = NULL,
   model = "anthropic/claude-sonnet-5",
   reasoning_effort = NULL,
+  coalesce_metadata = NULL,
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
@@ -74,6 +75,13 @@ turns thinking off for Claude and Gemini, which is faster and cheaper;
 other providers use their model default. Set an effort level such as
 "low", "medium", or "high" to turn thinking on. Thinking tokens are billed
 as output and are counted in the \code{<step>_output_tokens} columns.}
+
+\item{coalesce_metadata}{How metadata results are saved. NULL (default)
+replaces the stored metadata on a forced re-run
+(\code{force_reprocess_metadata}), writing empty results as empty, and
+otherwise only fills fields that are still empty. TRUE always fills only
+empty fields; FALSE always replaces. Fields a reviewer edited through
+\code{save_document()} are never overwritten by a model run.}
 
 \item{ocr_provider}{OCR provider(s) to use (default: "mistral"). Accepts a character
 vector for fallback, e.g. \code{c("tensorlake", "mistral")} tries tensorlake first

@@ -99,8 +99,10 @@ scrub_pipeline_stages <- function(db_path, through) {
   configure_sqlite_connection(con)
   withr::defer(DBI::dbDisconnect(con))
 
-  # Trial databases copied from before token tracking lack the usage columns
+  # Trial databases copied from older versions lack the usage columns and the
+  # metadata edit log
   add_usage_columns(con)
+  add_document_edits_table(con)
 
   if (through == "ocr") {
     metadata_cols <- intersect(
@@ -137,8 +139,10 @@ scrub_pipeline_stages <- function(db_path, through) {
       refinement_cached_input_tokens = NULL
   ")
 
-  # Benchmarks should not inherit human review state
+  # Benchmarks should not inherit human review state, including metadata edits
+  # that would stop model runs from writing those fields
   DBI::dbExecute(con, "UPDATE documents SET reviewed_at = NULL")
+  DBI::dbExecute(con, "DELETE FROM document_edits")
 
   invisible(NULL)
 }
