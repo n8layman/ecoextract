@@ -30,6 +30,8 @@ Query and export extracted data
   : Get Records
 - [`get_ocr_markdown()`](https://n8layman.github.io/ecoextract/reference/get_ocr_markdown.md)
   : Data Access Functions
+- [`get_ocr_pages()`](https://n8layman.github.io/ecoextract/reference/get_ocr_pages.md)
+  : Get OCR Pages
 - [`get_ocr_html_preview()`](https://n8layman.github.io/ecoextract/reference/get_ocr_html_preview.md)
   : Get OCR HTML Preview
 - [`get_db_stats()`](https://n8layman.github.io/ecoextract/reference/get_db_stats.md)

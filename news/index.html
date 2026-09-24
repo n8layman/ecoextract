@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.25</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.26</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,20 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.26" id="ecoextract-0126">ecoextract 0.1.26<a class="anchor" aria-label="anchor" href="#ecoextract-0126"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-1-26">New features<a class="anchor" aria-label="anchor" href="#new-features-0-1-26"></a></h3>
+<ul><li>New <code><a href="../reference/get_ocr_pages.html">get_ocr_pages()</a></code> returns a document’s OCR markdown one page at a time, with each page’s stored images embedded as <code>&lt;img&gt;</code> tags. Viewers such as ecoreview can call it instead of re-implementing the image lookup (<a href="https://github.com/n8layman/ecoextract/issues/159" class="external-link">#159</a>).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-26">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-26"></a></h3>
+<ul><li>OCR images are matched to their placeholders by the image’s stored <code>id</code>, within each page. <code>embed_images_in_markdown()</code> matched by position, so with Mistral’s document-wide image numbering most images were left as placeholders or showed the wrong image, in <code><a href="../reference/get_ocr_html_preview.html">get_ocr_html_preview()</a></code> too. It is replaced by the internal <code><a href="../reference/embed_page_images.html">embed_page_images()</a></code>. Placeholders with no stored image become their alt text (<a href="https://github.com/n8layman/ecoextract/issues/159" class="external-link">#159</a>, <a href="https://github.com/n8layman/ecoextract/issues/160" class="external-link">#160</a>).</li>
+<li>
+<code><a href="../reference/get_ocr_html_preview.html">get_ocr_html_preview()</a></code> no longer fails on single-line markdown, which <code><a href="https://rdrr.io/pkg/markdown/man/mark.html" class="external-link">markdown::mark_html()</a></code> treated as a file path.</li>
+<li>HTTP 500-504 server errors are retried on the same model, like malformed output. ellmer already retries 429, 503, and 529, but not 500, 502, or 504, so a transient server error marked the document failed (<a href="https://github.com/n8layman/ecoextract/issues/158" class="external-link">#158</a>).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.25" id="ecoextract-0125">ecoextract 0.1.25<a class="anchor" aria-label="anchor" href="#ecoextract-0125"></a></h2>
 <div class="section level3">

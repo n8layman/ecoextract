@@ -46,7 +46,8 @@ try_models_with_fallback(
 - max_retries:
 
   Maximum retry attempts per model for stochastic failures (empty
-  reasoning or unparseable JSON) (default 2)
+  reasoning, unparseable JSON, or an HTTP 500-504 server error) (default
+  2)
 
 - step_name:
 

@@ -32,7 +32,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/diff_records.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/duplicate_for_trials.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/ecoextract-package.html</loc></url>
-<url><loc>https://n8layman.github.io/ecoextract/reference/embed_images_in_markdown.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/embed_page_images.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/export_bibtex.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/export_citations_bibtex.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/export_db.html</loc></url>
@@ -58,6 +58,7 @@
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_metadata_prompt.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_ocr_html_preview.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_ocr_markdown.html</loc></url>
+<url><loc>https://n8layman.github.io/ecoextract/reference/get_ocr_pages.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_record_columns_sql.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_record_id_fields.html</loc></url>
 <url><loc>https://n8layman.github.io/ecoextract/reference/get_record_id_prefix.html</loc></url>

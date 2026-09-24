@@ -340,6 +340,8 @@ for more.
   Query extracted records from database
 - [`get_ocr_markdown()`](https://n8layman.github.io/ecoextract/reference/get_ocr_markdown.md) -
   Get OCR markdown text for a document
+- [`get_ocr_pages()`](https://n8layman.github.io/ecoextract/reference/get_ocr_pages.md) -
+  Get OCR markdown for each page, with stored images embedded
 - [`get_ocr_html_preview()`](https://n8layman.github.io/ecoextract/reference/get_ocr_html_preview.md) -
   Render OCR output with embedded images as HTML
 - [`get_db_stats()`](https://n8layman.github.io/ecoextract/reference/get_db_stats.md) -

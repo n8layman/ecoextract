@@ -1,5 +1,37 @@
 # Changelog
 
+## ecoextract 0.1.26
+
+### New features
+
+- New
+  [`get_ocr_pages()`](https://n8layman.github.io/ecoextract/reference/get_ocr_pages.md)
+  returns a document’s OCR markdown one page at a time, with each page’s
+  stored images embedded as `<img>` tags. Viewers such as ecoreview can
+  call it instead of re-implementing the image lookup
+  ([\#159](https://github.com/n8layman/ecoextract/issues/159)).
+
+### Bug fixes
+
+- OCR images are matched to their placeholders by the image’s stored
+  `id`, within each page. `embed_images_in_markdown()` matched by
+  position, so with Mistral’s document-wide image numbering most images
+  were left as placeholders or showed the wrong image, in
+  [`get_ocr_html_preview()`](https://n8layman.github.io/ecoextract/reference/get_ocr_html_preview.md)
+  too. It is replaced by the internal
+  [`embed_page_images()`](https://n8layman.github.io/ecoextract/reference/embed_page_images.md).
+  Placeholders with no stored image become their alt text
+  ([\#159](https://github.com/n8layman/ecoextract/issues/159),
+  [\#160](https://github.com/n8layman/ecoextract/issues/160)).
+- [`get_ocr_html_preview()`](https://n8layman.github.io/ecoextract/reference/get_ocr_html_preview.md)
+  no longer fails on single-line markdown, which
+  [`markdown::mark_html()`](https://rdrr.io/pkg/markdown/man/mark.html)
+  treated as a file path.
+- HTTP 500-504 server errors are retried on the same model, like
+  malformed output. ellmer already retries 429, 503, and 529, but not
+  500, 502, or 504, so a transient server error marked the document
+  failed ([\#158](https://github.com/n8layman/ecoextract/issues/158)).
+
 ## ecoextract 0.1.25
 
 ### New features
