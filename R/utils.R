@@ -665,10 +665,12 @@ try_models_with_fallback <- function(
     })
     # If last attempt succeeded, function already returned.
     # If error was stored, check if retryable. Empty reasoning and malformed
-    # JSON (e.g. stray markup after the object) are stochastic; content
-    # refusals can also surface as parse errors and are not retried.
+    # JSON are stochastic. jsonlite reports malformed JSON as "parse error"
+    # (e.g. stray markup after the object) or "lexical error" (e.g. an
+    # unescaped quote inside a string). Content refusals can also surface as
+    # parse errors and are not retried.
     if (!is.null(errors[[model]]) && attempt < max_retries) {
-      is_retryable <- grepl("empty/missing reasoning|parse error", errors[[model]]$error) &&
+      is_retryable <- grepl("empty/missing reasoning|parse error|lexical error", errors[[model]]$error) &&
         !errors[[model]]$refusal
       if (is_retryable) next
     }
