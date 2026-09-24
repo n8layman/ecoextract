@@ -1,6 +1,6 @@
 # Changelog
 
-## ecoextract (development version)
+## ecoextract 0.1.22
 
 ### New features
 
