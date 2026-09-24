@@ -155,16 +155,18 @@ test_that("from_project_relative_path resolves stored paths from a subdirectory"
   expect_equal(from_project_relative_path("/abs/paper.pdf"), "/abs/paper.pdf")
 })
 
-test_that("try_models_with_fallback retries the same model after a parse error", {
-  withr::local_envvar(ANTHROPIC_API_KEY = "unused")
-  calls <- 0
+#' Replace ellmer::chat() with a fake whose first structured call fails
+#' with `first_error` and whose second returns list(answer = "ok")
+local_fake_chat <- function(first_error, env = parent.frame()) {
+  calls <- new.env()
+  calls$n <- 0
   local_mocked_bindings(
     chat = function(...) {
       fake <- new.env()
       fake$turns <- list()
       fake$chat_structured <- function(...) {
-        calls <<- calls + 1
-        if (calls == 1) stop("parse error: trailing garbage")
+        calls$n <- calls$n + 1
+        if (calls$n == 1) stop(first_error)
         fake$turns <- list(
           ellmer::UserTurn(list(ellmer::ContentText("input"))),
           ellmer::AssistantTurn(list(ellmer::ContentText("{}")), tokens = c(10, 5, 0))
@@ -179,21 +181,34 @@ test_that("try_models_with_fallback retries the same model after a parse error",
       }
       fake
     },
-    .package = "ellmer"
+    .package = "ellmer",
+    .env = env
   )
+  calls
+}
+
+test_that("try_models_with_fallback retries the same model after malformed JSON", {
+  withr::local_envvar(ANTHROPIC_API_KEY = "unused")
   schema <- ellmer::TypeJsonSchema(
     description = "Test schema",
     json = list(type = "object", properties = list(answer = list(type = "string")))
   )
 
-  result <- try_models_with_fallback(
-    models = "anthropic/claude-sonnet-5",
-    system_prompt = "system",
-    context = "input",
-    schema = schema
-  )
+  # jsonlite's messages for stray markup after the object and for an
+  # unescaped quote inside a string
+  for (first_error in c("parse error: trailing garbage",
+                        "lexical error: invalid char in json text.")) {
+    calls <- local_fake_chat(first_error)
 
-  expect_equal(calls, 2)
-  expect_equal(result$result$answer, "ok")
-  expect_match(result$error_log, "parse error")
+    result <- try_models_with_fallback(
+      models = "anthropic/claude-sonnet-5",
+      system_prompt = "system",
+      context = "input",
+      schema = schema
+    )
+
+    expect_equal(calls$n, 2)
+    expect_equal(result$result$answer, "ok")
+    expect_match(result$error_log, strsplit(first_error, ":")[[1]][1])
+  }
 })

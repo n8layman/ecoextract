@@ -1,3 +1,16 @@
+# ecoextract (development version)
+
+## Bug fixes
+
+* ecoextract now requires ellmer 0.5.0 or later. ellmer 0.4.x did not
+  recognize Claude 5 models as supporting native structured output, so their
+  output came back as a JSON string that failed to parse when the model's
+  text contained unescaped quotes, backslashes, or control characters.
+  On 0.5.0 the API returns a parsed object (#151).
+* The retry for malformed structured output also covers jsonlite's
+  "lexical error" messages (e.g. an unescaped quote inside a string), not
+  only "parse error" (#151).
+
 # ecoextract 0.1.22
 
 ## New features

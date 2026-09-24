@@ -22,7 +22,7 @@ Imports:
     DBI,
     digest,
     dplyr,
-    ellmer,
+    ellmer (>= 0.5.0),
     glue,
     htmltools,
     jsonlite,
