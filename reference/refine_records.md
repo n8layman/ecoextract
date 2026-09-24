@@ -13,7 +13,8 @@ refine_records(
   refinement_context_file = NULL,
   schema_file = NULL,
   metadata_schema_file = NULL,
-  model = "anthropic/claude-sonnet-5"
+  model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL
 )
 ```
 
@@ -53,6 +54,12 @@ refine_records(
 
   Provider and model in format "provider/model" (default:
   "anthropic/claude-sonnet-5")
+
+- reasoning_effort:
+
+  Thinking effort (e.g. "low", "high"), or NULL (default) for thinking
+  off. See
+  [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md).
 
 ## Value
 

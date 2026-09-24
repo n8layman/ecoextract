@@ -11,7 +11,8 @@ llm_deduplicate(
   new_records,
   existing_records,
   key_fields,
-  model = "anthropic/claude-sonnet-5"
+  model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL
 )
 ```
 
@@ -32,6 +33,11 @@ llm_deduplicate(
 - model:
 
   LLM model (default: "anthropic/claude-sonnet-5")
+
+- reasoning_effort:
+
+  Thinking effort (e.g. "low", "high"), or NULL (default) for thinking
+  off
 
 ## Value
 

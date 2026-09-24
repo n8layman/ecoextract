@@ -9,7 +9,7 @@ If a model refuses (stop_reason == "refusal") or errors, tries the next model.'>
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.23</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.24</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,7 +53,8 @@ If a model refuses (stop_reason == "refusal") or errors, tries the next model.</
 <span>  max_tokens <span class="op">=</span> <span class="fl">64000</span>,</span>
 <span>  max_retries <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  step_name <span class="op">=</span> <span class="st">"LLM call"</span>,</span>
-<span>  reasoning_prompt <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  reasoning_prompt <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  reasoning_effort <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -95,6 +96,13 @@ If a model refuses (stop_reason == "refusal") or errors, tries the next model.</
 the turn 2 user message instructing the model to extract after reasoning.
 The turn 1 result (reasoning) and turn 2 result (records) are combined into
 a single list returned as <code>result</code>.</p></dd>
+
+
+<dt id="arg-reasoning-effort">reasoning_effort<a class="anchor" aria-label="anchor" href="#arg-reasoning-effort"></a></dt>
+<dd><p>Thinking effort passed to <code><a href="https://ellmer.tidyverse.org/reference/params.html" class="external-link">ellmer::params()</a></code>
+(e.g. "low", "medium", "high"). NULL (default) turns thinking off: Claude
+gets <code>thinking: disabled</code> and Gemini gets <code>reasoning_tokens = 0</code>.
+Other providers use the model's default.</p></dd>
 
 </dl></div>
     <div class="section level2">

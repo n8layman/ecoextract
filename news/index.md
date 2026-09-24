@@ -1,5 +1,27 @@
 # Changelog
 
+## ecoextract 0.1.24
+
+### New features
+
+- New `reasoning_effort` argument to
+  [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md)
+  and
+  [`process_single_document()`](https://n8layman.github.io/ecoextract/reference/process_single_document.md)
+  controls model thinking for every LLM step (metadata, extraction,
+  refinement, and LLM deduplication). Set an effort level such as
+  `"low"`, `"medium"`, or `"high"` to turn thinking on
+  ([\#153](https://github.com/n8layman/ecoextract/issues/153)).
+
+### Breaking changes
+
+- Thinking is off by default. Since 0.1.23 (ellmer 0.5.0), Claude Sonnet
+  5 ran adaptive thinking at high effort on every call, which multiplied
+  output tokens and run time. Claude now gets `thinking: disabled`
+  unless `reasoning_effort` is set, and Gemini keeps
+  `reasoning_tokens = 0`. Other providers use their model default
+  ([\#153](https://github.com/n8layman/ecoextract/issues/153)).
+
 ## ecoextract 0.1.23
 
 ### Bug fixes

@@ -16,6 +16,7 @@ process_documents(
   metadata_schema_file = NULL,
   metadata_prompt_file = NULL,
   model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL,
   ocr_provider = "mistral",
   ocr_timeout = 300,
   force_reprocess_ocr = NULL,
@@ -93,6 +94,16 @@ process_documents(
   "anthropic/claude-sonnet-5". Examples: "openai/gpt-4.1",
   "google_gemini/gemini-2.5-flash", c("anthropic/claude-sonnet-5",
   "google_gemini/gemini-2.5-flash", "mistral/mistral-large-latest")
+
+- reasoning_effort:
+
+  How much the model thinks before answering, for every LLM step
+  (metadata, extraction, refinement, deduplication). NULL (default)
+  turns thinking off for Claude and Gemini, which is faster and cheaper;
+  other providers use their model default. Set an effort level such as
+  "low", "medium", or "high" to turn thinking on. Thinking tokens are
+  billed as output and are counted in the `<step>_output_tokens`
+  columns.
 
 - ocr_provider:
 

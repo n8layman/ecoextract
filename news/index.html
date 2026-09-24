@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ecoextract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.23</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.24</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,17 @@
       <small>Source: <a href="https://github.com/n8layman/ecoextract/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.24" id="ecoextract-0124">ecoextract 0.1.24<a class="anchor" aria-label="anchor" href="#ecoextract-0124"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-1-24">New features<a class="anchor" aria-label="anchor" href="#new-features-0-1-24"></a></h3>
+<ul><li>New <code>reasoning_effort</code> argument to <code><a href="../reference/process_documents.html">process_documents()</a></code> and <code><a href="../reference/process_single_document.html">process_single_document()</a></code> controls model thinking for every LLM step (metadata, extraction, refinement, and LLM deduplication). Set an effort level such as <code>"low"</code>, <code>"medium"</code>, or <code>"high"</code> to turn thinking on (<a href="https://github.com/n8layman/ecoextract/issues/153" class="external-link">#153</a>).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-changes-0-1-24">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-1-24"></a></h3>
+<ul><li>Thinking is off by default. Since 0.1.23 (ellmer 0.5.0), Claude Sonnet 5 ran adaptive thinking at high effort on every call, which multiplied output tokens and run time. Claude now gets <code>thinking: disabled</code> unless <code>reasoning_effort</code> is set, and Gemini keeps <code>reasoning_tokens = 0</code>. Other providers use their model default (<a href="https://github.com/n8layman/ecoextract/issues/153" class="external-link">#153</a>).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.23" id="ecoextract-0123">ecoextract 0.1.23<a class="anchor" aria-label="anchor" href="#ecoextract-0123"></a></h2>
 <div class="section level3">

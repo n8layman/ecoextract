@@ -15,6 +15,7 @@ extract_metadata(
   db_conn,
   force_reprocess = TRUE,
   model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL,
   metadata_schema_file = NULL,
   metadata_prompt_file = NULL
 )
@@ -39,6 +40,12 @@ extract_metadata(
 
   LLM model for metadata extraction (default:
   "anthropic/claude-sonnet-5")
+
+- reasoning_effort:
+
+  Thinking effort (e.g. "low", "high"), or NULL (default) for thinking
+  off. See
+  [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md).
 
 - metadata_schema_file:
 

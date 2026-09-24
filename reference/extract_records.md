@@ -15,6 +15,7 @@ extract_records(
   schema_file = NULL,
   metadata_schema_file = NULL,
   model = "anthropic/claude-sonnet-5",
+  reasoning_effort = NULL,
   min_similarity = 0.9,
   embedding_provider = "openai",
   similarity_method = "llm",
@@ -58,6 +59,12 @@ extract_records(
 
   Provider and model in format "provider/model" (default:
   "anthropic/claude-sonnet-5")
+
+- reasoning_effort:
+
+  Thinking effort (e.g. "low", "high"), or NULL (default) for thinking
+  off. See
+  [`process_documents()`](https://n8layman.github.io/ecoextract/reference/process_documents.md).
 
 - min_similarity:
 
